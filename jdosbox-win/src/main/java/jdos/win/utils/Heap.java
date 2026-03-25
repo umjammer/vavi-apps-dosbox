@@ -1,24 +1,29 @@
 package jdos.win.utils;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 public class Heap {
+
+    private static final Logger logger = System.getLogger(Heap.class.getName());
+
     static private final int SMALLEST_SIZE_FOR_SPLIT = 4;
 
-    private long start;
-    private long end;
-    private ArrayList itemsBySize = new ArrayList();
-    private ArrayList itemsByAddress = new ArrayList();
-    private Hashtable usedMemory = new Hashtable();
+    private final long start;
+    private final long end;
+    private final List<HeapItem> itemsBySize = new ArrayList<>();
+    private final List<HeapItem> itemsByAddress = new ArrayList<>();
+    private final Map<Long, HeapItem> usedMemory = new HashMap<>();
 
-    private static class HeapItem implements Comparable {
-        public int compareTo(Object o) {
-            if (((HeapItem)o).size == size)
-                return 0;
-            if (((HeapItem)o).size < size)
-                return -1;
-            return 1;
+    private static class HeapItem implements Comparable<HeapItem> {
+        @Override
+        public int compareTo(HeapItem o) {
+            return Long.compare(o.size, size);
         }
 
         public HeapItem(long address, long size) {
@@ -32,7 +37,7 @@ public class Heap {
     public Heap(long start, long end) {
         this.start = start;
         this.end = end;
-        insertItem(new HeapItem(start & 0xFFFFFFFFl, end-start));
+        insertItem(new HeapItem(start & 0xFFFF_FFFFL, end-start));
     }
 
     private int findIndexBySize(long key) {
@@ -41,8 +46,8 @@ public class Heap {
         while (lo <= hi) {
             // Key is in a[lo..hi] or not present.
             int mid = lo + (hi - lo) / 2;
-            if      (key < ((HeapItem)itemsBySize.get(mid)).size) hi = mid - 1;
-            else if (key > ((HeapItem)itemsBySize.get(mid)).size) lo = mid + 1;
+            if      (key < itemsBySize.get(mid).size) hi = mid - 1;
+            else if (key > itemsBySize.get(mid).size) lo = mid + 1;
             else return mid;
         }
         HeapItem item = getLargestItem();
@@ -57,8 +62,8 @@ public class Heap {
         while (lo <= hi) {
             // Key is in a[lo..hi] or not present.
             int mid = lo + (hi - lo) / 2;
-            if      (key < ((HeapItem)itemsByAddress.get(mid)).address) hi = mid - 1;
-            else if (key > ((HeapItem)itemsByAddress.get(mid)).address) lo = mid + 1;
+            if      (key < itemsByAddress.get(mid).address) hi = mid - 1;
+            else if (key > itemsByAddress.get(mid).address) lo = mid + 1;
             else return mid;
         }
         HeapItem item = getLastItem();
@@ -81,15 +86,15 @@ public class Heap {
     }
 
     private HeapItem getLastItem() {
-        if (itemsByAddress.size()==0)
+        if (itemsByAddress.isEmpty())
             return null;
-        return (HeapItem)itemsByAddress.get(itemsByAddress.size()-1);
+        return itemsByAddress.getLast();
     }
 
     private HeapItem getLargestItem() {
-        if (itemsBySize.size() == 0)
+        if (itemsBySize.isEmpty())
             return null;
-        return (HeapItem)itemsBySize.get(itemsBySize.size()-1);
+        return itemsBySize.getLast();
     }
 
     private void removeItem(HeapItem item) {
@@ -134,7 +139,7 @@ public class Heap {
     }
 
     public long alloc(long address, long size) {
-        address&=0xFFFFFFFFl;
+        address&= 0xFFFFFFFFL;
         int index = findIndexByAddress(address);
         if (index<0) {
             HeapItem last = getLastItem();
@@ -144,7 +149,7 @@ public class Heap {
             last.size = address - last.address;
             if (last.size != 0)
                 insertItem(last);
-            usedMemory.put(new Long(address), new HeapItem(address, size));
+            usedMemory.put(address, new HeapItem(address, size));
             if (address+size<end)
                 insertItem(new HeapItem(address+size, end-(address+size)));
         } else {
@@ -161,7 +166,7 @@ public class Heap {
             free.size-=newAddress-free.address;
             long oldAddress = free.address;
             free.address = newAddress;
-            usedMemory.put(new Long(address), new HeapItem(address, size));
+            usedMemory.put(address, new HeapItem(address, size));
             if (oldAddress<address && oldAddress>=start) {
                 insertItem(new HeapItem(oldAddress, address-oldAddress));
             }
@@ -179,7 +184,7 @@ public class Heap {
         if (pageAlign) {
             boolean found = false;
             for (int i=index;i<itemsBySize.size();i++) {
-                item = (HeapItem)itemsBySize.get(i);
+                item = itemsBySize.get(i);
                 long address = item.address;
                 if ((address & 0xFFF)!=0) {
                     address+=0xFFF;
@@ -202,7 +207,7 @@ public class Heap {
                 return 0;
             }
         } else {
-            item = (HeapItem)itemsBySize.get(index);
+            item = itemsBySize.get(index);
             removeItem(item);
         }
 
@@ -212,17 +217,17 @@ public class Heap {
             insertItem(newItem);
             item.size-=newSize;
         }
-        usedMemory.put(new Long(item.address), item);
+        usedMemory.put(item.address, item);
         return item.address;
     }
 
     public void free(int p1) {
-        long p = p1 & 0xFFFFFFFFl;
+        long p = p1 & 0xFFFF_FFFFL;
         if (p == 0)
             return;
-        HeapItem item = (HeapItem)usedMemory.remove(new Long(p));
+        HeapItem item = usedMemory.remove(p);
         if (item == null) {
-            System.out.println("Heap is corrupt, tried to free 0x"+Long.toString(p, 16));
+            logger.log(Level.DEBUG,"Heap is corrupt, tried to free 0x"+Long.toHexString(p));
             System.exit(0);
         }
         int index = findIndexByAddress(p);
@@ -236,7 +241,7 @@ public class Heap {
                 }
             }
             if (index<itemsByAddress.size()) {
-                HeapItem after = (HeapItem)itemsByAddress.get(index);
+                HeapItem after = itemsByAddress.get(index);
                 if (item.address+item.size==after.address) {
                     removeItem(after);
                     after.address=item.address;

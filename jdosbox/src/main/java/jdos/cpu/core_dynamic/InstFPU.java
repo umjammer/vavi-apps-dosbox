@@ -6,64 +6,76 @@ import jdos.fpu.FPU;
 
 public class InstFPU {
     abstract static protected class FpuOpEA extends Op {
-        EaaBase get_eaa;
+        final EaaBase get_eaa;
 
         public FpuOpEA(int rm) {
             get_eaa = Mod.getEaa(rm);
         }
 
+        @Override
         public int sets() {
             return 0;
         }
 
+        @Override
         public int gets() {
             return 0;
         }
 
+        @Override
         public boolean throwsException() {
             return false;
         }
 
+        @Override
         public boolean accessesMemory() {
             return true;
         }
 
+        @Override
         public boolean usesEip() {
             return false;
         }
 
+        @Override
         public boolean setsEip() {
             return false;
         }
     }
 
     abstract static protected class FpuOpNormal extends Op {
-        int rm;
+        final int rm;
 
         public FpuOpNormal(int rm) {
             this.rm = rm;
         }
 
+        @Override
         public int sets() {
             return 0;
         }
 
+        @Override
         public int gets() {
             return 0;
         }
 
+        @Override
         public boolean throwsException() {
             return false;
         }
 
+        @Override
         public boolean accessesMemory() {
             return false;
         }
 
+        @Override
         public boolean usesEip() {
             return false;
         }
 
+        @Override
         public boolean setsEip() {
             return false;
         }
@@ -74,12 +86,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FADD_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FADD_SINGLE_REAL";
         }
@@ -90,31 +104,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FMUL_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FMUL_SINGLE_REAL";
         }
     }
 
     final static public class FCOM_SINGLE_REAL extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FCOM_SINGLE_REAL(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FCOM_SINGLE_REAL(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOM_SINGLE_REAL";
         }
@@ -125,12 +143,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUB_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUB_SINGLE_REAL";
         }
@@ -141,12 +161,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUBR_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUBR_SINGLE_REAL";
         }
@@ -157,12 +179,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIV_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIV_SINGLE_REAL";
         }
@@ -173,12 +197,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIVR_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIVR_SINGLE_REAL";
         }
@@ -189,12 +215,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FADD_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FADD_ST0_STj";
         }
@@ -205,31 +233,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FMUL_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FMUL_ST0_STj";
         }
     }
 
     final static public class FCOM_STi extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
 
         public FCOM_STi(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FCOM_STi(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOM_STi";
         }
@@ -240,12 +272,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUB_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUB_ST0_STj";
         }
@@ -256,12 +290,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUBR_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUBR_ST0_STj";
         }
@@ -272,12 +308,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIV_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIV_ST0_STj";
         }
@@ -288,12 +326,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIVR_ST0_STj(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIVR_ST0_STj";
         }
@@ -304,31 +344,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLD_SINGLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLD_SINGLE_REAL";
         }
     }
 
     final static public class FST_SINGLE_REAL extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FST_SINGLE_REAL(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FST_SINGLE_REAL(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FST_SINGLE_REAL";
         }
@@ -339,12 +383,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLDENV(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDENV";
         }
@@ -355,12 +401,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLDCW(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDCW";
         }
@@ -371,12 +419,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FNSTENV(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNSTENV";
         }
@@ -387,12 +437,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FNSTCW(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNSTCW";
         }
@@ -403,12 +455,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLD_STi(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLD_STi";
         }
@@ -419,12 +473,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FXCH_STi(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FXCH_STi";
         }
@@ -435,31 +491,35 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FNOP();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNOP";
         }
     }
 
     final static public class FST_STi extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
 
         public FST_STi(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FST_STi(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FST_STi";
         }
@@ -470,12 +530,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FCHS();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCHS";
         }
@@ -486,12 +548,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FABS();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FABS";
         }
@@ -502,12 +566,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FTST();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FTST";
         }
@@ -518,12 +584,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FXAM();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FXAM";
         }
@@ -534,12 +602,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLD1();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLD1";
         }
@@ -550,12 +620,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDL2T();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDL2T";
         }
@@ -566,12 +638,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDL2E();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDL2E";
         }
@@ -582,12 +656,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDPI();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDPI";
         }
@@ -598,12 +674,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDLG2();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDLG2";
         }
@@ -614,12 +692,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDLN2();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDLN2";
         }
@@ -630,12 +710,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FLDZ();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLDZ";
         }
@@ -646,12 +728,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.F2XM1();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "F2XM1";
         }
@@ -662,12 +746,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FYL2X();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FYL2X";
         }
@@ -678,12 +764,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FPTAN();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FPTAN";
         }
@@ -694,12 +782,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FPATAN();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FPATAN";
         }
@@ -710,31 +800,35 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FXTRACT();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FXTRACT";
         }
     }
 
     final static public class FPREM extends FpuOpNormal {
-        boolean bRoundNearest;
+        final boolean bRoundNearest;
 
         public FPREM(boolean bRoundNearest) {
             super(0);
             this.bRoundNearest = bRoundNearest;
         }
 
+        @Override
         public int call() {
             FPU.FPREM(bRoundNearest);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FPREM" + (bRoundNearest ? " round nearest" : "");
         }
@@ -745,12 +839,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FDECSTP();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDECSTP";
         }
@@ -761,12 +857,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FINCSTP();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FINCSTP";
         }
@@ -777,12 +875,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FYL2XP1();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FYL2XP1";
         }
@@ -793,12 +893,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FSQRT();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSQRT";
         }
@@ -809,12 +911,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FSINCOS();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSINCOS";
         }
@@ -825,12 +929,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FRNDINT();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FRNDINT";
         }
@@ -841,12 +947,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FSCALE();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSCALE";
         }
@@ -857,12 +965,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FSIN();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSIN";
         }
@@ -873,12 +983,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FCOS();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOS";
         }
@@ -889,12 +1001,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIADD_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIADD_DWORD_INTEGER";
         }
@@ -905,31 +1019,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIMUL_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIMUL_DWORD_INTEGER";
         }
     }
 
     final static public class FICOM_DWORD_INTEGER extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FICOM_DWORD_INTEGER(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FICOM_DWORD_INTEGER(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FICOM_DWORD_INTEGER";
         }
@@ -940,12 +1058,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISUB_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISUB_DWORD_INTEGER";
         }
@@ -956,12 +1076,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISUBR_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISUBR_DWORD_INTEGER";
         }
@@ -972,12 +1094,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIDIV_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIDIV_DWORD_INTEGER";
         }
@@ -988,12 +1112,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIDIVR_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIDIVR_DWORD_INTEGER";
         }
@@ -1004,12 +1130,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, Flags.get_CF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_CF";
         }
@@ -1020,12 +1148,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, Flags.get_ZF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_ZF";
         }
@@ -1036,12 +1166,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, Flags.get_CF() || Flags.get_ZF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_CF_OR_ZF";
         }
@@ -1052,12 +1184,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, Flags.get_PF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_PF";
         }
@@ -1068,12 +1202,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FUCOMPP();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FUCOMPP";
         }
@@ -1084,12 +1220,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FILD_DWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FILD_DWORD_INTEGER";
         }
@@ -1100,31 +1238,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISTTP32(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISTTP32";
         }
     }
 
     final static public class FIST_DWORD_INTEGER extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FIST_DWORD_INTEGER(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FIST_DWORD_INTEGER(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIST_DWORD_INTEGER";
         }
@@ -1135,12 +1277,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLD_EXTENDED_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLD_EXTENDED_REAL";
         }
@@ -1151,12 +1295,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSTP_EXTENDED_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSTP_EXTENDED_REAL";
         }
@@ -1167,12 +1313,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, !Flags.get_CF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_NCF";
         }
@@ -1183,12 +1331,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, !Flags.get_ZF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_NZF";
         }
@@ -1199,12 +1349,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, !Flags.get_CF() && !Flags.get_ZF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_NCF_AND_NZF";
         }
@@ -1215,12 +1367,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FCMOV_ST0_STj(rm, !Flags.get_PF());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCMOV_ST0_STj_NPF";
         }
@@ -1231,12 +1385,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FNCLEX();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNCLEX";
         }
@@ -1247,50 +1403,56 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FNINIT();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNINIT";
         }
     }
 
     final static public class FUCOMI_ST0_STj extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
 
         public FUCOMI_ST0_STj(int rm, boolean pop) {
             super(0);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FUCOMI_ST0_STj(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FUCOMI_ST0_STj";
         }
     }
 
     final static public class FCOMI_ST0_STj extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
 
         public FCOMI_ST0_STj(int rm, boolean pop) {
             super(0);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FCOMI_ST0_STj(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOMI_ST0_STj";
         }
@@ -1301,12 +1463,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FADD_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FADD_DOUBLE_REAL";
         }
@@ -1317,31 +1481,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FMUL_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FMUL_DOUBLE_REAL";
         }
     }
 
     final static public class FCOM_DOUBLE_REAL extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FCOM_DOUBLE_REAL(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FCOM_DOUBLE_REAL(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOM_DOUBLE_REAL";
         }
@@ -1352,12 +1520,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUB_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUB_DOUBLE_REAL";
         }
@@ -1368,12 +1538,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FSUBR_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUBR_DOUBLE_REAL";
         }
@@ -1384,12 +1556,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIV_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIV_DOUBLE_REAL";
         }
@@ -1400,120 +1574,134 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FDIVR_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIVR_DOUBLE_REAL";
         }
     }
 
     final static public class FADD_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FADD_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FADD_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FADD_STi_ST0";
         }
     }
 
     final static public class FMUL_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FMUL_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FMUL_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FMUL_STi_ST0";
         }
     }
 
     final static public class FSUBR_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FSUBR_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FSUBR_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUBR_STi_ST0";
         }
     }
 
     final static public class FSUB_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FSUB_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FSUB_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FSUB_STi_ST0";
         }
     }
 
     final static public class FDIVR_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FDIVR_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FDIVR_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIVR_STi_ST0";
         }
     }
 
     final static public class FDIV_STi_ST0 extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FDIV_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FDIV_STi_ST0(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FDIV_STi_ST0";
         }
@@ -1524,12 +1712,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FLD_DOUBLE_REAL(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FLD_DOUBLE_REAL";
         }
@@ -1540,30 +1730,34 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISTTP64(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISTTP64";
         }
     }
 
     final static public class FST_DOUBLE_REAL extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
         public FST_DOUBLE_REAL(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FST_DOUBLE_REAL(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FST_DOUBLE_REAL";
         }
@@ -1574,12 +1768,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FRSTOR(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FRSTOR";
         }
@@ -1590,12 +1786,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FNSAVE(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNSAVE";
         }
@@ -1606,12 +1804,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FNSTSW(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNSTSW";
         }
@@ -1622,30 +1822,34 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FFREE_STi(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FFREE_STi";
         }
     }
 
     final static public class FUCOM_STi extends FpuOpNormal {
-        boolean pop;
+        final boolean pop;
         public FUCOM_STi(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FUCOM_STi(rm, pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FUCOM_STi";
         }
@@ -1656,12 +1860,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIADD_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIADD_WORD_INTEGER";
         }
@@ -1672,31 +1878,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIMUL_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIMUL_WORD_INTEGER";
         }
     }
 
     final static public class FICOM_WORD_INTEGER extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FICOM_WORD_INTEGER(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FICOM_WORD_INTEGER(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FICOM_WORD_INTEGER";
         }
@@ -1707,12 +1917,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISUB_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISUB_WORD_INTEGER";
         }
@@ -1723,12 +1935,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISUBR_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISUBR_WORD_INTEGER";
         }
@@ -1739,12 +1953,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIDIV_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIDIV_WORD_INTEGER";
         }
@@ -1755,12 +1971,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FIDIVR_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIDIVR_WORD_INTEGER";
         }
@@ -1771,12 +1989,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FCOMPP();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FCOMPP";
         }
@@ -1787,12 +2007,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FILD_WORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FILD_WORD_INTEGER";
         }
@@ -1803,31 +2025,35 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISTTP16(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISTTP16";
         }
     }
 
     final static public class FIST_WORD_INTEGER extends FpuOpEA {
-        boolean pop;
+        final boolean pop;
 
         public FIST_WORD_INTEGER(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
         }
 
+        @Override
         public int call() {
             FPU.FIST_WORD_INTEGER(get_eaa.call(), pop);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FIST_WORD_INTEGER";
         }
@@ -1838,12 +2064,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FBLD_PACKED_BCD(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FBLD_PACKED_BCD";
         }
@@ -1854,12 +2082,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FILD_QWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FILD_QWORD_INTEGER";
         }
@@ -1870,12 +2100,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FBSTP_PACKED_BCD(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FBSTP_PACKED_BCD";
         }
@@ -1886,12 +2118,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FISTP_QWORD_INTEGER(get_eaa.call());
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FISTP_QWORD_INTEGER";
         }
@@ -1902,12 +2136,14 @@ public class InstFPU {
             super(rm);
         }
 
+        @Override
         public int call() {
             FPU.FFREEP_STi(rm);
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FFREEP_STi";
         }
@@ -1918,12 +2154,14 @@ public class InstFPU {
             super(0);
         }
 
+        @Override
         public int call() {
             FPU.FNSTSW_AX();
             CPU_Regs.reg_eip += eip_count;
             return next.call();
         }
 
+        @Override
         public String description() {
             return "FNSTSW_AX";
         }

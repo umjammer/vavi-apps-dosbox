@@ -8,6 +8,6 @@ public class FILETIME extends WinAPI {
         dwHighDateTime = readd(address);address+=4;
     }
 
-    public int dwLowDateTime;
-    public int dwHighDateTime;
+    public final int dwLowDateTime;
+    public final int dwHighDateTime;
 }

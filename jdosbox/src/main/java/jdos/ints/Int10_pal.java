@@ -353,7 +353,7 @@ public class Int10_pal {
                 IoHandler.IO_Write(Int10.VGAREG_PCJR_DATA, ((val & 1) != 0) ? 0xf : 0);
                 break;
             case VGA.M_TANDY4:
-                final byte[] t4_table = new byte[]{0,2,4,6, 0,3,5,0xf};
+                byte[] t4_table = new byte[]{0,2,4,6, 0,3,5,0xf};
                 for(int i = 0x11; i < 0x14; i++) {
                     IoHandler.IO_Write(Int10.VGAREG_TDY_ADDRESS, i);
                     IoHandler.IO_Write(Int10.VGAREG_PCJR_DATA, t4_table[(i - 0x10) + (((val & 1) != 0) ? 4 : 0)]);

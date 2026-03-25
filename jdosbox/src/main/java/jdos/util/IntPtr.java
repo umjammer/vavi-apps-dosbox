@@ -1,7 +1,7 @@
 package jdos.util;
 
 public class IntPtr extends Ptr {
-    // :TODO: maybe change Ptr so that IntPtr can use int[] directly?
+    // TODO maybe change Ptr so that IntPtr can use int[] directly?
     public IntPtr(int[] data) {
         super(new byte[data.length*4],0);
         for (int i=0;i<data.length;i++) {
@@ -20,14 +20,17 @@ public class IntPtr extends Ptr {
     public IntPtr(Ptr p) {
         super(p, 0);
     }
+    @Override
     public int dataWidth() {
         return 4;
     }
+    @Override
     public void set(int off, int val) {
-        writed((int)off, val);
+        writed(off, val);
     }
+    @Override
     public int get(int off) {
-        return (int)readd(off);
+        return readd(off);
     }
     public void set(int off, long val) {
         writed(off, val);

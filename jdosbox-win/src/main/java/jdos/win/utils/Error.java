@@ -37,32 +37,21 @@ public class Error {
     public static final int INVALID_FILE_ATTRIBUTES = -1;
 
     public static String getError(int e) {
-        switch (e) {
-            case ERROR_SUCCESS:
-                return "The operation completed successfully.";
-            case ERROR_FILE_NOT_FOUND:
-                return "The system cannot find the file specified.";
-            case ERROR_PATH_NOT_FOUND:
-                return "The system cannot find the path specified.";
-            case ERROR_ACCESS_DENIED:
-                return "Access is denied.";
-            case ERROR_INVALID_HANDLE:
-                return "The handle is invalid.";
-            case ERROR_FILE_EXISTS:
-                return "The file exists.";
-            case ERROR_INVALID_PARAMETER:
-                return "The parameter is incorrect.";
-            case ERROR_INSUFFICIENT_BUFFER:
-                return "The data area passed to a system call is too small.";
-            case ERROR_MOD_NOT_FOUND:
-                return "The specified module could not be found.";
-            case ERROR_ALREADY_EXISTS:
-                return "Cannot create a file when that file already exists.";
-            case ERROR_MR_MID_NOT_FOUND:
-                return "The system cannot find message text for message number 0x%1 in the message file for %2.";
-            case ERROR_INVALID_FLAGS:
-                return "Invalid flags.";
-        }
-        return null;
+        return switch (e) {
+            case ERROR_SUCCESS -> "The operation completed successfully.";
+            case ERROR_FILE_NOT_FOUND -> "The system cannot find the file specified.";
+            case ERROR_PATH_NOT_FOUND -> "The system cannot find the path specified.";
+            case ERROR_ACCESS_DENIED -> "Access is denied.";
+            case ERROR_INVALID_HANDLE -> "The handle is invalid.";
+            case ERROR_FILE_EXISTS -> "The file exists.";
+            case ERROR_INVALID_PARAMETER -> "The parameter is incorrect.";
+            case ERROR_INSUFFICIENT_BUFFER -> "The data area passed to a system call is too small.";
+            case ERROR_MOD_NOT_FOUND -> "The specified module could not be found.";
+            case ERROR_ALREADY_EXISTS -> "Cannot create a file when that file already exists.";
+            case ERROR_MR_MID_NOT_FOUND ->
+                    "The system cannot find message text for message number 0x%1 in the message file for %2.";
+            case ERROR_INVALID_FLAGS -> "Invalid flags.";
+            default -> null;
+        };
     }
 }

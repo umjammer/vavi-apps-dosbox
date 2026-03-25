@@ -12,18 +12,24 @@ import java.awt.image.BufferedImage;
 import java.awt.image.MemoryImageSource;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
 
 public class MainFrame implements GUI {
-    int[] pixels = new int[16 * 16];
-    Image image = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(16, 16, pixels, 0, 16));
-    Cursor transparentCursor = Toolkit.getDefaultToolkit().createCustomCursor(image, new Point(0, 0), "invisibleCursor");
+
+    private static final Logger logger = System.getLogger(MainFrame.class.getName());
+
+    final int[] pixels = new int[16 * 16];
+    final Image image = Toolkit.getDefaultToolkit().createImage(new MemoryImageSource(16, 16, pixels, 0, 16));
+    final Cursor transparentCursor = Toolkit.getDefaultToolkit().createCustomCursor(image, new Point(0, 0), "invisibleCursor");
 
     static Robot robot;
     static private boolean eatNextMouseMove = false;
     static private int last_x;
     static private int last_y;
 
+    @Override
     public void showProgress(String msg, int percent) {
         
     }
@@ -51,11 +57,13 @@ public class MainFrame implements GUI {
         robot.mouseMove(rel.x+200, rel.y+200);
     }
 
+    @Override
     public void captureMouse(boolean on) {
         if (robot != null) {
             robotCenter(panel.getLocationOnScreen());
         }
     }
+    @Override
     public void showCursor(boolean on) {
         if (on)
             frame.setCursor(Cursor.getDefaultCursor());
@@ -73,6 +81,7 @@ public class MainFrame implements GUI {
     static private int fullscreen_cy = 0;
     static private int fullscreen_cx_offset = 0;
 
+    @Override
     public void fullScreenToggle() {
         if (fullscreen) {
             frame.dispose();
@@ -101,6 +110,7 @@ public class MainFrame implements GUI {
         }
     }
 
+    @Override
     public void setSize(int width, int height) {
         if (fullscreen)
             return;
@@ -112,9 +122,11 @@ public class MainFrame implements GUI {
         if (!frame.isVisible())
             frame.setVisible(true);
     }
+    @Override
     public void dopaint() {
         panel.repaint();
     }
+    @Override
     public void setTitle(String title) {
         if (frame != null)
             frame.setTitle(title);
@@ -166,9 +178,10 @@ public class MainFrame implements GUI {
         return tmpImage;
     }
 
-    public static void main(final String[] args) {
+    static void main(String[] args) {
         if (args.length == 1 && args[0].equalsIgnoreCase("-noconsole")) {
             PrintStream dummyStream = new PrintStream(new OutputStream(){
+                @Override
                 public void write(int b) {
                     // NO-OP
                 }
@@ -181,43 +194,44 @@ public class MainFrame implements GUI {
             if (args.length>3 && args[2].equalsIgnoreCase("-pcapport")) {
                 try {
                     port = Integer.parseInt(args[3]);
-                } catch (Exception e) {
+                } catch (Exception _) {
                 }
             }
             try {
-                Class c = Class.forName("jdos.host.FowardPCapEthernet");
-                Method method = c.getDeclaredMethod("startServer", new Class[] {String.class, Integer.TYPE});
-                method.invoke(null, new Object[]{nic, new Integer(port)});
+                Class<?> c = Class.forName("jdos.host.FowardPCapEthernet");
+                Method method = c.getDeclaredMethod("startServer", String.class, Integer.TYPE);
+                method.invoke(null, nic, port);
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
             return;
         }
-        try {robot = new Robot();} catch (Throwable e) {System.out.println("Applet is not signed, mouse capture will not work");}
+        try {robot = new Robot();} catch (Throwable e) {logger.log(Level.DEBUG,"Applet is not signed, mouse capture will not work");}
 
         frame = new MyFrame();
         frame.setFocusTraversalKeysEnabled(false);
         frame.addFocusListener(new FocusListener() {
-                private final KeyEventDispatcher altDisabler = new KeyEventDispatcher() {
-                    public boolean dispatchKeyEvent(KeyEvent e) {
-                        if (e.getKeyCode() == 18) {
-                            Main.addEvent(e);
-                            return true;
-                        }
-                        return false;
-                    }
-                };
-
-                public void focusGained(FocusEvent e) {
-                    KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(altDisabler);
+            private final KeyEventDispatcher altDisabler = e -> {
+                if (e.getKeyCode() == 18) {
+                    Main.addEvent(e);
+                    return true;
                 }
+                return false;
+            };
 
-                public void focusLost(FocusEvent e) {
-                    KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(altDisabler);
-                }
-            });
+            @Override
+            public void focusGained(FocusEvent e) {
+                KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(altDisabler);
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(altDisabler);
+            }
+        });
 
         panel = new JPanel() {
+            @Override
             public void paint(Graphics g) {
                 if (Main.buffer2[Main.front] != null) {
                     synchronized (Main.paintMutex) {
@@ -238,12 +252,13 @@ public class MainFrame implements GUI {
         panel.addMouseMotionListener((MyFrame)frame);
         panel.addMouseListener((MyFrame)frame);
         frame.addWindowListener(new WindowAdapter() {
+            @Override
             public void windowClosing(WindowEvent e) {
                 synchronized (Main.pauseMutex) {
                     Main.pauseMutex.notify();
                 }
                 Main.addEvent(null);
-                try {mainThread.join(5000);} catch (Exception e1) {}
+                try {mainThread.join(5000);} catch (Exception ignore) {}
                 if (!Dosbox.applet) {
                     System.exit(0);
                 }
@@ -254,8 +269,8 @@ public class MainFrame implements GUI {
         frame.getContentPane().add(panel, BorderLayout.PAGE_START);
         mainThread = new Thread(new Runnable() {
             public void run() {
-                Main.main(new MainFrame(), args);
-                System.exit(0);
+            Main.main(new MainFrame(), args);
+            System.exit(0);
             }
         });
         mainThread.start();
@@ -271,20 +286,24 @@ public class MainFrame implements GUI {
             addWindowFocusListener(this);
             addWindowListener(this);
         }
+        @Override
         public void keyTyped(KeyEvent e) {
 
         }
 
         /** Handle the key pressed event from the text field. */
+        @Override
         public void keyPressed(KeyEvent e) {
             Main.addKeyEvent(e);
         }
 
         /** Handle the key released event from the text field. */
+        @Override
         public void keyReleased(KeyEvent e) {
             Main.addKeyEvent(e);
         }
 
+        @Override
         public void windowGainedFocus(WindowEvent e) {
             Main.addEvent(new Main.FocusChangeEvent(true));
             if (!Main.keyboardPaused) {
@@ -294,58 +313,72 @@ public class MainFrame implements GUI {
             }
         }
 
+        @Override
         public void windowLostFocus(WindowEvent e) {
             Main.addEvent(new Main.FocusChangeEvent(false));
         }
 
+        @Override
         public void windowOpened(WindowEvent e) {
         }
 
+        @Override
         public void windowClosing(WindowEvent e) {
         }
 
+        @Override
         public void windowClosed(WindowEvent e) {
         }
 
+        @Override
         public void windowIconified(WindowEvent e) {
         }
 
+        @Override
         public void windowDeiconified(WindowEvent e) {
         }
 
+        @Override
         public void windowActivated(WindowEvent e) {
         }
 
+        @Override
         public void windowDeactivated(WindowEvent e) {
         }
 
+        @Override
         public void mousePressed(MouseEvent e) {
             Main.addMouseEvent(e);
         }
 
+        @Override
         public void mouseReleased(MouseEvent e) {
             Main.addMouseEvent(e);
         }
 
+        @Override
         public void mouseEntered(MouseEvent e) {
         }
 
+        @Override
         public void mouseExited(MouseEvent e) {
         }
 
+        @Override
         public void mouseClicked(MouseEvent e) {
             if (e.getClickCount()==2 && e.getButton() == MouseEvent.BUTTON3) {
                 Main.GFX_CaptureMouse();
             }
         }
 
+        @Override
         public void mouseMoved(MouseEvent e) {
             robotMouse(e, panel.getLocationOnScreen(), 0, 0);
         }
 
+        @Override
         public void mouseDragged(MouseEvent e) {
             robotMouse(e, panel.getLocationOnScreen(), 0, 0);
         }
-
     }
 }

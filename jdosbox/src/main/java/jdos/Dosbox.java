@@ -10,15 +10,32 @@ import jdos.gui.Main;
 import jdos.gui.Mapper;
 import jdos.gui.Midi;
 import jdos.gui.Render;
-import jdos.hardware.*;
+import jdos.hardware.Cmos;
+import jdos.hardware.Disney;
+import jdos.hardware.Gus;
+import jdos.hardware.Hardware;
+import jdos.hardware.IO;
 import jdos.hardware.DMA;
+import jdos.hardware.IPX;
+import jdos.hardware.Joystick;
+import jdos.hardware.Keyboard;
+import jdos.hardware.MPU401;
+import jdos.hardware.Memory;
+import jdos.hardware.Mixer;
+import jdos.hardware.NE2000;
+import jdos.hardware.PCSpeaker;
+import jdos.hardware.Pic;
+import jdos.hardware.SBlaster;
+import jdos.hardware.TandySound;
+import jdos.hardware.Timer;
 import jdos.hardware.VGA;
 import jdos.hardware.mame.VoodooCommon;
 import jdos.hardware.pci.PCI;
 import jdos.hardware.qemu.*;
 import jdos.hardware.serialport.Serialports;
 import jdos.ints.*;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.Msg;
 import jdos.misc.Program;
 import jdos.misc.setup.*;
@@ -28,11 +45,15 @@ import jdos.types.MachineType;
 import jdos.types.SVGACards;
 
 public class Dosbox {
-    static public boolean allPrivileges = true;
 
-    static private interface LoopHandler {
-        public /*Bitu*/int call();
+    private static final Logger logger = System.getLogger(Dosbox.class.getName());
+
+    static public final boolean allPrivileges = true;
+
+    private interface LoopHandler {
+        /*Bitu*/ int call();
     }
+
     public static boolean applet = false;
     public static Config control;
     public static int machine;
@@ -40,11 +61,11 @@ public class Dosbox {
     private static LoopHandler loop;
     public static boolean SDLNetInited;
 
-    private static /*Bit32u*/long ticksRemain;
-    private static /*Bit32u*/long ticksLast;
-    private static /*Bit32u*/long ticksAdded;
-    public static /*Bit32s*/int ticksDone;
-    public static /*Bit32u*/long ticksScheduled;
+    private static /*Bit32u*/ long ticksRemain;
+    private static /*Bit32u*/ long ticksLast;
+    private static /*Bit32u*/ long ticksAdded;
+    public static /*Bit32s*/ int ticksDone;
+    public static /*Bit32u*/ long ticksScheduled;
     public static boolean ticksLocked;
 
     static public boolean IS_TANDY_ARCH() {
@@ -59,9 +80,10 @@ public class Dosbox {
         return (machine==MachineType.MCH_VGA);
     }
 
-    static private LoopHandler Normal_Loop = new LoopHandler() {
-         public /*Bitu*/int call() {
-            /*Bits*/int ret;
+    static private final LoopHandler Normal_Loop = new LoopHandler() {
+         @Override
+         public /*Bitu*/ int call() {
+            /*Bits*/ int ret;
             while (true) {
                 if (Pic.PIC_RunQueue()) {
                     ret=CPU.cpudecoder.call();
@@ -71,7 +93,7 @@ public class Dosbox {
                         try {
                             Callback.inHandler++;
 //                            if (ret != 15 && ret !=7 && ret != 19 && ret != 16)
-//                               System.out.println(Callback.CallBack_Handlers[ret].getName());
+//                               logger.log(Level.DEBUG,Callback.CallBack_Handlers[ret].getName());
                             /*Bitu*/int blah=Callback.CallBack_Handlers[ret].call();
                             if (blah!=0) return blah;
                         } catch(PageFaultException e) {
@@ -80,7 +102,7 @@ public class Dosbox {
                                 CPU.CPU_Exception(CPU.cpu.exception.which, CPU.cpu.exception.error);
                                 Paging.pageFault = false;
                             }
-                            Log.exit("This should not happen");
+                            throw new IllegalStateException("This should not happen");
                         } finally {
                             Callback.inHandler--;
                         }
@@ -98,7 +120,7 @@ public class Dosbox {
                     }
                 }
             }
-        //increaseticks:
+//increaseticks:
             if (ticksLocked) {
                 ticksRemain=5;
                 /* Reset any auto cycle guessing for this frame */
@@ -124,7 +146,8 @@ public class Dosbox {
                             /* ratio we are aiming for is around 90% usage*/
                             /*Bit32s*/int ratio = (int)((ticksScheduled * (CPU.CPU_CyclePercUsed*90*1024/100/100)) / ticksDone);
                             /*Bit32s*/int new_cmax = CPU.CPU_CycleMax;
-                            /*Bit64s*/long cproc = (/*Bit64s*/long)CPU.CPU_CycleMax * (/*Bit64s*/long)ticksScheduled;
+                            /*Bit64s*//*Bit64s*/
+                            long cproc = (/*Bit64s*/long)CPU.CPU_CycleMax * ticksScheduled;
                             if (cproc > 0) {
                                 /* ignore the cycles added due to the io delay code in order
                                    to have smoother auto cycle adjustments */
@@ -217,10 +240,11 @@ public class Dosbox {
     }
 
     static private boolean autoadjust = false;
-    static private Mapper.MAPPER_Handler DOSBOX_UnlockSpeed = new Mapper.MAPPER_Handler() {
+    static private final Mapper.MAPPER_Handler DOSBOX_UnlockSpeed = new Mapper.MAPPER_Handler() {
+        @Override
         public void call(boolean pressed) {
             if (pressed) {
-                Log.log_msg("Fast Forward ON");
+                logger.log(Level.DEBUG, "Fast Forward ON");
                 ticksLocked = true;
                 if (CPU.CPU_CycleAutoAdjust) {
                     autoadjust = true;
@@ -229,7 +253,7 @@ public class Dosbox {
                     if (CPU.CPU_CycleMax<1000) CPU.CPU_CycleMax=1000;
                 }
             } else {
-                Log.log_msg("Fast Forward OFF");
+                logger.log(Level.DEBUG, "Fast Forward OFF");
                 ticksLocked = false;
                 if (autoadjust) {
                     autoadjust = false;
@@ -239,9 +263,10 @@ public class Dosbox {
         }
     };
 
-    private static Section.SectionFunction DOSBOX_RealInit = new Section.SectionFunction() {
+    private static final Section.SectionFunction DOSBOX_RealInit = new Section.SectionFunction() {
+        @Override
         public void call(Section sec) {
-            System.out.println("DOSBOX_RealInit");
+            logger.log(Level.DEBUG,"DOSBOX_RealInit");
             Section_prop section=(Section_prop)sec;
             /* Initialize some dosbox internals */
 
@@ -253,9 +278,9 @@ public class Dosbox {
 
             JavaMapper.MAPPER_AddHandler(DOSBOX_UnlockSpeed, Mapper.MapKeys.MK_f12, Mapper.MMOD2, "speedlock", "Speedlock");
             String cmd_machine;
-            if ((cmd_machine=control.cmdline.FindString("-machine",true))!=null) {
+            if ((cmd_machine=control.cmdline.findString("-machine",true))!=null) {
                 //update value in config (else no matching against suggested values
-                section.HandleInputline("machine=" + cmd_machine);
+                section.handleInputline("machine=" + cmd_machine);
             }
 
             String mtype = section.Get_string("machine");
@@ -264,22 +289,32 @@ public class Dosbox {
             Int10.int10 = new Int10.Int10Data();
             Int10.int10.vesa_nolfb = false;
             Int10.int10.vesa_oldvbe = false;
-            if      (mtype.equals("cga"))      { machine = MachineType.MCH_CGA; }
-            else if (mtype.equals("tandy"))    { machine = MachineType.MCH_TANDY; }
-            else if (mtype.equals("pcjr"))     { machine = MachineType.MCH_PCJR; }
-            else if (mtype.equals("hercules")) { machine = MachineType.MCH_HERC; }
-            else if (mtype.equals("ega"))      { machine = MachineType.MCH_EGA; }
-        //	else if (mtype.equals("vga")          { svgaCard = SVGA_S3Trio; }
-            else if (mtype.equals("svga_s3"))       { svgaCard = SVGACards.SVGA_S3Trio; }
-            else if (mtype.equals("vesa_nolfb"))   { svgaCard = SVGACards.SVGA_S3Trio; Int10.int10.vesa_nolfb = true;}
-            else if (mtype.equals("vesa_oldvbe"))   { svgaCard = SVGACards.SVGA_S3Trio; Int10.int10.vesa_oldvbe = true;}
-            else if (mtype.equals("svga_et4000"))   { svgaCard = SVGACards.SVGA_TsengET4K; }
-            else if (mtype.equals("svga_et3000"))   { svgaCard = SVGACards.SVGA_TsengET3K; }
-        //	else if (mtype.equals("vga_pvga1a")   { svgaCard = SVGA_ParadisePVGA1A; }
-            else if (mtype.equals("svga_paradise")) { svgaCard = SVGACards.SVGA_ParadisePVGA1A; }
-            else if (mtype.equals("vgaonly"))      { svgaCard = SVGACards.SVGA_None; }
-            else if (mtype.equals("vgastd"))      { svgaCard = SVGACards.SVGA_QEMU; }
-            else Log.exit("DOSBOX:Unknown machine type "+mtype);
+            switch (mtype) {
+                case "cga" -> machine = MachineType.MCH_CGA;
+                case "tandy" -> machine = MachineType.MCH_TANDY;
+                case "pcjr" -> machine = MachineType.MCH_PCJR;
+                case "hercules" -> machine = MachineType.MCH_HERC;
+                case "ega" -> machine = MachineType.MCH_EGA;
+
+                //	else if (mtype.equals("vga")          { svgaCard = SVGA_S3Trio; }
+                case "svga_s3" -> svgaCard = SVGACards.SVGA_S3Trio;
+                case "vesa_nolfb" -> {
+                    svgaCard = SVGACards.SVGA_S3Trio;
+                    Int10.int10.vesa_nolfb = true;
+                }
+                case "vesa_oldvbe" -> {
+                    svgaCard = SVGACards.SVGA_S3Trio;
+                    Int10.int10.vesa_oldvbe = true;
+                }
+                case "svga_et4000" -> svgaCard = SVGACards.SVGA_TsengET4K;
+                case "svga_et3000" -> svgaCard = SVGACards.SVGA_TsengET3K;
+
+                //	else if (mtype.equals("vga_pvga1a")   { svgaCard = SVGA_ParadisePVGA1A; }
+                case "svga_paradise" -> svgaCard = SVGACards.SVGA_ParadisePVGA1A;
+                case "vgaonly" -> svgaCard = SVGACards.SVGA_None;
+                case "vgastd" -> svgaCard = SVGACards.SVGA_QEMU;
+                default -> throw new IllegalStateException("DOSBOX:Unknown machine type " + mtype);
+            }
             if (svgaCard != SVGACards.SVGA_QEMU)
                 VGA.VGA_Init();
         }
@@ -324,16 +359,19 @@ public class Dosbox {
         Pint = secprop.Add_int("vmemsize", Property.Changeable.WhenIdle,2);
 	    Pint.SetMinMax(0,8);
 	    Pint.Set_help(
-		"Amount of video memory in megabytes.\n" +
-		"  The maximum resolution and color depth the svga_s3 will be able to display\n" +
-		"  is determined by this value.\n " +
-		"  0: 512k (800x600  at 256 colors)\n" +
-		"  1: 1024x768  at 256 colors or 800x600  at 64k colors\n" +
-		"  2: 1600x1200 at 256 colors or 1024x768 at 64k colors or 640x480 at 16M colors\n" +
-		"  4: 1600x1200 at 64k colors or 1024x768 at 16M colors\n" +
-		"  8: up to 1600x1200 at 16M colors\n" +
-		"For build engine games, use more memory than in the list above so it can\n" +
-		"use triple buffering and thus won't flicker.\n"
+                """
+                        Amount of video memory in megabytes.
+                          The maximum resolution and color depth the svga_s3 will be able to display
+                          is determined by this value.
+                         \
+                          0: 512k (800x600  at 256 colors)
+                          1: 1024x768  at 256 colors or 800x600  at 64k colors
+                          2: 1600x1200 at 256 colors or 1024x768 at 64k colors or 640x480 at 16M colors
+                          4: 1600x1200 at 64k colors or 1024x768 at 16M colors
+                          8: up to 1600x1200 at 16M colors
+                        For build engine games, use more memory than in the list above so it can
+                        use triple buffering and thus won't flicker.
+                        """
 		);
         Pint = secprop.Add_int("vmemcachesize", 512);
         Pint.SetMinMax(0,8192);
@@ -346,24 +384,25 @@ public class Dosbox {
         if (Config.C_DEBUG)
             Debug_gui.LOG_StartUp();
 
-        secprop.AddInitFunction(IO.IO_Init);//done
-        secprop.AddInitFunction(Paging.PAGING_Init);//done
-        secprop.AddInitFunction(Memory.MEM_Init);//done
-        secprop.AddInitFunction(Hardware.HARDWARE_Init);//done
+        secprop.addInitFunction(IO.IO_Init);//done
+        secprop.addInitFunction(Paging.PAGING_Init);//done
+        secprop.addInitFunction(Memory.MEM_Init);//done
+        secprop.addInitFunction(Hardware.HARDWARE_Init);//done
         Pint = secprop.Add_int("memsize", Property.Changeable.WhenIdle,16);
         Pint.SetMinMax(1,63);
         Pint.Set_help(
-            "Amount of memory DOSBox has in megabytes.\n" +
-            "  This value is best left at its default to avoid problems with some games,\n" +
-            "  though few games might require a higher value.\n" +
-            "  There is generally no speed advantage when raising this value.");
-        secprop.AddInitFunction(Callback.CALLBACK_Init);
-        secprop.AddInitFunction(Pic.PIC_Init);//done
-        secprop.AddInitFunction(Program.PROGRAMS_Init);
-        secprop.AddInitFunction(Timer.TIMER_Init);//done
-        secprop.AddInitFunction(Cmos.CMOS_Init);//done
-        secprop.AddInitFunction(VGA.VGA_Init);
-        secprop.AddInitFunction(jdos.hardware.qemu.VGA.QEMU_VGA_Init);
+                """
+                        Amount of memory DOSBox has in megabytes.
+                          This value is best left at its default to avoid problems with some games,
+                          though few games might require a higher value.
+                          There is generally no speed advantage when raising this value.""");
+        secprop.addInitFunction(Callback.CALLBACK_Init);
+        secprop.addInitFunction(Pic.PIC_Init);//done
+        secprop.addInitFunction(Program.PROGRAMS_Init);
+        secprop.addInitFunction(Timer.TIMER_Init);//done
+        secprop.addInitFunction(Cmos.CMOS_Init);//done
+        secprop.addInitFunction(VGA.VGA_Init);
+        secprop.addInitFunction(jdos.hardware.qemu.VGA.QEMU_VGA_Init);
 
         secprop=control.AddSection_prop("render", Render.RENDER_Init,true);
         Pint = secprop.Add_int("frameskip",Property.Changeable.Always,-1);
@@ -395,7 +434,7 @@ public class Dosbox {
         Pstring.Set_values(scalers);
 
 
-        String force[] = { "", "forced" };
+        String[] force = { "", "forced" };
         Pstring = Pmulti.GetSection().Add_string("force",Property.Changeable.Always,"");
         Pstring.Set_values(force);
 
@@ -417,14 +456,16 @@ public class Dosbox {
 
         Pmulti_remain = secprop.Add_multiremain("cycles",Property.Changeable.Always," ");
         Pmulti_remain.Set_help(
-            "Amount of instructions DOSBox tries to emulate each millisecond.\n" +
-            "Setting this value too high results in sound dropouts and lags.\n" +
-            "Cycles can be set in 3 ways:\n" +
-            "  'auto'          tries to guess what a game needs.\n" +
-            "                  It usually works, but can fail for certain games.\n" +
-            "  'fixed #number' will set a fixed amount of cycles. This is what you usually need if 'auto' fails.\n" +
-            "                  (Example: fixed 4000).\n" +
-            "  'max'           will allocate as much cycles as your computer is able to handle.\n");
+                """
+                        Amount of instructions DOSBox tries to emulate each millisecond.
+                        Setting this value too high results in sound dropouts and lags.
+                        Cycles can be set in 3 ways:
+                          'auto'          tries to guess what a game needs.
+                                          It usually works, but can fail for certain games.
+                          'fixed #number' will set a fixed amount of cycles. This is what you usually need if 'auto' fails.
+                                          (Example: fixed 4000).
+                          'max'           will allocate as much cycles as your computer is able to handle.
+                        """);
 
         String[] cyclest = { "auto","fixed","max","%u"};
         Pstring = Pmulti_remain.GetSection().Add_string("type",Property.Changeable.Always,"auto");
@@ -442,7 +483,7 @@ public class Dosbox {
         Pint.Set_help("Setting it lower than 100 will be a percentage.");
 
         if (Config.C_FPU) {
-            secprop.AddInitFunction(FPU.FPU_Init);
+            secprop.addInitFunction(FPU.FPU_Init);
             Pbool = secprop.Add_bool("softfpu",Property.Changeable.Always,false);
             Pbool.Set_help("Enable software emulation of the FPU");
         }
@@ -456,7 +497,7 @@ public class Dosbox {
             Pint.Set_help("The minimum number of ops the block must contain in order to be compiled.  In general 2 is a good value.");
         }
 
-        secprop.AddInitFunction(DMA.DMA_Init);//done
+        secprop.addInitFunction(DMA.DMA_Init);//done
 
         if (Config.PCI_FUNCTIONALITY_ENABLED) {
             secprop=control.AddSection_prop("pci", PCI.PCI_Init,true); //PCI bus
@@ -467,21 +508,25 @@ public class Dosbox {
             String[] types = new String[] { "none", "voodoo1", "voodoo2"};
             Pstring = secprop.Add_string("type",Property.Changeable.OnlyAtStart,"voodoo1");
             Pstring.Set_values(types);
-            Pstring.Set_help(       "Which 3dfx card you would like to emulate.  Remember to enabled PCI.\n" +
-                                    "  'none'\n"+
-                                    "  'voodoo1'       Frame Buffer can be 2 or 4MB\n" +
-                                    "                  Texture Memory can be 1, 2 or 4MB\n" +
-                                    "                  Can have 1 or 2 Texture Management Units\n" +
-                                    "                      singletmu is set to false by default\n" +
-                                    "  'voodoo2'       Frame Buffer can be 2 or 4MB\n" +
-                                    "                  Texture Memory can be 2, 4, 8 or 16MB\n" +
-                                    "                  Number of Texture Managment Units (TMUs) is 2\n"+
-                                    "                      singletmu is ignored\n");
+            Pstring.Set_help("""
+                    Which 3dfx card you would like to emulate.  Remember to enabled PCI.
+                      'none'
+                      'voodoo1'       Frame Buffer can be 2 or 4MB
+                                      Texture Memory can be 1, 2 or 4MB
+                                      Can have 1 or 2 Texture Management Units
+                                          singletmu is set to false by default
+                      'voodoo2'       Frame Buffer can be 2 or 4MB
+                                      Texture Memory can be 2, 4, 8 or 16MB
+                                      Number of Texture Managment Units (TMUs) is 2
+                                          singletmu is ignored
+                    """);
             Pstring = secprop.Add_string("framebuffer", Property.Changeable.OnlyAtStart, "4");
             Pstring.Set_values(new String[]{"2", "4"});
-            Pstring.Set_help("The amount of memory the framebuffer has.\n"+
-                             "  2   The highest resolution is 640x480\n"+
-                             "  4   The highest resolution is 800x600\n");
+            Pstring.Set_help("""
+                    The amount of memory the framebuffer has.
+                      2   The highest resolution is 640x480
+                      4   The highest resolution is 800x600
+                    """);
             Pstring = secprop.Add_string("texturememory", Property.Changeable.OnlyAtStart, "4");
             Pstring.Set_values(new String[]{"1", "2", "4", "8", "16"});
             Pstring.Set_help("The amount of memory each TMU has");
@@ -489,7 +534,7 @@ public class Dosbox {
             Pbool.Set_help("Voodoo 1 can have 1 or 2 TMUs.  2 is the default");
         }
 
-        secprop=control.AddSection_prop("keyboard",Keyboard.KEYBOARD_Init);
+        secprop=control.AddSection_prop("keyboard", Keyboard.KEYBOARD_Init);
         Pbool = secprop.Add_bool("aux",Property.Changeable.OnlyAtStart,true);
         Pbool.Set_help("Enable emulation of the 8042 auxiliary port. PS/2 mouse emulation requires this to be enabled");
     
@@ -498,7 +543,7 @@ public class Dosbox {
         Pstring.Set_values(auxdevices);
         Pstring.Set_help("Type of PS/2 mouse attached to the AUX port");
         
-        secprop=control.AddSection_prop("mixer",Mixer.MIXER_Init);
+        secprop=control.AddSection_prop("mixer", Mixer.MIXER_Init);
         Pbool = secprop.Add_bool("nosound",Property.Changeable.OnlyAtStart,false);
         Pbool.Set_help("Enable silent mode, sound is still emulated though.");
 
@@ -520,7 +565,7 @@ public class Dosbox {
         Pint.Set_help("Buffer parameter passed to Java's SourceDataLine.open call. At 44100Hz, 16-bit stereo a value of 8820 represents 50ms");
 
         secprop=control.AddSection_prop("midi", Midi.MIDI_Init,true);//done
-        secprop.AddInitFunction(MPU401.MPU401_Init,true);//done
+        secprop.addInitFunction(MPU401.MPU401_Init,true);//done
 
         String[] mputypes = { "intelligent", "uart", "none"};
         // FIXME: add some way to offer the actually available choices.
@@ -534,15 +579,16 @@ public class Dosbox {
         Pstring.Set_help("Device that will receive the MIDI data from MPU-401.");
 
         Pstring = secprop.Add_string("midiconfig",Property.Changeable.WhenIdle,"");
-        Pstring.Set_help("Special configuration options for the device driver. This is usually the id of the device you want to use.\n" +
-                          "  When using a Roland MT-32 rev. 0 as midi output device, some games may require a delay in order to prevent 'buffer overflow' issues.\n" +
-	                      "  In that case, add 'delaysysex', for example: midiconfig=2 delaysysex\n" +
-                          "  See the README/Manual for more details.");
+        Pstring.Set_help("""
+                Special configuration options for the device driver. This is usually the id of the device you want to use.
+                  When using a Roland MT-32 rev. 0 as midi output device, some games may require a delay in order to prevent 'buffer overflow' issues.
+                  In that case, add 'delaysysex', for example: midiconfig=2 delaysysex
+                  See the README/Manual for more details.""");
 
         if (Config.C_DEBUG)
             secprop=control.AddSection_prop("debug", Debug.DEBUG_Init);
 
-        secprop=control.AddSection_prop("sblaster",SBlaster.SBLASTER_Init,true);//done
+        secprop=control.AddSection_prop("sblaster", SBlaster.SBLASTER_Init,true);//done
 
         String[] sbtypes = { "sb1", "sb2", "sbpro1", "sbpro2", "sb16", "gb", "none"};
         Pstring = secprop.Add_string("sbtype",Property.Changeable.WhenIdle,"sb16");
@@ -583,7 +629,7 @@ public class Dosbox {
         Pint.Set_help("Sample rate of OPL music emulation. Use 49716 for highest quality (set the mixer rate accordingly).");
 
 
-        secprop=control.AddSection_prop("gus",Gus.GUS_Init,true); //done
+        secprop=control.AddSection_prop("gus", Gus.GUS_Init,true); //done
         Pbool = secprop.Add_bool("gus",Property.Changeable.WhenIdle,false);
         Pbool.Set_help("Enable the Gravis Ultrasound emulation.");
 
@@ -605,12 +651,13 @@ public class Dosbox {
 
         Pstring = secprop.Add_string("ultradir",Property.Changeable.WhenIdle,"C:\\ULTRASND");
         Pstring.Set_help(
-            "Path to Ultrasound directory. In this directory\n" +
-            "there should be a MIDI directory that contains\n" +
-            "the patch files for GUS playback. Patch sets used\n" +
-            "with Timidity should work fine.");
+                """
+                        Path to Ultrasound directory. In this directory
+                        there should be a MIDI directory that contains
+                        the patch files for GUS playback. Patch sets used
+                        with Timidity should work fine.""");
 
-        secprop = control.AddSection_prop("speaker",PCSpeaker.PCSPEAKER_Init,true);//done
+        secprop = control.AddSection_prop("speaker", PCSpeaker.PCSPEAKER_Init,true);//done
         Pbool = secprop.Add_bool("pcspeaker",Property.Changeable.WhenIdle,true);
         Pbool.Set_help("Enable PC-Speaker emulation.");
 
@@ -618,7 +665,7 @@ public class Dosbox {
         Pint.Set_values(rates);
         Pint.Set_help("Sample rate of the PC-Speaker sound generation.");
 
-        secprop.AddInitFunction(TandySound.TANDYSOUND_Init,true);
+        secprop.addInitFunction(TandySound.TANDYSOUND_Init,true);
         String[] tandys = { "auto", "on", "off"};
         Pstring = secprop.Add_string("tandy",Property.Changeable.WhenIdle,"auto");
         Pstring.Set_values(tandys);
@@ -628,27 +675,28 @@ public class Dosbox {
         Pint.Set_values(rates);
         Pint.Set_help("Sample rate of the Tandy 3-Voice generation.");
 
-        secprop.AddInitFunction(Disney.DISNEY_Init,true);//done
+        secprop.addInitFunction(Disney.DISNEY_Init,true);//done
 
         Pbool = secprop.Add_bool("disney",Property.Changeable.WhenIdle,true);
         Pbool.Set_help("Enable Disney Sound Source emulation. (Covox Voice Master and Speech Thing compatible).");
 
         secprop=control.AddSection_prop("joystick", Bios.BIOS_Init,false);//done
-        secprop.AddInitFunction(Int10.INT10_Init);
-        secprop.AddInitFunction(Mouse.MOUSE_Init); //Must be after int10 as it uses CurMode
-        secprop.AddInitFunction(Joystick.JOYSTICK_Init);
+        secprop.addInitFunction(Int10.INT10_Init);
+        secprop.addInitFunction(Mouse.MOUSE_Init); //Must be after int10 as it uses CurMode
+        secprop.addInitFunction(Joystick.JOYSTICK_Init);
         String[] joytypes = { "auto", "2axis", "4axis", "4axis_2", "fcs", "ch", "none"};
         Pstring = secprop.Add_string("joysticktype",Property.Changeable.WhenIdle,"auto");
         Pstring.Set_values(joytypes);
         Pstring.Set_help(
-            "Type of joystick to emulate: auto (default), none,\n" +
-            "2axis (supports two joysticks),\n" +
-            "4axis (supports one joystick, first joystick used),\n" +
-            "4axis_2 (supports one joystick, second joystick used),\n" +
-            "fcs (Thrustmaster), ch (CH Flightstick).\n" +
-            "none disables joystick emulation.\n" +
-            "auto chooses emulation depending on real joystick(s).\n" +
-            "(Remember to reset dosbox's mapperfile if you saved it earlier)");
+                """
+                        Type of joystick to emulate: auto (default), none,
+                        2axis (supports two joysticks),
+                        4axis (supports one joystick, first joystick used),
+                        4axis_2 (supports one joystick, second joystick used),
+                        fcs (Thrustmaster), ch (CH Flightstick).
+                        none disables joystick emulation.
+                        auto chooses emulation depending on real joystick(s).
+                        (Remember to reset dosbox's mapperfile if you saved it earlier)""");
 
         Pbool = secprop.Add_bool("timed",Property.Changeable.WhenIdle,true);
         Pbool.Set_help("enable timed intervals for axis. Experiment with this option, if your joystick drifts (away).");
@@ -672,16 +720,17 @@ public class Dosbox {
         Pstring.Set_values(serials);
         Pstring = Pmulti_remain.GetSection().Add_string("parameters",Property.Changeable.WhenIdle,"");
         Pmulti_remain.Set_help(
-            "set type of device connected to com port.\n" +
-            "Can be disabled, dummy, modem, nullmodem, directserial.\n" +
-            "Additional parameters must be in the same line in the form of\n" +
-            "parameter:value. Parameter for all types is irq (optional).\n" +
-            "for directserial: realport (required), rxdelay (optional).\n" +
-            "                 (realport:COM1 realport:ttyS0).\n" +
-            "for modem: listenport (optional).\n" +
-            "for nullmodem: server, rxdelay, txdelay, telnet, usedtr,\n" +
-            "               transparent, port, inhsocket (all optional).\n" +
-            "Example: serial1=modem listenport:5000");
+                """
+                        set type of device connected to com port.
+                        Can be disabled, dummy, modem, nullmodem, directserial.
+                        Additional parameters must be in the same line in the form of
+                        parameter:value. Parameter for all types is irq (optional).
+                        for directserial: realport (required), rxdelay (optional).
+                                         (realport:COM1 realport:ttyS0).
+                        for modem: listenport (optional).
+                        for nullmodem: server, rxdelay, txdelay, telnet, usedtr,
+                                       transparent, port, inhsocket (all optional).
+                        Example: serial1=modem listenport:5000""");
 
         Pmulti_remain = secprop.Add_multiremain("serial2",Property.Changeable.WhenIdle," ");
         Pstring = Pmulti_remain.GetSection().Add_string("type",Property.Changeable.WhenIdle,"dummy");
@@ -707,32 +756,33 @@ public class Dosbox {
 
         /* All the DOS Related stuff, which will eventually start up in the shell */
         secprop=control.AddSection_prop("dos", Dos.DOS_Init,false);//done
-        secprop.AddInitFunction(XMS.XMS_Init,true);//done
+        secprop.addInitFunction(XMS.XMS_Init,true);//done
         Pbool = secprop.Add_bool("xms",Property.Changeable.WhenIdle,true);
         Pbool.Set_help("Enable XMS support.");
 
-        secprop.AddInitFunction(EMS.EMS_Init,true);//done
+        secprop.addInitFunction(EMS.EMS_Init,true);//done
         String[] ems_settings = new String[]{ "true", "emsboard", "emm386", "false"};
 	    Pstring = secprop.Add_string("ems",Property.Changeable.WhenIdle,"true");
 	    Pstring.Set_values(ems_settings);
-	    Pstring.Set_help("Enable EMS support. The default (=true) provides the best\n" +
-		"compatibility but certain applications may run better with\n" +
-		"other choices, or require EMS support to be disabled (=false)\n" +
-		"to work at all.");
+	    Pstring.Set_help("""
+                Enable EMS support. The default (=true) provides the best
+                compatibility but certain applications may run better with
+                other choices, or require EMS support to be disabled (=false)
+                to work at all.""");
 
         Pbool = secprop.Add_bool("umb",Property.Changeable.WhenIdle,true);
         Pbool.Set_help("Enable UMB support.");
 
-        secprop.AddInitFunction(DosKeyboardLayout.DOS_KeyboardLayout_Init,true);
+        secprop.addInitFunction(DosKeyboardLayout.DOS_KeyboardLayout_Init,true);
         Pstring = secprop.Add_string("keyboardlayout",Property.Changeable.WhenIdle, "auto");
         Pstring.Set_help("Language code of the keyboard layout (or none).");
 
         // Mscdex
-        secprop.AddInitFunction(DosMSCDEX.MSCDEX_Init);
-        secprop.AddInitFunction(Drives.DRIVES_Init);
-        secprop.AddInitFunction(CDRomImage.CDROM_Image_Init);
+        secprop.addInitFunction(DosMSCDEX.MSCDEX_Init);
+        secprop.addInitFunction(Drives.DRIVES_Init);
+        secprop.addInitFunction(CDRomImage.CDROM_Image_Init);
         if (Config.C_IPX) {
-            secprop=control.AddSection_prop("ipx",IPX.IPX_Init,true);
+            secprop=control.AddSection_prop("ipx", IPX.IPX_Init,true);
             Pbool = secprop.Add_bool("ipx",Property.Changeable.WhenIdle, false);
             Pbool.Set_help("Enable ipx over UDP/IP emulation.");
         }
@@ -753,33 +803,37 @@ public class Dosbox {
         Pbool.Set_help("Enable Floppy controller for use with Bochs bios");
 
         if (Config.C_NE2000) {
-            secprop=control.AddSection_prop("ne2000",NE2000.NE2000_Init,true);
+            secprop=control.AddSection_prop("ne2000", NE2000.NE2000_Init,true);
             //Pstring = secprop.Add_string("ne2000",Property.Changeable.WhenIdle,"false");
             Msg.add("NE2000_CONFIGFILE_HELP",
-                "macaddr -- The physical address the emulator will use on your network.\n" +
-                "           If you have multiple DOSBoxes running on your network,\n" +
-                "           this has to be changed. Modify the last three number blocks.\n" +
-                "           I.e. AC:DE:48:88:99:AB.\n" +
-                "realnic -- Specifies which of your network interfaces is used.\n" +
-                "           Write \'list\' here to see the list of devices in the\n" +
-                "           Status Window. Then make your choice and put either the\n" +
-                "           interface number (2 or something) or a part of your adapters\n" +
-                "           name, e.g. VIA here.\n"
+                    """
+                            macaddr -- The physical address the emulator will use on your network.
+                                       If you have multiple DOSBoxes running on your network,
+                                       this has to be changed. Modify the last three number blocks.
+                                       I.e. AC:DE:48:88:99:AB.
+                            realnic -- Specifies which of your network interfaces is used.
+                                       Write 'list' here to see the list of devices in the
+                                       Status Window. Then make your choice and put either the
+                                       interface number (2 or something) or a part of your adapters
+                                       name, e.g. VIA here.
+                            """
             );
 
             String[] ne2000_settings = new String[]{ "false", "user", "pcap", "pcaphost"};
             Pstring = secprop.Add_string("mode", Property.Changeable.WhenIdle, "false");
             Pstring.Set_values(ne2000_settings);
 
-            Pstring.Set_help( "none -- Hardware is not enabled.  This is the default.\n" +
-                "user -- Internal router will be used.  Currently only DHCP works.\n" +
-                "        UDP/TCP has not been implemented so the internet in\n" +
-                "        Win98 won't work yet.\n" +
-                "pcap -- This requires jnetpcap.jar, the appropriate native jnetpcap\n" +
-                "        libaries and [Win]Pcap installed on the host computer.\n" +
-                "        This is the best option if you want to browse network\n" +
-                "        shares and use the internet on Win98\n" +
-                "pcaphost -- This is not a reliable option yet and used for testing.\n");
+            Pstring.Set_help("""
+                    none -- Hardware is not enabled.  This is the default.
+                    user -- Internal router will be used.  Currently only DHCP works.
+                            UDP/TCP has not been implemented so the internet in
+                            Win98 won't work yet.
+                    pcap -- This requires jnetpcap.jar, the appropriate native jnetpcap
+                            libaries and [Win]Pcap installed on the host computer.
+                            This is the best option if you want to browse network
+                            shares and use the internet on Win98
+                    pcaphost -- This is not a reliable option yet and used for testing.
+                    """);
 
             Pint = secprop.Add_int("pcapport", Property.Changeable.WhenIdle, 15654);
             Pint.Set_help("Used with mode=pcaphost. Port to connect to when forwarding pcap requests");
@@ -788,30 +842,37 @@ public class Dosbox {
             Pint = secprop.Add_int("nicirq", Property.Changeable.WhenIdle, 3);
             Pint.Set_help("The interrupt it uses. Note serial2 uses IRQ3 as default.");
             Pstring = secprop.Add_string("macaddr", Property.Changeable.WhenIdle,"AC:DE:48:88:99:AA");
-            Pstring.Set_help("The physical address the emulator will use on your network.\n" +
-                "If you have multiple DOSBoxes running on your network,\n" +
-                "this has to be changed for each. AC:DE:48 is an address range reserved for\n" +
-                "private use, so modify the last three number blocks.\n" +
-                "I.e. AC:DE:48:88:99:AB.");
+            Pstring.Set_help("""
+                    The physical address the emulator will use on your network.
+                    If you have multiple DOSBoxes running on your network,
+                    this has to be changed for each. AC:DE:48 is an address range reserved for
+                    private use, so modify the last three number blocks.
+                    I.e. AC:DE:48:88:99:AB.""");
             Pstring = secprop.Add_string("realnic", Property.Changeable.WhenIdle,"list");
-            Pstring.Set_help("Specifies which of your network interfaces is used.\n" +
-                "Write \'list\' here to see the list of devices in the\n" +
-                "Status Window. Then make your choice and put either the\n" +
-                "interface number (2 or something) or a part of your adapters\n" +
-                "name, e.g. VIA here.  This option is used for mode=\"pcap\"");
+            Pstring.Set_help("""
+                    Specifies which of your network interfaces is used.
+                    Write 'list' here to see the list of devices in the
+                    Status Window. Then make your choice and put either the
+                    interface number (2 or something) or a part of your adapters
+                    name, e.g. VIA here.  This option is used for mode="pcap\"""");
         }
         //	secprop.AddInitFunction(&CREDITS_Init);
 
         //TODO ?
         secline=control.AddSection_line("autoexec", Shell.AUTOEXEC_Init);
         Msg.add("AUTOEXEC_CONFIGFILE_HELP",
-            "\n#Lines in this section will be run at startup.\n" +
-            "#You can put your MOUNT lines here.\n"
+                """
+                        
+                        #Lines in this section will be run at startup.
+                        #You can put your MOUNT lines here.
+                        """
         );
         Msg.add("CONFIGFILE_INTRO",
-                "# This is the configuration file for DOSBox %s. (Please use the latest version of DOSBox)\n" +
-                "# Lines starting with a # are comment lines and are ignored by DOSBox.\n" +
-                "# They are used to (briefly) document the effect of each option.\n");
+                """
+                        # This is the configuration file for DOSBox %s. (Please use the latest version of DOSBox)
+                        # Lines starting with a # are comment lines and are ignored by DOSBox.
+                        # They are used to (briefly) document the effect of each option.
+                        """);
         Msg.add("CONFIG_SUGGESTED_VALUES", "Possible values");
 
         control.SetStartUp(Shell.SHELL_Init);

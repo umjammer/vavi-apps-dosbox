@@ -18,11 +18,12 @@ public class WinMMIO extends WinObject {
         super(id);
     }
 
+    @Override
     protected void onFree() {
         super.onFree();
     }
 
-    public MMIOINFO info = new MMIOINFO();
+    public final MMIOINFO info = new MMIOINFO();
     public boolean bTmpIOProc;
     public Mmio.IOProc ioProc;
     public boolean bBufferLoaded;

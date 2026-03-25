@@ -9,24 +9,24 @@ import jdos.win.system.WinSystem;
 public class Timer {
     public Timer(int frequency) {
         //init_timer(frequency);
-        Thread thread = new Thread() {
-            public void run() {
-                while (true) {
-                    HandlerBase.tick = true;
-                    try {Thread.sleep(15);} catch (Exception e) {}
-                }
+        Thread thread = new Thread(() -> {
+            while (true) {
+                HandlerBase.tick = true;
+                try {Thread.sleep(15);} catch (Exception e) {}
             }
-        };
+        });
         thread.start();
     }
 
-    Callback.Handler handler = new Callback.Handler() {
+    final Callback.Handler handler = new Callback.Handler() {
         int tickCount;
+        @Override
         public int call() {
             Scheduler.tick();
             return 0;
         }
 
+        @Override
         public String getName() {
             return "Timer";
         }

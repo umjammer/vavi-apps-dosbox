@@ -4,25 +4,27 @@ import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 import jdos.win.system.WinSystem;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class StringUtil extends WinAPI {
-    public static String[] split(final String input, String delimiter) {
-        if (input != null && input.length() > 0) {
+    public static String[] split(String input, String delimiter) {
+        if (input != null && !input.isEmpty()) {
             int index1 = 0;
             int index2 = input.indexOf(delimiter);
-            Vector result = new Vector();
+            List<String> result = new ArrayList<>();
             while (index2 >= 0) {
                 String token = input.substring(index1, index2);
-                result.addElement(token);
+                result.add(token);
                 index1 = index2 + delimiter.length();
                 index2 = input.indexOf(delimiter, index1);
             }
             if (index1 <= input.length() - 1) {
-                result.addElement(input.substring(index1));
+                result.add(input.substring(index1));
             }
             String[] sda = new String[result.size()];
-            result.copyInto(sda);
+            result.addAll(Arrays.asList(sda));
             return sda;
         }
         return new String[0];
@@ -41,9 +43,9 @@ public class StringUtil extends WinAPI {
     }
 
     static public String getString(int address) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         while (true) {
-            char c = (char)Memory.mem_readb(address++); // :TODO: need to research converting according to 1252
+            char c = (char)Memory.mem_readb(address++); // TODO need to research converting according to 1252
             if (c == 0)
                 break;
             result.append(c);
@@ -52,7 +54,7 @@ public class StringUtil extends WinAPI {
     }
 
     static public String getStringW(int address) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         while (true) {
             char c = (char)Memory.mem_readw(address);
             address+=2;
@@ -66,9 +68,9 @@ public class StringUtil extends WinAPI {
     static public String getString(int address, int count) {
         if (count == -1)
             return getString(address);
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         for (int i=0;i<count;i++) {
-            char c = (char)Memory.mem_readb(address++); // :TODO: need to research converting according to 1252
+            char c = (char)Memory.mem_readb(address++); // TODO need to research converting according to 1252
             result.append(c);
         }
         return result.toString();
@@ -77,7 +79,7 @@ public class StringUtil extends WinAPI {
     static public String getStringW(int address, int count) {
         if (count == -1)
             return getStringW(address);
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         for (int i=0;i<count;i++) {
             char c = (char)Memory.mem_readw(address);
             address+=2;
@@ -179,9 +181,9 @@ public class StringUtil extends WinAPI {
 
     static public void strcpyW(int address, String value) {
         char[] c = value.toCharArray();
-        for (int i=0;i<c.length;i++) {
-            Memory.mem_writew(address, c[i]);
-            address+=2;
+        for (char item : c) {
+            Memory.mem_writew(address, item);
+            address += 2;
         }
         Memory.mem_writew(address, 0);
     }
@@ -196,11 +198,11 @@ public class StringUtil extends WinAPI {
         Memory.mem_writew(address, 0);
     }
     static public char tolowerW(char w) {
-        return new Character(w).toString().toLowerCase().charAt(0);
+        return Character.valueOf(w).toString().toLowerCase().charAt(0);
     }
 
     static public char toupperW(char w) {
-        return new Character(w).toString().toUpperCase().charAt(0);
+        return Character.valueOf(w).toString().toUpperCase().charAt(0);
     }
     static public void _strupr(int str) {
         while (true) {
@@ -214,8 +216,8 @@ public class StringUtil extends WinAPI {
 
     static public String[] parseQuotedString(String s) {
         s = s.trim();
-        Vector results = new Vector();
-        StringBuffer buffer = new StringBuffer();
+        List<String> results = new ArrayList<>();
+        StringBuilder buffer = new StringBuilder();
         boolean quote = false;
 
         for (int i=0;i<s.length();i++) {
@@ -226,12 +228,12 @@ public class StringUtil extends WinAPI {
                 buffer.append(c);
             } else {
                 results.add(buffer.toString());
-                buffer = new StringBuffer();
+                buffer = new StringBuilder();
             }
         }
         results.add(buffer.toString());
         String[] r = new String[results.size()];
-        results.copyInto(r);
+        results.addAll(Arrays.asList(r));
         return r;
     }
 

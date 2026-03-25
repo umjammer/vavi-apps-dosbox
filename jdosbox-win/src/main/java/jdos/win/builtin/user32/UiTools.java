@@ -171,42 +171,42 @@ public class UiTools extends WinAPI {
         return hrgn;
     }
 
-    static final private int LTInnerNormal[] = {
+    static final private int[] LTInnerNormal = {
             -1, -1, -1, -1,
             -1, COLOR_BTNHIGHLIGHT, COLOR_BTNHIGHLIGHT, -1,
             -1, COLOR_3DDKSHADOW, COLOR_3DDKSHADOW, -1,
             -1, -1, -1, -1
     };
 
-    static final private int LTOuterNormal[] = {
+    static final private int[] LTOuterNormal = {
             -1, COLOR_3DLIGHT, COLOR_BTNSHADOW, -1,
             COLOR_BTNHIGHLIGHT, COLOR_3DLIGHT, COLOR_BTNSHADOW, -1,
             COLOR_3DDKSHADOW, COLOR_3DLIGHT, COLOR_BTNSHADOW, -1,
             -1, COLOR_3DLIGHT, COLOR_BTNSHADOW, -1
     };
 
-    static final private int RBInnerNormal[] = {
+    static final private int[] RBInnerNormal = {
             -1, -1, -1, -1,
             -1, COLOR_BTNSHADOW, COLOR_BTNSHADOW, -1,
             -1, COLOR_3DLIGHT, COLOR_3DLIGHT, -1,
             -1, -1, -1, -1
     };
 
-    static final private int RBOuterNormal[] = {
+    static final private int[] RBOuterNormal = {
             -1, COLOR_3DDKSHADOW, COLOR_BTNHIGHLIGHT, -1,
             COLOR_BTNSHADOW, COLOR_3DDKSHADOW, COLOR_BTNHIGHLIGHT, -1,
             COLOR_3DLIGHT, COLOR_3DDKSHADOW, COLOR_BTNHIGHLIGHT, -1,
             -1, COLOR_3DDKSHADOW, COLOR_BTNHIGHLIGHT, -1
     };
 
-    static final private int LTInnerSoft[] = {
+    static final private int[] LTInnerSoft = {
             -1, -1, -1, -1,
             -1, COLOR_3DLIGHT, COLOR_3DLIGHT, -1,
             -1, COLOR_BTNSHADOW, COLOR_BTNSHADOW, -1,
             -1, -1, -1, -1
     };
 
-    static final private int LTOuterSoft[] = {
+    static final private int[] LTOuterSoft = {
             -1, COLOR_BTNHIGHLIGHT, COLOR_3DDKSHADOW, -1,
             COLOR_3DLIGHT, COLOR_BTNHIGHLIGHT, COLOR_3DDKSHADOW, -1,
             COLOR_BTNSHADOW, COLOR_BTNHIGHLIGHT, COLOR_3DDKSHADOW, -1,
@@ -216,28 +216,28 @@ public class UiTools extends WinAPI {
     static final private int[] RBInnerSoft = RBInnerNormal;   /* These are the same */
     static final private int[] RBOuterSoft = RBOuterNormal;
 
-    static final private int LTRBOuterMono[] = {
+    static final private int[] LTRBOuterMono = {
             -1, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME,
             COLOR_WINDOW, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME,
             COLOR_WINDOW, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME,
             COLOR_WINDOW, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME, COLOR_WINDOWFRAME,
     };
 
-    static final private int LTRBInnerMono[] = {
+    static final private int[] LTRBInnerMono = {
             -1, -1, -1, -1,
             -1, COLOR_WINDOW, COLOR_WINDOW, COLOR_WINDOW,
             -1, COLOR_WINDOW, COLOR_WINDOW, COLOR_WINDOW,
             -1, COLOR_WINDOW, COLOR_WINDOW, COLOR_WINDOW,
     };
 
-    static final private int LTRBOuterFlat[] = {
+    static final private int[] LTRBOuterFlat = {
             -1, COLOR_BTNSHADOW, COLOR_BTNSHADOW, COLOR_BTNSHADOW,
             COLOR_BTNFACE, COLOR_BTNSHADOW, COLOR_BTNSHADOW, COLOR_BTNSHADOW,
             COLOR_BTNFACE, COLOR_BTNSHADOW, COLOR_BTNSHADOW, COLOR_BTNSHADOW,
             COLOR_BTNFACE, COLOR_BTNSHADOW, COLOR_BTNSHADOW, COLOR_BTNSHADOW,
     };
 
-    static final private int LTRBInnerFlat[] = {
+    static final private int[] LTRBInnerFlat = {
             -1, -1, -1, -1,
             -1, COLOR_BTNFACE, COLOR_BTNFACE, COLOR_BTNFACE,
             -1, COLOR_BTNFACE, COLOR_BTNFACE, COLOR_BTNFACE,
@@ -266,7 +266,7 @@ public class UiTools extends WinAPI {
         WinRect rc = new WinRect(prc);
         int Width = rc.right - rc.left;
         int Height = rc.bottom - rc.top;
-        int SmallDiam = Width > Height ? Height : Width;
+        int SmallDiam = Math.min(Width, Height);
         int retval = BOOL(!(((uType & BDR_INNER) == BDR_INNER || (uType & BDR_OUTER) == BDR_OUTER) && (uFlags & (BF_FLAT | BF_MONO)) == 0));
         int add = (LTRBInnerMono[uType & (BDR_INNER | BDR_OUTER)] != -1 ? 1 : 0) + (LTRBOuterMono[uType & (BDR_INNER | BDR_OUTER)] != -1 ? 1 : 0);
 
@@ -1023,7 +1023,7 @@ public class UiTools extends WinAPI {
         WinRect src = new WinRect(s);
         int Width = src.width();
         int Height = src.height();
-        int SmallDiam = Width > Height ? Height : Width;
+        int SmallDiam = Math.min(Width, Height);
 
         dst.copy(src);
 
@@ -1126,7 +1126,7 @@ public class UiTools extends WinAPI {
 
         if ((uFlags & DFCS_CHECKED) != 0) {
             i = 6 * SmallDiam / 16;
-            i = i < 1 ? 1 : i;
+            i = Math.max(i, 1);
             myr.left = xc - i + i / 2;
             myr.right = xc + i / 2;
             myr.top = yc - i + i / 2;

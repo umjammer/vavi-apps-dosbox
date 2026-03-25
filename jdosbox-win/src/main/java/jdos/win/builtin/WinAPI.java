@@ -1,5 +1,8 @@
 package jdos.win.builtin;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.hardware.Memory;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.system.Scheduler;
@@ -8,21 +11,24 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
 public class WinAPI extends Error {
+
+    private static final Logger logger = System.getLogger(WinAPI.class.getName());
+
     final static public boolean LOG = false;
     final static public boolean LOG_GDI = LOG;
     final static public boolean LOG_MM = false;
     final static public boolean MSGLOG = false;
-    static public int NULL = 0;
+    static public final int NULL = 0;
 
     static public void log(String s) {
         if (BuiltinModule.inPre) {
             BuiltinModule.inPre = false;
         }
         if (BuiltinModule.indent>0)
-            System.out.println();
+            logger.log(Level.DEBUG, "");
         for (int i=0;i<BuiltinModule.indent;i++)
             System.out.print("    ");
-        System.out.println(s);
+        logger.log(Level.DEBUG, s);
     }
 
     static public void warn(String s) {
@@ -1846,7 +1852,7 @@ public class WinAPI extends Error {
     static final public int MMIO_CREATERIFF =        0x0020;  /* mmioCreateChunk: make a LIST chunk */
     static final public int MMIO_CREATELIST =        0x0040;  /* mmioCreateChunk: make a RIFF chunk */
     
-    static final public int mmioFOURCC(int ch0, int ch1, int ch2, int ch3) {
+    static public int mmioFOURCC(int ch0, int ch1, int ch2, int ch3) {
         return (ch0 & 0xFF) | ((ch1 & 0xFF) << 8) | ((ch2 & 0xFF) << 16) | ((ch3 & 0xFF) << 24);
     }
     static final public int FOURCC_RIFF = mmioFOURCC('R', 'I', 'F', 'F');
@@ -1981,8 +1987,8 @@ public class WinAPI extends Error {
     // * Internal *
     // ************
 
-    public static int DF_END =          0x0001;
-    public static int DF_OWNERENABLED = 0x0002;
+    public static final int DF_END =          0x0001;
+    public static final int DF_OWNERENABLED = 0x0002;
 
     static final public int WAIT_SWITCH = 0xFFFF;
     static public final int NUM_SYS_COLORS = COLOR_MENUBAR+1;

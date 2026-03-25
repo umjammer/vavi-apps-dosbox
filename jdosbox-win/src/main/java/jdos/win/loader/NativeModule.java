@@ -20,14 +20,20 @@ import jdos.win.utils.Path;
 import jdos.win.utils.Ptr;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Vector;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 
 public class NativeModule extends Module {
-    public HeaderPE header = new HeaderPE();
+
+    private static final Logger logger = System.getLogger(NativeModule.class.getName());
+
+    public final HeaderPE header = new HeaderPE();
 
     private Path path;
     private KernelHeap heap;
-    private Loader loader;
+    private final Loader loader;
     private int baseAddress;
     private int resourceStartAddress;
 
@@ -36,17 +42,20 @@ public class NativeModule extends Module {
         this.loader = loader;
     }
 
+    @Override
     public String getFileName(boolean fullPath) {
         if (fullPath)
             return path.winPath+name;
         return name;
     }
 
-    static Callback.Handler DllMainReturn = new Callback.Handler() {
+    static final Callback.Handler DllMainReturn = new Callback.Handler() {
+        @Override
         public String getName() {
             return "DllMainReturn";
         }
 
+        @Override
         public int call() {
             return 1; // return from DOSBOX_RunMachine
         }
@@ -54,10 +63,11 @@ public class NativeModule extends Module {
 
     private int returnEip = 0;
 
+    @Override
     public void callDllMain(int dwReason) {
         if (header.imageOptional.AddressOfEntryPoint == 0) {
             if (WinAPI.LOG)
-                System.out.println(name+" has no DllMain");
+                logger.log(Level.DEBUG,name+" has no DllMain");
         } else {
             int esp = CPU_Regs.reg_esp.dword;
               // This code helps debug DllMain by giving the same stack pointer
@@ -77,19 +87,20 @@ public class NativeModule extends Module {
             CPU_Regs.reg_eip = (int)getEntryPoint();
             try {
                 if (WinAPI.LOG) {
-                    System.out.println(name+" calling DllMain@"+ Ptr.toString(CPU_Regs.reg_eip)+" dwReason="+dwReason);
+                    logger.log(Level.DEBUG,name+" calling DllMain@"+ Ptr.toString(CPU_Regs.reg_eip)+" dwReason="+dwReason);
                 }
                 Dosbox.DOSBOX_RunMachine();
                 CPU_Regs.reg_esp.dword = esp;
                 if (WinAPI.LOG)
-                    System.out.println(name+" calling DllMain SUCCESS");
+                    logger.log(Level.DEBUG,name+" calling DllMain SUCCESS");
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
             CPU_Regs.reg_eip = currentEip;
         }
     }
 
+    @Override
     public int getProcAddress(String name, boolean loadFake) {
         LongRef exportAddress = new LongRef(0);
         LongRef exportSize = new LongRef(0);
@@ -124,13 +135,13 @@ public class NativeModule extends Module {
                 if (reserved != baseAddress) {
                     Win.panic("NativeModule.load wasn't expecting this");
                 }
-                System.out.println();
-                System.out.println("Relocating "+name+" from 0x"+Integer.toString(oldbase, 16)+" to 0x"+Integer.toString(baseAddress, 16));
+                logger.log(Level.DEBUG, "");
+                logger.log(Level.DEBUG,"Relocating "+name+" from 0x"+Integer.toString(oldbase, 16)+" to 0x"+Integer.toString(baseAddress, 16));
             }
             heap = new KernelHeap(WinSystem.memory, page_directory, baseAddress, baseAddress+allocated, baseAddress+0x1000000, false, false);
             heap.alloc(allocated, false);
             Memory.mem_memcpy(baseAddress, headerImage, 0, headerImage.length);
-            System.out.println("Loaded "+name+" at 0x"+Integer.toHexString(baseAddress)+" - 0x"+Integer.toHexString(baseAddress+headerImage.length));
+            logger.log(Level.DEBUG,"Loaded "+name+" at 0x"+Integer.toHexString(baseAddress)+" - 0x"+Integer.toHexString(baseAddress+headerImage.length));
             // Load code, data, import, etc sections
             for (int i=0;i<header.imageSections.length;i++) {
                 int address = (int)header.imageSections[i].VirtualAddress+baseAddress;
@@ -143,7 +154,7 @@ public class NativeModule extends Module {
                 if (segmentName.startsWith(".rsrc")) {
                     resourceStartAddress = address;
                 }
-                System.out.println("   "+segmentName+" segment at 0x"+Integer.toHexString(address)+" - 0x"+Long.toHexString(address+header.imageSections[i].PhysicalAddress_or_VirtualSize)+"("+Long.toHexString(address+buffer.length)+")");
+                logger.log(Level.DEBUG,"   "+segmentName+" segment at 0x"+Integer.toHexString(address)+" - 0x"+Long.toHexString(address+header.imageSections[i].PhysicalAddress_or_VirtualSize)+"("+Long.toHexString(address+buffer.length)+")");
                 if (buffer.length>0)
                     fis.read(buffer);
                 int size = buffer.length;
@@ -243,12 +254,12 @@ public class NativeModule extends Module {
             NumberOfNamedEntries = is.readUnsignedShort();
             NumberOfIdEntries = is.readUnsignedShort();
         }
-        public int Characteristics;
-        public int TimeDateStamp;
-        public int MajorVersion;
-        public int MinorVersion;
-        public int NumberOfNamedEntries;
-        public int NumberOfIdEntries;
+        public final int Characteristics;
+        public final int TimeDateStamp;
+        public final int MajorVersion;
+        public final int MinorVersion;
+        public final int NumberOfNamedEntries;
+        public final int NumberOfIdEntries;
     }
     public int getAddressOfResource(int type, int id) {
         return getAddressOfResource(type, id, null);
@@ -362,6 +373,7 @@ public class NativeModule extends Module {
         return baseAddress+header.imageOptional.AddressOfEntryPoint;
     }
 
+    @Override
     public boolean RtlImageDirectoryEntryToData(int dir, LongRef address, LongRef size) {
         if (dir >= header.imageOptional.NumberOfRvaAndSizes)
             return false;
@@ -372,8 +384,9 @@ public class NativeModule extends Module {
         return true;
     }
 
-    public Vector getImportDescriptors(long address) {
-        Vector importDescriptors = new Vector();
+    @Override
+    public List<HeaderImageImportDescriptor> getImportDescriptors(long address) {
+        List<HeaderImageImportDescriptor> importDescriptors = new ArrayList<>();
         try {
             LittleEndianFile file = new LittleEndianFile((int)(baseAddress+address));
             while (true) {
@@ -385,24 +398,28 @@ public class NativeModule extends Module {
                     break;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
         return importDescriptors;
     }
 
+    @Override
     public String getVirtualString(long address) {
         LittleEndianFile file = new LittleEndianFile(baseAddress+(int)address);
         return file.readCString();
     }
 
+    @Override
     public void writeThunk(HeaderImageImportDescriptor desc, int index, long value) {
         Memory.mem_writed((int)(baseAddress + desc.FirstThunk) + 4 * index, (int) value);
     }
 
+    @Override
     public void unload() {
 
     }
 
+    @Override
     public long[] getImportList(HeaderImageImportDescriptor desc) {
         try {
             long import_list = desc.FirstThunk;
@@ -410,21 +427,21 @@ public class NativeModule extends Module {
                 import_list = desc.Characteristics_or_OriginalFirstThunk;
             }
             LittleEndianFile file = new LittleEndianFile(baseAddress+(int)import_list);
-            Vector importOrdinals = new Vector();
+            List<Long> importOrdinals = new ArrayList<>();
             while (true) {
                 long ord = file.readUnsignedInt();
                 if (ord == 0) {
                     break;
                 }
-                importOrdinals.addElement(new Long(ord));
+                importOrdinals.add(ord);
             }
             long[] result = new long[importOrdinals.size()];
             for (int i=0;i<result.length;i++) {
-                result[i] = ((Long)importOrdinals.elementAt(i)).longValue();
+                result[i] = importOrdinals.get(i);
             }
             return result;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
         return null;
     }
@@ -437,11 +454,12 @@ public class NativeModule extends Module {
                 exports.load(file);
             } catch (Exception e) {
                 exports = null;
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
         }
     }
 
+    @Override
     public long findNameExport(long exportAddress, long exportsSize, String name, int hint) {
         loadExports(exportAddress);
         if (hint>=0 && hint<exports.NumberOfFunctions) {
@@ -474,14 +492,15 @@ public class NativeModule extends Module {
 
     private long findForwardExport(long proc) {
         String mod = new LittleEndianFile((int)proc+baseAddress).readCString();
-        System.out.println("Tried to foward export "+mod+".  This is not supported yet.");
+        logger.log(Level.DEBUG,"Tried to foward export "+mod+".  This is not supported yet.");
         return 0;
 
     }
+    @Override
     public long findOrdinalExport(long exportAddress, long exportsSize, int ordinal) {
         loadExports(exportAddress);
         if (ordinal >= exports.NumberOfFunctions+exports.Base) {
-            System.out.println("Error: tried to look up ordinal "+ordinal+" in "+name+" but only "+exports.NumberOfFunctions+" functions are available.");
+            logger.log(Level.DEBUG,"Error: tried to look up ordinal "+ordinal+" in "+name+" but only "+exports.NumberOfFunctions+" functions are available.");
             return 0;
         }
         long proc = Memory.mem_readd((int)(baseAddress+exports.AddressOfFunctions+4*(ordinal-exports.Base)));
@@ -491,13 +510,14 @@ public class NativeModule extends Module {
         return proc+baseAddress;
     }
 
+    @Override
     public void getImportFunctionName(long address, StringRef name, IntRef hint) {
         try {
             LittleEndianFile file = new LittleEndianFile(baseAddress+(int)address);
             hint.value = file.readUnsignedShort();
             name.value = file.readCString();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
     }
 }

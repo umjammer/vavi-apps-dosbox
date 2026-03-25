@@ -31,7 +31,7 @@ public class DRAWTEXTPARAMS extends WinAPI {
         return p;
     }
 
-    public int cbSize;
+    public final int cbSize;
     public int iTabLength;
     public int iLeftMargin;
     public int iRightMargin;

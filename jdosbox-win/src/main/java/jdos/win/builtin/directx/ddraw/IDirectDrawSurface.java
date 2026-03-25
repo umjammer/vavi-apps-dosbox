@@ -19,8 +19,14 @@ import jdos.win.utils.Ptr;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class IDirectDrawSurface extends IUnknown {
+
+    private static final Logger logger = System.getLogger(IDirectDrawSurface.class.getName());
+
     static final int DDSCAPS_ALPHA =                0x00000002; /* surface contains alpha information */
     static final int DDSCAPS_BACKBUFFER =           0x00000004; /* this surface is a backbuffer */
     static final int DDSCAPS_COMPLEX =              0x00000008; /* complex surface structure */
@@ -66,23 +72,23 @@ public class IDirectDrawSurface extends IUnknown {
     static final int DDCKEY_SRCBLT =        0x00000008;  /* To be used as src for blt */
     static final int DDCKEY_SRCOVERLAY =    0x00000010;  /* To be used as src for CK overlays */
 
-    static int FLAGS_CAPS2 =    0x00000001;
-    static int FLAGS_DESC2 =    0x00000002;
-    static int FLAGS_LOCKED =   0x00000004;
+    static final int FLAGS_CAPS2 =    0x00000001;
+    static final int FLAGS_DESC2 =    0x00000002;
+    static final int FLAGS_LOCKED =   0x00000004;
 
-    static int OFFSET_FLAGS = 0;
-    static int OFFSET_PALETTE = 4;
-    static int OFFSET_BACK_BUFFER = 8;
-    static int OFFSET_DC = 12;
-    static int OFFSET_IMAGE_CACHE = 16;
-    static int OFFSET_IMAGE_CACHE_TIME = 20;
-    static int OFFSET_DIRECT_DRAW = 24;
-    static int OFFSET_CLIPPER = 28;
+    static final int OFFSET_FLAGS = 0;
+    static final int OFFSET_PALETTE = 4;
+    static final int OFFSET_BACK_BUFFER = 8;
+    static final int OFFSET_DC = 12;
+    static final int OFFSET_IMAGE_CACHE = 16;
+    static final int OFFSET_IMAGE_CACHE_TIME = 20;
+    static final int OFFSET_DIRECT_DRAW = 24;
+    static final int OFFSET_CLIPPER = 28;
 
     // doesn't include description since that gets computed on the fly
-    static int DATA_SIZE = 32;
+    static final int DATA_SIZE = 32;
 
-    static int OFFSET_DESC = DATA_SIZE;
+    static final int OFFSET_DESC = DATA_SIZE;
 
     static public int lastPaletteChange = 0;
 
@@ -154,11 +160,13 @@ public class IDirectDrawSurface extends IUnknown {
         return create("IDirectDrawSurface", pDirectDraw, pDesc, 0);
     }
 
-    static private Callback.Handler CleanUp = new DirectCallback() {
+    static private final Callback.Handler CleanUp = new DirectCallback() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.CleanUp";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int palette = getData(This, OFFSET_PALETTE);
@@ -301,14 +309,14 @@ public class IDirectDrawSurface extends IUnknown {
                 Win.panic(name+".CreateSurface wasn't expecting a back buffer without DDSCAPS_COMPLEX");
             }
             // The back buffer will not contain child surfaces and it is never visible on the screen
-            setData(result, OFFSET_DESC+0x68, caps & ~(DDSCAPS_VISIBLE | DDSCAPS_COMPLEX));  // :TODO: just guessing what the backbuffer flags look like, need to investigate
+            setData(result, OFFSET_DESC+0x68, caps & ~(DDSCAPS_VISIBLE | DDSCAPS_COMPLEX));  // TODO just guessing what the backbuffer flags look like, need to investigate
             int backBuffer = create(name, pDirectDraw, result+OFFSET_DATA_START+OFFSET_DESC,flags);
             setData(result, OFFSET_BACK_BUFFER, backBuffer);
             // Set after we create the back buffer
             setData(result, OFFSET_DESC+0x04, getData(result, OFFSET_DESC+0x04)|DDSurfaceDesc.DDSD_BACKBUFFERCOUNT);
             setData(result, OFFSET_DESC+0x14, 1);
             if (d.dwBackBufferCount != 1) {
-                System.out.println(name+".CreateSurface faking "+ d.dwBackBufferCount+" back buffers.");
+                logger.log(Level.DEBUG,name+".CreateSurface faking "+ d.dwBackBufferCount+" back buffers.");
             }
             Scheduler.monitor = 0;
         } else if ((d.ddsCaps & DDSCAPS_PRIMARYSURFACE)!=0) {
@@ -322,7 +330,7 @@ public class IDirectDrawSurface extends IUnknown {
         return result;
     }
 
-    static int VTABLE_COUNT = 33;
+    static final int VTABLE_COUNT = 33;
 
     static private int createVTable() {
         int address = allocateVTable("IDirectDrawSurface", VTABLE_COUNT);
@@ -370,10 +378,12 @@ public class IDirectDrawSurface extends IUnknown {
     }
 
     // HRESULT AddAttachedSurface(this, LPDIRECTDRAWSURFACE lpDDSAttachedSurface)
-    static private Callback.Handler AddAttachedSurface = new HandlerBase() {
+    static private final Callback.Handler AddAttachedSurface = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.AddAttachedSurface";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDSAttachedSurface = CPU.CPU_Pop32();
@@ -382,10 +392,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
     
     // HRESULT AddOverlayDirtyRect(this, LPRECT lpRect)
-    static private Callback.Handler AddOverlayDirtyRect = new HandlerBase() {
+    static private final Callback.Handler AddOverlayDirtyRect = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.AddOverlayDirtyRect";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpRect = CPU.CPU_Pop32();
@@ -394,7 +406,7 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Blt(this, LPRECT lpDestRect, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwFlags, LPDDBLTFX lpDDBltFx)
-    static private Callback.Handler Blt = new HandlerBase() {
+    static private final Callback.Handler Blt = new HandlerBase() {
         static public final int DDBLT_ALPHADEST =                   0x00000001;
         static public final int DDBLT_ALPHADESTCONSTOVERRIDE =      0x00000002;
         static public final int DDBLT_ALPHADESTNEG =                0x00000004;
@@ -423,9 +435,11 @@ public class IDirectDrawSurface extends IUnknown {
         static public final int DDBLT_DEPTHFILL =                   0x02000000;
         static public final int DDBLT_DONOTWAIT =                   0x08000000;
 
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Blt";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDestRect = CPU.CPU_Pop32();
@@ -487,10 +501,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT BltBatch(this, LPDDBLTBATCH lpDDBltBatch, DWORD dwCount, DWORD dwFlags)
-    static private Callback.Handler BltBatch = new HandlerBase() {
+    static private final Callback.Handler BltBatch = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.BltBatch";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDBltBatch = CPU.CPU_Pop32();
@@ -501,16 +517,18 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT BltFast(this, DWORD dwX, DWORD dwY, LPDIRECTDRAWSURFACE lpDDSrcSurface, LPRECT lpSrcRect, DWORD dwTrans)
-    static private Callback.Handler BltFast = new HandlerBase() {
+    static private final Callback.Handler BltFast = new HandlerBase() {
         static private final int DDBLTFAST_NOCOLORKEY =     0x00000000;
         static private final int DDBLTFAST_SRCCOLORKEY =    0x00000001;
         static private final int DDBLTFAST_DESTCOLORKEY =   0x00000002;
         static private final int DDBLTFAST_WAIT =           0x00000010;
         static private final int DDBLTFAST_DONOTWAIT =      0x00000020;
 
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.BltFast";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwX = CPU.CPU_Pop32();
@@ -536,7 +554,7 @@ public class IDirectDrawSurface extends IUnknown {
                 BufferedImage src = getImage(lpDDSrcSurface, true).getImageColorKey(getData(This, OFFSET_DESC + 0x40));
                 g.drawImage(src, dwX, dwY, dwX+width, dwY+height, srcX1, srcY1, srcX2, srcY1+height, null);
             } else if ((dwTrans & 0xF) == DDBLTFAST_DESTCOLORKEY) {
-                System.out.println(getName()+" DDBLTFAST_DESTCOLORKEY not implemented yet");
+                logger.log(Level.DEBUG,getName()+" DDBLTFAST_DESTCOLORKEY not implemented yet");
                 notImplemented();
             }
             g.dispose();
@@ -547,10 +565,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT DeleteAttachedSurface(this, DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSAttachedSurface)
-    static private Callback.Handler DeleteAttachedSurface = new HandlerBase() {
+    static private final Callback.Handler DeleteAttachedSurface = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.DeleteAttachedSurface";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -560,10 +580,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT EnumAttachedSurfaces(this, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpEnumSurfacesCallback)
-    static private Callback.Handler EnumAttachedSurfaces = new HandlerBase() {
+    static private final Callback.Handler EnumAttachedSurfaces = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.EnumAttachedSurfaces";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpContext = CPU.CPU_Pop32();
@@ -573,10 +595,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT EnumOverlayZOrders(this, DWORD dwFlags, LPVOID lpContext, LPDDENUMSURFACESCALLBACK lpfnCallback)
-    static private Callback.Handler EnumOverlayZOrders = new HandlerBase() {
+    static private final Callback.Handler EnumOverlayZOrders = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.EnumOverlayZOrders";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -587,10 +611,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Flip(this, LPDIRECTDRAWSURFACE lpDDSurfaceTargetOverride, DWORD dwFlags)
-    static private Callback.Handler Flip = new HandlerBase() {
+    static private final Callback.Handler Flip = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Flip";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDSurfaceTargetOverride = CPU.CPU_Pop32();
@@ -617,10 +643,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetAttachedSurface(this, LPDDSCAPS lpDDSCaps, LPDIRECTDRAWSURFACE *lplpDDAttachedSurface)
-    static private Callback.Handler GetAttachedSurface = new HandlerBase() {
+    static private final Callback.Handler GetAttachedSurface = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetAttachedSurface";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDSCaps = CPU.CPU_Pop32();
@@ -640,10 +668,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetBltStatus(this, DWORD dwFlags)
-    static private Callback.Handler GetBltStatus = new HandlerBase() {
+    static private final Callback.Handler GetBltStatus = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetBltStatus";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -652,10 +682,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetCaps(this, LPDDSCAPS lpDDSCaps)
-    static private Callback.Handler GetCaps = new HandlerBase() {
+    static private final Callback.Handler GetCaps = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetCaps";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDSCaps = CPU.CPU_Pop32();
@@ -674,10 +706,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetClipper(this, LPDIRECTDRAWCLIPPER *lplpDDClipper)
-    static private Callback.Handler GetClipper = new HandlerBase() {
+    static private final Callback.Handler GetClipper = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetClipper";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lplpDDClipper = CPU.CPU_Pop32();
@@ -693,10 +727,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetColorKey(this, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey)
-    static private Callback.Handler GetColorKey = new HandlerBase() {
+    static private final Callback.Handler GetColorKey = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetColorKey";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -706,10 +742,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetDC(this, HDC *lphDC)
-    static private Callback.Handler GetDC = new HandlerBase() {
+    static private final Callback.Handler GetDC = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetDC";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lphDC = CPU.CPU_Pop32();
@@ -732,10 +770,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetFlipStatus(this, DWORD dwFlags)
-    static private Callback.Handler GetFlipStatus = new HandlerBase() {
+    static private final Callback.Handler GetFlipStatus = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetFlipStatus";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -744,10 +784,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetOverlayPosition(this, LPLONG lplX, LPLONG lplY)
-    static private Callback.Handler GetOverlayPosition = new HandlerBase() {
+    static private final Callback.Handler GetOverlayPosition = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetOverlayPosition";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lplX = CPU.CPU_Pop32();
@@ -757,10 +799,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetPalette(this, LPDIRECTDRAWPALETTE *lplpDDPalette)
-    static private Callback.Handler GetPalette = new HandlerBase() {
+    static private final Callback.Handler GetPalette = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetPalette";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lplpDDPalette = CPU.CPU_Pop32();
@@ -769,10 +813,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetPixelFormat(this, LPDDPIXELFORMAT lpDDPixelFormat)
-    static private Callback.Handler GetPixelFormat = new HandlerBase() {
+    static private final Callback.Handler GetPixelFormat = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetPixelFormat";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDPixelFormat = CPU.CPU_Pop32();
@@ -781,7 +827,7 @@ public class IDirectDrawSurface extends IUnknown {
             } else {
                 int size = Memory.mem_readd(This+OFFSET_DATA_START +OFFSET_DESC+0x48);
                 if (Memory.mem_readd(lpDDPixelFormat) != size) {
-                    System.out.println(getName()+": wrong size."+Memory.mem_readd(lpDDPixelFormat)+" does not equal "+size);
+                    logger.log(Level.DEBUG,getName()+": wrong size."+Memory.mem_readd(lpDDPixelFormat)+" does not equal "+size);
                     CPU_Regs.reg_eax.dword = Error.DDERR_INVALIDPARAMS;
                 } else {
                     Memory.mem_memcpy(lpDDPixelFormat, This+OFFSET_DATA_START + OFFSET_DESC + 0x48, size);
@@ -792,10 +838,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT GetSurfaceDesc(this, LPDDSURFACEDESC lpDDSurfaceDesc)
-    static private Callback.Handler GetSurfaceDesc = new HandlerBase() {
+    static private final Callback.Handler GetSurfaceDesc = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.GetSurfaceDesc";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDSurfaceDesc = CPU.CPU_Pop32();
@@ -805,7 +853,7 @@ public class IDirectDrawSurface extends IUnknown {
             } else {
                 int size = Memory.mem_readd(This+OFFSET_DATA_START +OFFSET_DESC);
                 if (Memory.mem_readd(lpDDSurfaceDesc) != size) {
-                    System.out.println(getName()+": wrong size."+Memory.mem_readd(lpDDSurfaceDesc)+" does not equal "+size);
+                    logger.log(Level.DEBUG,getName()+": wrong size."+Memory.mem_readd(lpDDSurfaceDesc)+" does not equal "+size);
                     CPU_Regs.reg_eax.dword = Error.DDERR_INVALIDPARAMS;
                 } else {
                     Memory.mem_memcpy(lpDDSurfaceDesc, This+OFFSET_DATA_START +OFFSET_DESC, size);
@@ -816,10 +864,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Initialize(this, LPDIRECTDRAW lpDD, LPDDSURFACEDESC lpDDSurfaceDesc)
-    static private Callback.Handler Initialize = new HandlerBase() {
+    static private final Callback.Handler Initialize = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Initialize";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDD = CPU.CPU_Pop32();
@@ -829,10 +879,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT IsLost(this)
-    static private Callback.Handler IsLost = new HandlerBase() {
+    static private final Callback.Handler IsLost = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.IsLost";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = Error.S_OK;
@@ -840,10 +892,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Lock(this, LPRECT lpDestRect, LPDDSURFACEDESC lpDDSurfaceDesc, DWORD dwFlags, HANDLE hEvent)
-    static private Callback.Handler Lock = new HandlerBase() {
+    static private final Callback.Handler Lock = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Lock";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDestRect = CPU.CPU_Pop32();
@@ -883,10 +937,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT ReleaseDC(this, HDC hDC)
-    static private Callback.Handler ReleaseDC = new HandlerBase() {
+    static private final Callback.Handler ReleaseDC = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.ReleaseDC";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int hDC = CPU.CPU_Pop32();
@@ -904,10 +960,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Restore(this)
-    static private Callback.Handler Restore = new HandlerBase() {
+    static private final Callback.Handler Restore = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Restore";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             // no need to do anything here since we never unload it from video memory
@@ -916,10 +974,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT SetClipper(this, LPDIRECTDRAWCLIPPER lpDDClipper)
-    static private Callback.Handler SetClipper = new HandlerBase() {
+    static private final Callback.Handler SetClipper = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.SetClipper";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDClipper = CPU.CPU_Pop32();
@@ -930,10 +990,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT SetColorKey(this, DWORD dwFlags, LPDDCOLORKEY lpDDColorKey)
-    static private Callback.Handler SetColorKey = new HandlerBase() {
+    static private final Callback.Handler SetColorKey = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.SetColorKey";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -960,7 +1022,7 @@ public class IDirectDrawSurface extends IUnknown {
                 int c2 = 0;
                 if (!single) {
                     c2 = Memory.mem_readd(lpDDColorKey+4);
-                    System.out.println(getName()+" color space not implemented yet");
+                    logger.log(Level.DEBUG,getName()+" color space not implemented yet");
                     notImplemented();
                 }
 
@@ -989,10 +1051,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT SetOverlayPosition(this, LONG lX, LONG lY)
-    static private Callback.Handler SetOverlayPosition = new HandlerBase() {
+    static private final Callback.Handler SetOverlayPosition = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.SetOverlayPosition";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lX = CPU.CPU_Pop32();
@@ -1002,10 +1066,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT SetPalette(this, LPDIRECTDRAWPALETTE lpDDPalette)
-    static private Callback.Handler SetPalette = new HandlerBase() {
+    static private final Callback.Handler SetPalette = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.SetPalette";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDDPalette = CPU.CPU_Pop32();
@@ -1028,12 +1094,12 @@ public class IDirectDrawSurface extends IUnknown {
                     setData(backBuffer, OFFSET_PALETTE, lpDDPalette);
                 }
                 if ((getCaps(This) & DDSCAPS_PRIMARYSURFACE)!=0) {
-                    // :TODO: this will leak
+                    // TODO this will leak
                     AddRef(lpDDPalette);
                     IDirectDraw.setPalette(getDirectDraw(This), lpDDPalette);
                 }
             }
-            // :TODO: why does this cause flicker on donuts.exe
+            // TODO why does this cause flicker on donuts.exe
             //lastPaletteChange = WinSystem.getTickCount();
             JavaBitmap image = getImage(This, true);
             if (image!=null) {
@@ -1051,10 +1117,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT Unlock(this, LPVOID lpSurfaceData)
-    static private Callback.Handler Unlock = new HandlerBase() {
+    static private final Callback.Handler Unlock = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.Unlock";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpSurfaceData = CPU.CPU_Pop32();
@@ -1066,10 +1134,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT UpdateOverlay(this, LPRECT lpSrcRect, LPDIRECTDRAWSURFACE lpDDDestSurface, LPRECT lpDestRect, DWORD dwFlags, LPDDOVERLAYFX lpDDOverlayFx)
-    static private Callback.Handler UpdateOverlay = new HandlerBase() {
+    static private final Callback.Handler UpdateOverlay = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.UpdateOverlay";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpSrcRect = CPU.CPU_Pop32();
@@ -1082,10 +1152,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT UpdateOverlayDisplay(this, DWORD dwFlags)
-    static private Callback.Handler UpdateOverlayDisplay = new HandlerBase() {
+    static private final Callback.Handler UpdateOverlayDisplay = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.UpdateOverlayDisplay";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -1094,10 +1166,12 @@ public class IDirectDrawSurface extends IUnknown {
     };
 
     // HRESULT UpdateOverlayZOrder(this, DWORD dwFlags, LPDIRECTDRAWSURFACE lpDDSReference)
-    static private Callback.Handler UpdateOverlayZOrder = new HandlerBase() {
+    static private final Callback.Handler UpdateOverlayZOrder = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface.UpdateOverlayZOrder";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();

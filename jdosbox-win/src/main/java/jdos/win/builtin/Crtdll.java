@@ -8,10 +8,15 @@ import jdos.win.loader.Loader;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Random;
 
 public class Crtdll extends BuiltinModule {
-    int _acmdln_dll;
+
+    private static final Logger logger = System.getLogger(Crtdll.class.getName());
+
+    final int _acmdln_dll;
 
     public Crtdll(Loader loader, int handle) {
         super(loader, "Crtdll.dll", handle);
@@ -40,7 +45,7 @@ public class Crtdll extends BuiltinModule {
     }
 
     public static void _ftol() {
-        // :TODO: is this right?
+        // TODO is this right?
         long result = (long) FPU.regs[FPU.top];
         if (LOG)
             log(FPU.regs[FPU.top]+" -> "+result);
@@ -52,7 +57,7 @@ public class Crtdll extends BuiltinModule {
     // void __GetMainArgs(int * argc, char *** argv, char *** envp, int expand_wildcards)
     public static void __GetMainArgs(int argc, int argv, int envp, int expand_wildcards) {
         Memory.mem_writed(argc, 1);
-        int tmp_argv = WinSystem.getCurrentProcess().heap.alloc(4, false);  // :TODO: this will leak
+        int tmp_argv = WinSystem.getCurrentProcess().heap.alloc(4, false);  // TODO this will leak
         Memory.mem_writed(tmp_argv, WinSystem.getCurrentProcess().getCommandLine());
         Memory.mem_writed(argv, tmp_argv);
         Memory.mem_writed(envp, 0);
@@ -63,13 +68,13 @@ public class Crtdll extends BuiltinModule {
         while (start<end) {
             int next = Memory.mem_readd(start);
             if (next != 0) {
-                System.out.println("Crtdll._initterm faked");
+                logger.log(Level.DEBUG,"Crtdll._initterm faked");
             }
             start+=4;
         }
     }
 
-    private static Random random = new Random();
+    private static final Random random = new Random();
 
     public static int rand() {
         return random.nextInt() & 0x7FFF;
@@ -82,6 +87,6 @@ public class Crtdll extends BuiltinModule {
     }
 
     public static int toupper(int c) {
-        return (int)Character.toUpperCase((char)c);
+        return Character.toUpperCase((char)c);
     }
 }

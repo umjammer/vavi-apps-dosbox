@@ -1,25 +1,28 @@
 package jdos.hardware;
 
 import jdos.Dosbox;
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Paging;
 import jdos.hardware.pci.PCI_PageHandler;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Config;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.types.MachineType;
 import jdos.util.IntRef;
 import jdos.util.Ptr;
 import jdos.util.StringHelper;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Memory extends Module_base {
+
+    private static final Logger logger = System.getLogger(Memory.class.getName());
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+
     public static final int MEM_PAGESIZE = 4096;
     public static int MEM_SIZE = 0;
     static final int EXTRA_MEM = 8196;
@@ -98,11 +101,13 @@ public class Memory extends Module_base {
     }
 
     public static /*Bit16u*/int RealSeg(/*RealPt*/int pt) {
-        return (/*Bit16u*/int)((pt>>>16) & 0xFFFF);
+        /*Bit16u*/
+        return (pt>>>16) & 0xFFFF;
     }
 
     public static /*Bit16u*/int RealOff(/*RealPt*/int pt) {
-        return (/*Bit16u*/int)(pt & 0xffff);
+        /*Bit16u*/
+        return pt & 0xffff;
     }
 
     public static /*PhysPt*/int Real2Phys(/*RealPt*/int pt) {
@@ -151,7 +156,7 @@ public class Memory extends Module_base {
         public /*Bitu*/int pages;
         Paging.PageHandler[] phandlers;
         /*MemHandle*/int[] mhandles;
-        LinkBlock links = new LinkBlock();
+        final LinkBlock links = new LinkBlock();
         public static class Lfb	{
             /*Bitu*/int		start_page;
             /*Bitu*/int		end_page;
@@ -159,20 +164,20 @@ public class Memory extends Module_base {
             Paging.PageHandler handler;
             Paging.PageHandler mmiohandler;
         }
-        public Lfb lfb = new Lfb();
+        public final Lfb lfb = new Lfb();
         public static class ROM {
             /*Bitu*/int		start_page;
             /*Bitu*/int		end_page;
             /*Bitu*/int		pages;
             Paging.PageHandler handler;
         }
-        public Vector<PCI_PageHandler> pci = new Vector<PCI_PageHandler>();
-        public Vector<ROM> roms = new Vector<ROM>();
+        public final List<PCI_PageHandler> pci = new ArrayList<>();
+        public final List<ROM> roms = new ArrayList<>();
         public static class A20 {
             boolean enabled;
-            /*Bit8u*/short controlport;
+            /*Bit8u*/short controlPort;
         }
-        A20 a20 = new A20();
+        final A20 a20 = new A20();
     }
     static private MemoryBlock memory;
 
@@ -183,26 +188,28 @@ public class Memory extends Module_base {
             flags=Paging.PFLAG_INIT|Paging.PFLAG_NOCODE;
         }
         static /*Bits*/int r_lcount=0;
+        @Override
         public /*Bitu*/int readb(/*PhysPt*/int addr) {
             if (Config.C_DEBUG)
-                Log.log_msg(StringHelper.sprintf("Illegal read from %x, CS:IP %8x:%8x",new Object[] {new Integer(addr), new Integer(CPU_Regs.reg_csVal.dword),new Integer(CPU_Regs.reg_eip)}));
+                logger.log(Level.DEBUG, "Illegal read from %x, CS:IP %8x:%8x".formatted(addr, CPU_Regs.reg_csVal.dword,CPU_Regs.reg_eip));
             else {
                 if (r_lcount<1000) {
                     r_lcount++;
-                    Log.log_msg(StringHelper.sprintf("Illegal read from %x, CS:IP %8x:%8x",new Object[] {new Integer(addr), new Integer(CPU_Regs.reg_csVal.dword),new Integer(CPU_Regs.reg_eip)}));
+                    logger.log(Level.DEBUG, "Illegal read from %x, CS:IP %8x:%8x".formatted(addr, CPU_Regs.reg_csVal.dword,CPU_Regs.reg_eip));
                 }
             }
             return 0;
         }
         static /*Bits*/int w_lcount=0;
+        @Override
         public void writeb(/*PhysPt*/int addr,/*Bitu*/int val) {
             if (Config.C_DEBUG)
-                Log.log_msg(StringHelper.sprintf("Illegal write to %x, CS:IP %8x:%8x",new Object[] {new Integer(addr), new Integer(CPU_Regs.reg_csVal.dword),new Integer(CPU_Regs.reg_eip)}));
+                logger.log(Level.DEBUG, "Illegal write to %x, CS:IP %8x:%8x".formatted(addr, CPU_Regs.reg_csVal.dword,CPU_Regs.reg_eip));
             else {
 
                 if (w_lcount<1000) {
                     w_lcount++;
-                    Log.log_msg(StringHelper.sprintf("Illegal write to %x, CS:IP %8x:%8x",new Object[] {new Integer(addr), new Integer(CPU_Regs.reg_csVal.dword),new Integer(CPU_Regs.reg_eip)}));
+                    logger.log(Level.DEBUG, "Illegal write to %x, CS:IP %8x:%8x".formatted(addr, CPU_Regs.reg_csVal.dword,CPU_Regs.reg_eip));
                 }
             }
         }
@@ -212,9 +219,11 @@ public class Memory extends Module_base {
         public RAMPageHandler() {
             flags=Paging.PFLAG_READABLE|Paging.PFLAG_WRITEABLE;
         }
+        @Override
         public /*HostPt*/int GetHostReadPt(/*Bitu*/int phys_page) {
             return phys_page*MEM_PAGESIZE;
         }
+        @Override
         public /*HostPt*/int GetHostWritePt(/*Bitu*/int phys_page) {
             return phys_page*MEM_PAGESIZE;
         }
@@ -224,53 +233,62 @@ public class Memory extends Module_base {
         public ROMPageHandler() {
             flags=Paging.PFLAG_READABLE|Paging.PFLAG_HASROM;
         }
+        @Override
         public void writeb(/*PhysPt*/int addr,/*Bitu*/int val){
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
+            LOG_CPU.log(Level.ERROR, "Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
         }
+        @Override
         public void writew(/*PhysPt*/int addr,/*Bitu*/int val){
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
+            LOG_CPU.log(Level.ERROR, "Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
         }
+        @Override
         public void writed(/*PhysPt*/int addr,/*Bitu*/int val){
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
+            LOG_CPU.log(Level.ERROR, "Write "+Integer.toString(val, 16)+" to rom at "+Integer.toString(addr,16));
         }
     }
 
 
 
-    private static IllegalPageHandler illegal_page_handler = new IllegalPageHandler();
-    private static RAMPageHandler ram_page_handler = new RAMPageHandler();
-    private static ROMPageHandler rom_page_handler = new ROMPageHandler();
+    private static final Memory.IllegalPageHandler illegal_page_handler = new IllegalPageHandler();
+    private static final RAMPageHandler ram_page_handler = new RAMPageHandler();
+    private static final ROMPageHandler rom_page_handler = new ROMPageHandler();
 
     private static class ROMDataPageHandler extends Paging.PageHandler {
-        byte[] data;
-        int address;
+        final byte[] data;
+        final int address;
         public ROMDataPageHandler(byte[] data, int address) {
             this.data = data;
             this.address = address;
         }
+        @Override
         public /*Bitu*/int readb(/*PhysPt*/int addr) {
             return data[addr-address] & 0xFF;
         }
 
+        @Override
         public void writeb(/*PhysPt*/int addr,/*Bitu*/int val) {
         }
 
+        @Override
         public void writew(/*PhysPt*/int addr,/*Bitu*/int val) {
         }
 
+        @Override
         public void writed(/*PhysPt*/int addr,/*Bitu*/int val) {
         }
 
+        @Override
         public /*HostPt*/int GetHostReadPt(/*Bitu*/int phys_page) {
             return -1;
         }
 
+        @Override
         public /*HostPt*/int GetHostWritePt(/*Bitu*/int phys_page) {
             return -1;
         }
     }
     static public void MEM_AddROM(/*Bitu*/int page, /*Bitu*/int pages, byte[] data) {
-        MemoryBlock.ROM rom = new MemoryBlock.ROM();
+        MemoryBlock.ROM rom = new Memory.MemoryBlock.ROM();
         rom.pages = pages;
         rom.start_page = page;
         rom.end_page = page+pages;
@@ -303,13 +321,13 @@ public class Memory extends Module_base {
             return VBE.handler;
         }
         for (int i=0;i<memory.roms.size();i++) {
-            MemoryBlock.ROM rom = memory.roms.elementAt(i);
+            MemoryBlock.ROM rom = memory.roms.get(i);
             if (phys_page>=rom.start_page && phys_page<rom.end_page) {
                 return rom.handler;
             }
         }
         for (int i=0;i<memory.pci.size();i++) {
-            PCI_PageHandler handler = memory.pci.elementAt(i);
+            PCI_PageHandler handler = memory.pci.get(i);
             if (phys_page>=handler.start_page && phys_page<handler.stop_page)
                 return handler;
         }
@@ -444,7 +462,7 @@ public class Memory extends Module_base {
     }
 
     static public String MEM_StrCopy(/*PhysPt*/int pt,/*Bitu*/int size) {
-        StringBuffer buf = new StringBuffer();
+        StringBuilder buf = new StringBuilder();
         for (int i=0;i<size;i++) {
             int r=Paging.mem_readb_inline(pt++);
             if (r==0) break;
@@ -554,7 +572,7 @@ public class Memory extends Module_base {
             int lastIndex=-1;
             while (pages!=0) {
                 /*Bitu*/int index=BestMatch(1);
-                if (index==0) Log.exit("MEM:corruption during allocate");
+                if (index==0) throw new IllegalStateException("MEM:corruption during allocate");
                 while (pages!=0 && (memory.mhandles[index]==0)) {
                     if (ret == -1)
                         ret = index;
@@ -721,7 +739,7 @@ public class Memory extends Module_base {
         return Paging.mem_readd_inline(address);
     }
     public static /*Bit32u*/long mem_readq(/*PhysPt*/int address) {
-        return (Paging.mem_readd_inline(address) & 0xFFFFFFFFl) | ((Paging.mem_readd_inline(address+4) & 0xFFFFFFFFl) << 32);
+        return (Paging.mem_readd_inline(address) & 0xFFFFFFFFL) | ((Paging.mem_readd_inline(address+4) & 0xFFFFFFFFL) << 32);
     }
 
     static public void mem_writeb(/*PhysPt*/int address,/*Bit8u*/int val) {
@@ -741,18 +759,20 @@ public class Memory extends Module_base {
         Paging.mem_writed_inline(address+4,(int)(val>>>32));
     }
 
-    static private IoHandler.IO_WriteHandler write_p92 = new IoHandler.IO_WriteHandler() {
+    static private final IoHandler.IO_WriteHandler write_p92 = new IoHandler.IO_WriteHandler() {
+        @Override
         public void call(/*Bitu*/int port, /*Bitu*/int val, /*Bitu*/int iolen) {
             // Bit 0 = system reset (switch back to real mode)
-            if ((val&1)!=0) Log.exit("XMS: CPU reset via port 0x92 not supported.");
-            memory.a20.controlport = (short)(val & ~2);
+            if ((val&1)!=0) throw new IllegalStateException("XMS: CPU reset via port 0x92 not supported.");
+            memory.a20.controlPort = (short)(val & ~2);
             MEM_A20_Enable((val & 2)>0);
         }
     };
 
-    static private IoHandler.IO_ReadHandler read_p92 = new IoHandler.IO_ReadHandler() {
+    static private final IoHandler.IO_ReadHandler read_p92 = new IoHandler.IO_ReadHandler() {
+        @Override
         public /*Bitu*/int call(/*Bitu*/int port, /*Bitu*/int iolen) {
-            return memory.a20.controlport | (memory.a20.enabled ? 0x02 : 0);
+            return memory.a20.controlPort | (memory.a20.enabled ? 0x02 : 0);
         }
     };
 
@@ -770,8 +790,8 @@ public class Memory extends Module_base {
         }
     }
 
-    private IoHandler.IO_ReadHandleObject ReadHandler = new IoHandler.IO_ReadHandleObject();
-    private IoHandler.IO_WriteHandleObject WriteHandler = new IoHandler.IO_WriteHandleObject();
+    private final IoHandler.IO_ReadHandleObject ReadHandler = new IoHandler.IO_ReadHandleObject();
+    private final IoHandler.IO_WriteHandleObject WriteHandler = new IoHandler.IO_WriteHandleObject();
 
     public static int videoCacheSize = 0;
     public Memory(Section configuration) {
@@ -785,12 +805,12 @@ public class Memory extends Module_base {
             if (memsize < 1) memsize = 1;
 
             if (memsize > MAX_MEMORY) {
-                Log.log_msg("Maximum memory size is "+(MAX_MEMORY - 1)+" MB");
+                logger.log(Level.DEBUG, "Maximum memory size is "+(MAX_MEMORY - 1)+" MB");
                 memsize = MAX_MEMORY;
             }
             if (memsize > SAFE_MEMORY-1) {
-                Log.log_msg("Memory sizes above "+(SAFE_MEMORY - 1)+" MB are NOT recommended.");
-                Log.log_msg("Stick with the default values unless you are absolutely certain.");
+                logger.log(Level.DEBUG, "Memory sizes above "+(SAFE_MEMORY - 1)+" MB are NOT recommended.");
+                logger.log(Level.DEBUG, "Stick with the default values unless you are absolutely certain.");
             }
             MEM_SIZE = memsize;
             memory = new MemoryBlock();
@@ -809,10 +829,10 @@ public class Memory extends Module_base {
                 videoCacheSize*=1024;
                 if (videoCacheSize==0) videoCacheSize = videosize*2;
                 videosize+=videoCacheSize;
-                System.out.println("About to allocate memory "+String.valueOf((highwaterMark+EXTRA_MEM+VGA_draw.TEMPLINE_SIZE+videosize)/1024)+"kb: "+String.valueOf(Runtime.getRuntime().freeMemory()/1024)+"kb free");
+                logger.log(Level.DEBUG,"About to allocate memory "+ (highwaterMark + EXTRA_MEM + VGA_draw.TEMPLINE_SIZE + videosize) / 1024 +"kb: "+ Runtime.getRuntime().freeMemory() / 1024 +"kb free");
                 RAM.alloc(highwaterMark + EXTRA_MEM + videosize + VGA_draw.TEMPLINE_SIZE + 3);
             } catch (java.lang.OutOfMemoryError e) {
-                Log.exit("Can't allocate main memory of "+memsize+" MB");
+                throw new IllegalStateException("Can't allocate main memory of "+memsize+" MB");
             }
             memory.pages = (memsize*1024*1024)/4096;
             /* Allocate the data for the different page information blocks */
@@ -852,16 +872,18 @@ public class Memory extends Module_base {
         memory.links.used = 0;
     }
     static Memory test;
-    public static Section.SectionFunction MEM_ShutDown = new Section.SectionFunction() {
+    public static final Section.SectionFunction MEM_ShutDown = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             RAM.free();
             test = null;
         }
     };
-    public static Section.SectionFunction MEM_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction MEM_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = new Memory(section);
-            section.AddDestroyFunction(MEM_ShutDown);
+            section.addDestroyFunction(MEM_ShutDown);
         }
     };
 }

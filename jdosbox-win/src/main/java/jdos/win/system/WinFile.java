@@ -52,6 +52,7 @@ public class WinFile extends WinObject {
             end = end.toLowerCase();
         }
 
+        @Override
         public boolean accept(File pathname) {
             String name = pathname.getName().toLowerCase();
             if (name.startsWith(begin) && name.endsWith(end))
@@ -76,11 +77,11 @@ public class WinFile extends WinObject {
     /** One millisecond expressed in units of 100s of nanoseconds. */
     private static final long FILETIME_ONE_MILLISECOND = 10 * 1000;
 
-    public static long filetimeToMillis(final long filetime) {
+    public static long filetimeToMillis(long filetime) {
         return (filetime / FILETIME_ONE_MILLISECOND) - FILETIME_EPOCH_DIFF;
     }
 
-    public static long millisToFiletime(final long millis) {
+    public static long millisToFiletime(long millis) {
         return (millis + FILETIME_EPOCH_DIFF) * FILETIME_ONE_MILLISECOND;
     }
 
@@ -92,7 +93,7 @@ public class WinFile extends WinObject {
     }
 
     public static long readFileTime(int address) {
-        return (Memory.mem_readd(address) & 0xFFFFFFFFl) | ((Memory.mem_readd(address+4)  & 0xFFFFFFFFl) << 32);
+        return (Memory.mem_readd(address) & 0xFFFFFFFFL) | ((Memory.mem_readd(address+4)  & 0xFFFFFFFFL) << 32);
     }
 
     public WinFile(int type, int handle) {
@@ -197,6 +198,7 @@ public class WinFile extends WinObject {
         }
     }
 
+    @Override
     protected void onFree() {
         try {
             file.close();
@@ -207,5 +209,5 @@ public class WinFile extends WinObject {
     private FilePath file = null;
     public int shareMode;
     public int attributes;
-    public int type;
+    public final int type;
 }

@@ -1,5 +1,8 @@
 package jdos.win.builtin;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -15,6 +18,9 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
 public class Version extends BuiltinModule {
+
+    private static final Logger logger = System.getLogger(Version.class.getName());
+
     public Version(Loader loader, int handle) {
         super(loader, "Version.dll", handle);
         add(GetFileVersionInfoA);
@@ -23,10 +29,12 @@ public class Version extends BuiltinModule {
     }
 
     // BOOL WINAPI GetFileVersionInfo(LPCTSTR lptstrFilename, DWORD dwHandle, DWORD dwLen, LPVOID lpData)
-    static private Callback.Handler GetFileVersionInfoA = new HandlerBase() {
+    static private final Callback.Handler GetFileVersionInfoA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Version.GetFileVersionInfoA";
         }
+        @Override
         public void onCall() {
             int lptstrFilename = CPU.CPU_Pop32();
             int dwHandle = CPU.CPU_Pop32();
@@ -52,7 +60,7 @@ public class Version extends BuiltinModule {
                             Memory.mem_memcpy(lpData, address, Math.min(size.value, dwLen));
                         }
                     } else {
-                        System.out.println(getName()+" tried to get version of builtin dll, this is not supported yet");
+                        logger.log(Level.DEBUG,getName()+" tried to get version of builtin dll, this is not supported yet");
                     }
                     if (CPU_Regs.reg_eax.dword == WinAPI.FALSE) {
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_RESOURCE_DATA_NOT_FOUND);
@@ -63,10 +71,12 @@ public class Version extends BuiltinModule {
     };
 
     // DWORD WINAPI GetFileVersionInfoSize(LPCTSTR lptstrFilename, LPDWORD lpdwHandle)
-    static private Callback.Handler GetFileVersionInfoSizeA = new HandlerBase() {
+    static private final Callback.Handler GetFileVersionInfoSizeA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Version.GetFileVersionInfoSizeA";
         }
+        @Override
         public void onCall() {
             int lptstrFilename = CPU.CPU_Pop32();
             int lpdwHandle = CPU.CPU_Pop32();
@@ -88,7 +98,7 @@ public class Version extends BuiltinModule {
                         ((NativeModule) module).getAddressOfResource(NativeModule.RT_VERSION, 1, size);
                         CPU_Regs.reg_eax.dword = size.value;
                     } else {
-                        System.out.println(getName()+" tried to get version of builtin dll, this is not supported yet");
+                        logger.log(Level.DEBUG,getName()+" tried to get version of builtin dll, this is not supported yet");
                     }
                     if (CPU_Regs.reg_eax.dword == 0) {
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_RESOURCE_DATA_NOT_FOUND);
@@ -101,21 +111,22 @@ public class Version extends BuiltinModule {
     // Direct port from Wine
     //
     // BOOL WINAPI VerQueryValue(LPCVOID pBlock, LPCTSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen)
-    private Callback.Handler VerQueryValueA = new HandlerBase() {
-        class VersionInfo {
+    private final Callback.Handler VerQueryValueA = new HandlerBase() {
+        static class VersionInfo {
             public VersionInfo(int address) {
                 wLength = Memory.mem_readw(address);
                 wValueLength = Memory.mem_readw(address+2);
                 wType = Memory.mem_readw(address+4);
                 szKey = new LittleEndianFile(address+6).readCStringW();
             }
-            int wLength;
-            int wValueLength;
-            int wType;
-            String szKey; // WCHAR
+            final int wLength;
+            final int wValueLength;
+            final int wType;
+            final String szKey; // WCHAR
         }
         static final String rootA = "\\";
         static final String varfileinfoA = "\\VarFileInfo\\Translation";
+        @Override
         public java.lang.String getName() {
             return "Version.VerQueryValueA";
         }
@@ -156,6 +167,7 @@ public class Version extends BuiltinModule {
             }
             return 0;
         }
+        @Override
         public void onCall() {
             int pBlock = CPU.CPU_Pop32();
             int lpSubBlock = CPU.CPU_Pop32();
@@ -165,10 +177,10 @@ public class Version extends BuiltinModule {
             String subBlock = null;
             if (lpSubBlock != 0)
                 subBlock = new LittleEndianFile(lpSubBlock).readCString();
-            if (subBlock == null || subBlock.length()==0)
+            if (subBlock == null || subBlock.isEmpty())
                 subBlock = rootA;
             int info = pBlock;
-            while (subBlock.length()>0) {
+            while (!subBlock.isEmpty()) {
                 int pos = subBlock.indexOf("\\");
                 if (pos>=0) {
                     if (pos == 0) {

@@ -27,24 +27,22 @@ public class Shell {
  * remove things from the environment */
     public static Program first_shell; 
 
-    static private Callback.Handler shellstop_handler = new Callback.Handler() {
+    static private final Callback.Handler shellstop_handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Shell.shellstop_handler";
         }
+        @Override
         public /*Bitu*/int call() {
             return Callback.CBRET_STOP;
         }
     };
 
-    static private Program.PROGRAMS_Main SHELL_ProgramStart = new Program.PROGRAMS_Main() {
-        public Program call() {
-            return new Dos_shell();
-        }
-    };
+    static private final Program.PROGRAMS_Main SHELL_ProgramStart = Dos_shell::new;
 
     private static class AUTOEXEC extends Module_base {
-        private AutoexecObject[] autoexec = new AutoexecObject[17];
-        private AutoexecObject autoexec_echo = new AutoexecObject();
+        private final AutoexecObject[] autoexec = new AutoexecObject[17];
+        private final AutoexecObject autoexec_echo = new AutoexecObject();
         public AUTOEXEC(Section configuration) {
             super(configuration);
             for (int i=0;i<autoexec.length;i++) {
@@ -54,11 +52,11 @@ public class Shell {
             Section_line section=(Section_line)configuration;
 
             /* Check -securemode switch to disable mount/imgmount/boot after running autoexec.bat */
-            boolean secure = Dosbox.control.cmdline.FindExist("-securemode",true);
+            boolean secure = Dosbox.control.cmdline.findExist("-securemode",true);
 
             /* add stuff from the configfile unless -noautexec or -securemode is specified. */
             String extra = section.data;
-            if (extra!=null && !secure && !Dosbox.control.cmdline.FindExist("-noautoexec",true)) {
+            if (extra!=null && !secure && !Dosbox.control.cmdline.findExist("-noautoexec",true)) {
                 /* detect if "echo off" is the first line */
                 boolean echo_off  = extra.startsWith("echo off");
                 if (!echo_off) echo_off = extra.startsWith("@echo off",9);
@@ -74,18 +72,18 @@ public class Shell {
             /* Maximum of extra commands: 10 */
             /*Bitu*/int i = 1;
             String line;
-            while ((line=Dosbox.control.cmdline.FindString("-c",true))!=null && (i <= 11)) {
+            while ((line=Dosbox.control.cmdline.findString("-c",true))!=null && (i <= 11)) {
                 //replace single with double quotes so that mount commands can contain spaces
-                StringHelper.replace(line, "\'", "\"");
+                StringHelper.replace(line, "'", "\"");
                 autoexec[i++].Install(line);
             }
 
             /* Check for the -exit switch which causes dosbox to when the command on the commandline has finished */
-            boolean addexit = Dosbox.control.cmdline.FindExist("-exit",true);
+            boolean addexit = Dosbox.control.cmdline.findExist("-exit",true);
 
             /* Check for first command being a directory or file */
             /* Combining -securemode and no parameter leaves you with a lovely Z:\. */
-            if ((line=Dosbox.control.cmdline.FindCommand(1))==null) {
+            if ((line=Dosbox.control.cmdline.findCommand(1))==null) {
                 if ( secure ) autoexec[12].Install("z:\\config.com -securemode");
             } else {
                 String buffer = line;
@@ -126,16 +124,16 @@ public class Shell {
                             String name = buffer.substring(name_pos+1);
                             String orig = name;
                             name = name.toUpperCase();
-                            if(name.indexOf(".BAT")>=0) {
+                            if(name.contains(".BAT")) {
                                 if(secure) autoexec[14].Install("z:\\config.com -securemode");
                                 /* BATch files are called else exit will not work */
                                 autoexec[15].Install("CALL " + name);
                                 if(addexit) autoexec[16].Install("exit");
-                            } else if(name.indexOf(".IMG")>=0 || name.indexOf(".IMA")>=0) {
+                            } else if(name.contains(".IMG") || name.contains(".IMA")) {
                                 //No secure mode here as boot is destructive and enabling securemode disables boot
                                 /* Boot image files */
                                 autoexec[15].Install("BOOT " + orig);
-                            } else if(name.indexOf(".ISO") != 0 || name.indexOf(".CUE")>=0) {
+                            } else if(name.indexOf(".ISO") != 0 || name.contains(".CUE")) {
                                 /* imgmount CD image files */
                                 /* securemode gets a different number from the previous branches! */
                                 autoexec[14].Install("IMGMOUNT D \"" + orig + "\" -t iso");
@@ -160,17 +158,19 @@ public class Shell {
 
     static AUTOEXEC test;
 
-    public static Section.SectionFunction AUTOEXEC_Destroy = new Section.SectionFunction() {
+    public static final Section.SectionFunction AUTOEXEC_Destroy = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = null;
             AutoexecObject.Shutdown();
         }
     };
 
-    public static Section.SectionFunction AUTOEXEC_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction AUTOEXEC_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = new AUTOEXEC(section);
-            section.AddDestroyFunction(AUTOEXEC_Destroy,false);
+            section.addDestroyFunction(AUTOEXEC_Destroy,false);
         }
     };
 
@@ -179,7 +179,8 @@ public class Shell {
     static private final String full_name="Z:\\COMMAND.COM";
     static private final String init_line="/INIT AUTOEXEC.BAT";
 
-    public static Config.StartFunction SHELL_Init = new Config.StartFunction() {
+    public static final Config.StartFunction SHELL_Init = new Config.StartFunction() {
+        @Override
         public void call() {
             Msg.add("SHELL_ILLEGAL_PATH","Illegal Path.\n");
             Msg.add("SHELL_CMD_HELP","If you want a list of all supported commands type \033[33;1mhelp /all\033[0m .\nA short list of the most often used commands:\n");
@@ -197,17 +198,21 @@ public class Shell {
             Msg.add("SHELL_CMD_DATE_NOW","Current date: ");
             Msg.add("SHELL_CMD_DATE_SETHLP","Type 'date MM-DD-YYYY' to change.\n");
             Msg.add("SHELL_CMD_DATE_FORMAT","M/D/Y");
-            Msg.add("SHELL_CMD_DATE_HELP_LONG","DATE [[/T] [/H] [/S] | MM-DD-YYYY]\n" +
-                                            "  MM-DD-YYYY: new date to set\n" +
-                                            "  /S:         Permanently use host time and date as DOS time\n" +
-                                            "  /F:         Switch back to DOSBox internal time (opposite of /S)\n" +
-                                            "  /T:         Only display date\n" +
-                                            "  /H:         Synchronize with host\n");
+            Msg.add("SHELL_CMD_DATE_HELP_LONG", """
+                    DATE [[/T] [/H] [/S] | MM-DD-YYYY]
+                      MM-DD-YYYY: new date to set
+                      /S:         Permanently use host time and date as DOS time
+                      /F:         Switch back to DOSBox internal time (opposite of /S)
+                      /T:         Only display date
+                      /H:         Synchronize with host
+                    """);
             Msg.add("SHELL_CMD_TIME_HELP","Displays the internal time.\n");
             Msg.add("SHELL_CMD_TIME_NOW","Current time: ");
-            Msg.add("SHELL_CMD_TIME_HELP_LONG","TIME [/T] [/H]\n" +
-                                            "  /T:         Display simple time\n" +
-                                            "  /H:         Synchronize with host\n");
+            Msg.add("SHELL_CMD_TIME_HELP_LONG", """
+                    TIME [/T] [/H]
+                      /T:         Display simple time
+                      /H:         Synchronize with host
+                    """);
 
             Msg.add("SHELL_CMD_MKDIR_ERROR","Unable to make: %s.\n");
             Msg.add("SHELL_CMD_RMDIR_ERROR","Unable to remove: %s.\n");
@@ -249,45 +254,61 @@ public class Shell {
                 "\u00BA For more information read the \033[36mREADME\033[37m file in the DOSBox directory. \u00BA\n" +
                 "\u00BA                                                                    \u00BA\n" 
             );
-            Msg.add("SHELL_STARTUP_CGA","\u00BA DOSBox supports Composite CGA mode.                                \u00BA\n" +
-                    "\u00BA Use \033[31m(alt-)F11\033[37m to change the colours when in this mode.             \u00BA\n" +
-                    "\u00BA                                                                    \u00BA\n"
+            Msg.add("SHELL_STARTUP_CGA", """
+                    \u00BA DOSBox supports Composite CGA mode.                                \u00BA
+                    \u00BA Use \033[31m(alt-)F11\033[37m to change the colours when in this mode.             \u00BA
+                    \u00BA                                                                    \u00BA
+                    """
             );
-            Msg.add("SHELL_STARTUP_HERC","\u00BA Use \033[31mF11\033[37m to cycle through white, amber, and green monochrome color. \u00BA\n" +
-                    "\u00BA                                                                    \u00BA\n"
+            Msg.add("SHELL_STARTUP_HERC", """
+                    \u00BA Use \033[31mF11\033[37m to cycle through white, amber, and green monochrome color. \u00BA
+                    \u00BA                                                                    \u00BA
+                    """
             );
             Msg.add("SHELL_STARTUP_DEBUG",
-                    "\u00BA Press \033[31malt-Pause\033[37m to enter the debugger or start the exe with \033[33mDEBUG\033[37m. \u00BA\n" +
-                    "\u00BA                                                                    \u00BA\n"
+                    """
+                            \u00BA Press \033[31malt-Pause\033[37m to enter the debugger or start the exe with \033[33mDEBUG\033[37m. \u00BA
+                            \u00BA                                                                    \u00BA
+                            """
             );
             Msg.add("SHELL_STARTUP_END",
-                    "\u00BA \033[32mHAVE FUN!\033[37m                                                          \u00BA\n" +
-                    "\u00BA \033[32mThe DOSBox Team \033[33mhttp://www.dosbox.com\033[37m                              \u00BA\n" +
-                    "\u00BA \033[32mPorted to Java by James Bryant \033[33mhttp://jdosbox.sf.net\033[37m               \u00BA\n" +
-                    "\u00C8\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD" +
-                    "\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD" +
-                    "\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00BC\033[0m\n"
+                    """
+                            \u00BA \033[32mHAVE FUN!\033[37m                                                          \u00BA
+                            \u00BA \033[32mThe DOSBox Team \033[33mhttp://www.dosbox.com\033[37m                              \u00BA
+                            \u00BA \033[32mPorted to Java by James Bryant \033[33mhttp://jdosbox.sf.net\033[37m               \u00BA
+                            \u00C8\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\
+                            \u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\
+                            \u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00CD\u00BC\033[0m
+                            """
                     //"\n" //Breaks the startup message if you type a mount and a drive change.
             );
             Msg.add("SHELL_CMD_CHDIR_HELP","Displays/changes the current directory.\n");
-            Msg.add("SHELL_CMD_CHDIR_HELP_LONG","CHDIR [drive:][path]\n" +
-                    "CHDIR [..]\n" +
-                    "CD [drive:][path]\n" +
-                    "CD [..]\n\n" +
-                    "  ..   Specifies that you want to change to the parent directory.\n\n" +
-                    "Type CD drive: to display the current directory in the specified drive.\n" +
-                    "Type CD without parameters to display the current drive and directory.\n");
+            Msg.add("SHELL_CMD_CHDIR_HELP_LONG", """
+                    CHDIR [drive:][path]
+                    CHDIR [..]
+                    CD [drive:][path]
+                    CD [..]
+                    
+                      ..   Specifies that you want to change to the parent directory.
+                    
+                    Type CD drive: to display the current directory in the specified drive.
+                    Type CD without parameters to display the current drive and directory.
+                    """);
             Msg.add("SHELL_CMD_CLS_HELP","Clear screen.\n");
             Msg.add("SHELL_CMD_DIR_HELP","Directory View.\n");
             Msg.add("SHELL_CMD_ECHO_HELP","Display messages and enable/disable command echoing.\n");
             Msg.add("SHELL_CMD_EXIT_HELP","Exit from the shell.\n");
             Msg.add("SHELL_CMD_HELP_HELP","Show help.\n");
             Msg.add("SHELL_CMD_MKDIR_HELP","Make Directory.\n");
-            Msg.add("SHELL_CMD_MKDIR_HELP_LONG","MKDIR [drive:][path]\n" +
-                    "MD [drive:][path]\n");
+            Msg.add("SHELL_CMD_MKDIR_HELP_LONG", """
+                    MKDIR [drive:][path]
+                    MD [drive:][path]
+                    """);
             Msg.add("SHELL_CMD_RMDIR_HELP","Remove Directory.\n");
-            Msg.add("SHELL_CMD_RMDIR_HELP_LONG","RMDIR [drive:][path]\n" +
-                    "RD [drive:][path]\n");
+            Msg.add("SHELL_CMD_RMDIR_HELP_LONG", """
+                    RMDIR [drive:][path]
+                    RD [drive:][path]
+                    """);
             Msg.add("SHELL_CMD_SET_HELP","Change environment variables.\n");
             Msg.add("SHELL_CMD_IF_HELP","Performs conditional processing in batch programs.\n");
             Msg.add("SHELL_CMD_GOTO_HELP","Jump to a labeled line in a batch script.\n");
@@ -298,20 +319,25 @@ public class Shell {
             Msg.add("SHELL_CMD_REM_HELP_LONG","REM [comment]\n");
             Msg.add("SHELL_CMD_NO_WILD","This is a simple version of the command, no wildcards allowed!\n");
             Msg.add("SHELL_CMD_RENAME_HELP","Renames one or more files.\n");
-            Msg.add("SHELL_CMD_RENAME_HELP_LONG","RENAME [drive:][path]filename1 filename2.\n" +
-                    "REN [drive:][path]filename1 filename2.\n\n" +
-                    "Note that you can not specify a new drive or path for your destination file.\n");
+            Msg.add("SHELL_CMD_RENAME_HELP_LONG", """
+                    RENAME [drive:][path]filename1 filename2.
+                    REN [drive:][path]filename1 filename2.
+                    
+                    Note that you can not specify a new drive or path for your destination file.
+                    """);
             Msg.add("SHELL_CMD_DELETE_HELP","Removes one or more files.\n");
             Msg.add("SHELL_CMD_COPY_HELP","Copy files.\n");
             Msg.add("SHELL_CMD_CALL_HELP","Start a batch file from within another batch file.\n");
             Msg.add("SHELL_CMD_SUBST_HELP","Assign an internal directory to a drive.\n");
             Msg.add("SHELL_CMD_LOADHIGH_HELP","Loads a program into upper memory (requires xms=true,umb=true).\n");
             Msg.add("SHELL_CMD_CHOICE_HELP","Waits for a keypress and sets ERRORLEVEL.\n");
-            Msg.add("SHELL_CMD_CHOICE_HELP_LONG","CHOICE [/C:choices] [/N] [/S] text\n" +
-                    "  /C[:]choices  -  Specifies allowable keys.  Default is: yn.\n" +
-                    "  /N  -  Do not display the choices at end of prompt.\n" +
-                    "  /S  -  Enables case-sensitive choices to be selected.\n"+
-                    "  text  -  The text to display as a prompt.\n");
+            Msg.add("SHELL_CMD_CHOICE_HELP_LONG", """
+                    CHOICE [/C:choices] [/N] [/S] text
+                      /C[:]choices  -  Specifies allowable keys.  Default is: yn.
+                      /N  -  Do not display the choices at end of prompt.
+                      /S  -  Enables case-sensitive choices to be selected.
+                      text  -  The text to display as a prompt.
+                    """);
             Msg.add("SHELL_CMD_ATTRIB_HELP","Does nothing. Provided for compatibility.\n");
             Msg.add("SHELL_CMD_PATH_HELP","Provided for compatibility.\n");
             Msg.add("SHELL_CMD_VER_HELP","View and set the reported DOS version.\n");
@@ -343,28 +369,33 @@ public class Shell {
             Memory.real_writed(0,0x23*4,(psp_seg<<16));
 
             /* Setup MCBs */
-            Dos_MCB pspmcb=new Dos_MCB((/*Bit16u*/int)(psp_seg-1));
+            /*Bit16u*/
+            Dos_MCB pspmcb=new Dos_MCB(psp_seg-1);
             pspmcb.SetPSPSeg(psp_seg);	// MCB of the command shell psp
             pspmcb.SetSize(0x10+2);
             pspmcb.SetType((short)0x4d);
-            Dos_MCB envmcb=new Dos_MCB((/*Bit16u*/int)(env_seg-1));
+            /*Bit16u*/
+            Dos_MCB envmcb=new Dos_MCB(env_seg-1);
             envmcb.SetPSPSeg(psp_seg);	// MCB of the command shell environment
             envmcb.SetSize(Dos.DOS_MEM_START-env_seg);
             envmcb.SetType((short)0x4d);
 
             /* Setup environment */
             /*PhysPt*/int env_write=Memory.PhysMake(env_seg,0);
-            Memory.MEM_BlockWrite(env_write,path_string,(/*Bitu*/int)(path_string.length()+1));
+            /*Bitu*/
+            Memory.MEM_BlockWrite(env_write,path_string, path_string.length()+1);
             env_write += path_string.length()+1;
-            Memory.MEM_BlockWrite(env_write,comspec_string,(/*Bitu*/int)(comspec_string.length()+1));
+            /*Bitu*/
+            Memory.MEM_BlockWrite(env_write,comspec_string, comspec_string.length()+1);
             env_write += comspec_string.length()+1;
             Memory.mem_writeb(env_write++,0);
             Memory.mem_writew(env_write,1);
             env_write+=2;
-            Memory.MEM_BlockWrite(env_write,full_name,(/*Bitu*/int)(full_name.length()+1));
+            /*Bitu*/
+            Memory.MEM_BlockWrite(env_write,full_name, full_name.length()+1);
 
             Dos_PSP psp=new Dos_PSP(psp_seg);
-            psp.MakeNew(0);
+            psp.makeNew(0);
             Dos.dos.psp(psp_seg);
 
             /* The start of the filetable in the psp must look like this:
@@ -380,9 +411,9 @@ public class Shell {
             Dos_files.DOS_OpenFile("CON",Dos_files.OPEN_READWRITE,dummy);	/* STDAUX */
             Dos_files.DOS_OpenFile("CON",Dos_files.OPEN_READWRITE,dummy);	/* STDPRN */
 
-            psp.SetParent(psp_seg);
+            psp.setParent(psp_seg);
             /* Set the environment */
-            psp.SetEnvironment(env_seg);
+            psp.setEnvironment(env_seg);
             /* Set the command line for the shell start up */
             byte[] tail=new byte[128];
             tail[0]=(byte)init_line.length();
@@ -390,12 +421,12 @@ public class Shell {
             Memory.MEM_BlockWrite(Memory.PhysMake(psp_seg,128),tail,128);
 
             /* Setup internal DOS Variables */
-            Dos.dos.dta((int)Memory.RealMake(psp_seg,0x80));
+            Dos.dos.dta(Memory.RealMake(psp_seg,0x80));
             Dos.dos.psp(psp_seg);
 
 
             first_shell=SHELL_ProgramStart.call();
-            first_shell.Run();
+            first_shell.run();
             first_shell = null;//Make clear that it shouldn't be used anymore
         }
     };

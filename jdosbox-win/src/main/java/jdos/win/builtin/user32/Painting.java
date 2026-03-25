@@ -118,7 +118,7 @@ public class Painting extends WinAPI {
     static public int InvalidateRect(int hWnd, int lpRect, int bErase) {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
-            return FALSE; // :TODO: invalidate all windows
+            return FALSE; // TODO invalidate all windows
         WinRect rect = null;
         if (lpRect != 0) {
             rect = new WinRect(lpRect);

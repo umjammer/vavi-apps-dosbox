@@ -1,16 +1,18 @@
 package jdos.dos;
 
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.util.IntRef;
 import jdos.util.LongRef;
 import jdos.util.StringHelper;
 
 public class Dos_ioctl {
+
+    private static final Logger LOG_IOCTL = System.getLogger("LOG_IOCTL");
+    private static final Logger LOG_DOSMISC = System.getLogger("LOG_DOSMISC");
+
     static public boolean DOS_IOCTL() {
         /*Bitu*/int handle=0;/*Bit8u*/short drive=0;
         /* calls 0-4,6,7,10,12,16 use a file handle */
@@ -33,7 +35,7 @@ public class Dos_ioctl {
                 }
             }
         } else {
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC, LogSeverities.LOG_ERROR,"DOS:IOCTL Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" unhandled");
+            LOG_DOSMISC.log(Level.ERROR, "DOS:IOCTL Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" unhandled");
             Dos.DOS_SetError(Dos.DOSERR_FUNCTION_NUMBER_INVALID);
             return false;
         }
@@ -44,7 +46,7 @@ public class Dos_ioctl {
             } else {
                 /*Bit8u*/short hdrive=Dos_files.Files[handle].GetDrive();
                 if (hdrive==0xff) {
-                    Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"00:No drive set");
+                    LOG_IOCTL.log(Level.DEBUG, "00:No drive set");
                     hdrive=2;	// defaulting to C:
                 }
                 /* return drive number in lower 5 bits for block devices */
@@ -68,7 +70,7 @@ public class Dos_ioctl {
         case 0x02:		/* Read from Device Control Channel */
             if ((Dos_files.Files[handle].GetInformation() & 0xc000)!=0) {
                 /* is character device with IOCTL support */
-                /*PhysPt*/int bufptr= Memory.PhysMake((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
+                /*PhysPt*/int bufptr= Memory.PhysMake(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
                 /*Bit16u*/IntRef retcode=new IntRef(0);
                 if (((DOS_Device)(Dos_files.Files[handle])).ReadFromControlChannel(bufptr,CPU_Regs.reg_ecx.word(),retcode)) {
                     CPU_Regs.reg_eax.word(retcode.value);
@@ -80,7 +82,7 @@ public class Dos_ioctl {
         case 0x03:		/* Write to Device Control Channel */
             if ((Dos_files.Files[handle].GetInformation() & 0xc000)!=0) {
                 /* is character device with IOCTL support */
-                /*PhysPt*/int bufptr=Memory.PhysMake((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
+                /*PhysPt*/int bufptr=Memory.PhysMake(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
                 /*Bit16u*/IntRef retcode=new IntRef(0);
                 if (((DOS_Device)(Dos_files.Files[handle])).WriteToControlChannel(bufptr,CPU_Regs.reg_ecx.word(),retcode)) {
                     CPU_Regs.reg_eax.word(retcode.value);
@@ -103,11 +105,11 @@ public class Dos_ioctl {
                     CPU_Regs.reg_eax.low(0x0); //EOF or beyond
                 }
                 Dos_files.Files[handle].Seek(oldlocation, Dos_files.DOS_SEEK_SET); //restore filelocation
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"06:Used Get Input Status on regular file with handle "+handle);
+                LOG_IOCTL.log(Level.DEBUG, "06:Used Get Input Status on regular file with handle "+handle);
             }
             return true;
         case 0x07:		/* Get Output Status */
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"07:Fakes output status is ready for handle "+handle);
+            LOG_IOCTL.log(Level.DEBUG, "07:Fakes output status is ready for handle "+handle);
             CPU_Regs.reg_eax.low(0xff);
             return true;
         case 0x08:		/* Check if block device removable */
@@ -187,7 +189,7 @@ public class Dos_ioctl {
                     }
                     break;
                 default	:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_ERROR,"DOS:IOCTL Call 0D:"+Integer.toString(CPU_Regs.reg_ecx.low(), 16)+" Drive "+Integer.toString(drive, 16)+" unhandled");
+                    LOG_IOCTL.log(Level.ERROR, "DOS:IOCTL Call 0D:"+Integer.toString(CPU_Regs.reg_ecx.low(), 16)+" Drive "+Integer.toString(drive, 16)+" unhandled");
                     Dos.DOS_SetError(Dos.DOSERR_FUNCTION_NUMBER_INVALID);
                     return false;
                 }
@@ -204,7 +206,7 @@ public class Dos_ioctl {
             CPU_Regs.reg_eax.high(0x07);
             return true;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:IOCTL Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" unhandled");
+            LOG_DOSMISC.log(Level.ERROR, "DOS:IOCTL Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" unhandled");
             Dos.DOS_SetError(Dos.DOSERR_FUNCTION_NUMBER_INVALID);
             break;
         }

@@ -6,7 +6,8 @@ import jdos.win.loader.winpe.LittleEndianFile;
 import jdos.win.utils.Error;
 import jdos.win.utils.StringUtil;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WinRegistry {
     static public final int REG_NONE =                     0;   // No value type
@@ -29,33 +30,33 @@ public class WinRegistry {
     public static final int HKEY_CURRENT_CONFIG =   0x80000005;
     public static final int HKEY_DYN_DATA =         0x80000006;
 
-    private class Directory {
+    private static class Directory {
         public Directory(String name) {
             this.name = name;
         }
-        public String name;
+        public final String name;
 
-        public Hashtable children = new Hashtable();
-        public Hashtable values = new Hashtable();
+        public final Map<String, Directory> children = new HashMap<>();
+        public final Map<String, Value> values = new HashMap<>();
         public Value defaultValue;
     }
 
-    private class Value {
+    private static class Value {
         public Value(int type, byte[] data) {
             this.type = type;
             this.data = data;
         }
 
         public byte[] getData() {
-            // :TODO: repackage depending on type
+            // TODO repackage depending on type
             return data;
         }
         public int type;
         public byte[] data;
     }
 
-    private class HKey {
-        String[] parts;
+    private static class HKey {
+        final String[] parts;
 
         public HKey(String path) {
             parts = StringUtil.split(path, "\\");
@@ -69,26 +70,25 @@ public class WinRegistry {
         }
     }
 
-    private Hashtable hKeys = new Hashtable();
+    private final Map<Integer, HKey> hKeys = new HashMap<>();
 
-    private Directory root = new Directory("root");
-    private HKey currentUser = new HKey("HKEY_CURRENT_USER");
-    private HKey localMachine = new HKey("HKEY_LOCAL_MACHINE");
+    private final Directory root = new Directory("root");
+    private final HKey currentUser = new HKey("HKEY_CURRENT_USER");
+    private final HKey localMachine = new HKey("HKEY_LOCAL_MACHINE");
     private int nextKey = 0x1000;
 
     private HKey getHKey(int hKey) {
         if (hKey<0) {
-            switch (hKey) {
-                case HKEY_CURRENT_USER:
-                    return currentUser;
-                case HKEY_LOCAL_MACHINE:
-                    return localMachine;
-                default:
-                    Win.panic("Unsupported hKey "+hKey);
-                    return null;
-            }
+            return switch (hKey) {
+                case HKEY_CURRENT_USER -> currentUser;
+                case HKEY_LOCAL_MACHINE -> localMachine;
+                default -> {
+                    Win.panic("Unsupported hKey " + hKey);
+                    yield null;
+                }
+            };
         } else {
-            return (HKey)hKeys.get(new Integer(hKey));
+            return hKeys.get(hKey);
         }
     }
 
@@ -99,7 +99,7 @@ public class WinRegistry {
     private Directory getDirectory(HKey hKey) {
         Directory current = root;
         for (int i=0;i<hKey.parts.length;i++) {
-            current = (Directory)current.children.get(hKey.parts[i]);
+            current = current.children.get(hKey.parts[i]);
             if (current == null)
                 break;
         }
@@ -117,7 +117,7 @@ public class WinRegistry {
             Directory current = root;
             for (int i=0;i<key.parts.length;i++) {
                 Directory parent = current;
-                current = (Directory)current.children.get(key.parts[i]);
+                current = current.children.get(key.parts[i]);
                 if (current == null) {
                     current = new Directory(key.parts[i]);
                     parent.children.put(current.name, current);
@@ -125,7 +125,7 @@ public class WinRegistry {
             }
         }
         int result = nextKey();
-        hKeys.put(new Integer(result), key);
+        hKeys.put(result, key);
         if (phkResult != 0) {
             Memory.mem_writed(phkResult, result);
         }
@@ -136,7 +136,7 @@ public class WinRegistry {
         HKey key = new HKey(getHKey(hKey), new LittleEndianFile(lpSubKey).readCString());
         if (getDirectory(key) != null) {
             int result = nextKey();
-            hKeys.put(new Integer(result), key);
+            hKeys.put(result, key);
             return Error.ERROR_SUCCESS;
         } else {
             return Error.ERROR_BAD_PATHNAME;
@@ -152,7 +152,7 @@ public class WinRegistry {
         if (lpValue == 0)
             value = directory.defaultValue;
         else
-            value = (Value)directory.values.get(new LittleEndianFile(lpValue).readCString());
+            value = directory.values.get(new LittleEndianFile(lpValue).readCString());
         if (value == null) {
             byte[] data = new byte[cbData];
             Memory.mem_memcpy(data, 0, lpData, cbData);
@@ -181,9 +181,9 @@ public class WinRegistry {
             value = directory.defaultValue;
         else {
             String name = new LittleEndianFile(lpValue).readCString();
-            value = (Value)directory.values.get(name);
+            value = directory.values.get(name);
             if (value == null && name.equals("Game File Number")) {
-                value = new Value(4, new byte[]{1,0,0,0});
+                value = new Value(4, new byte[] {1, 0, 0, 0});
                 directory.values.put("Game File Number", value);
             }
 

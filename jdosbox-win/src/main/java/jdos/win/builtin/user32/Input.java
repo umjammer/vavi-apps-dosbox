@@ -6,9 +6,14 @@ import jdos.win.system.*;
 import jdos.win.utils.Ptr;
 import jdos.win.utils.StringUtil;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.BitSet;
 
 public class Input extends WinAPI {
+
+    private static final Logger logger = System.getLogger(Input.class.getName());
+
     // SHORT WINAPI GetAsyncKeyState(int nVirtKey)
     static public int GetAsyncKeyState(int nVirtKey) {
         if (WinKeyboard.keyState.get(nVirtKey))
@@ -40,7 +45,7 @@ public class Input extends WinAPI {
         return WinAPI.TRUE;
     }
 
-    static String[] keyNames = new String[] {
+    static final String[] keyNames = new String[] {
             null, "Esc", "1", "2", "3", "4", "5", "6", "7", "8", "9", "0", "-", "=", "Backspace", "Tab",
             "Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P", "[", "]", "Enter", "Ctrl", "A", "S",
             "D", "F", "G", "H", "J", "K", "L", ";", "'", "`", "Shift", "\\", "Z", "X", "C", "V",
@@ -76,7 +81,7 @@ public class Input extends WinAPI {
     }
 
     // values just captures from English XP
-    static short[] keyvscc2vk = new short[] {
+    static final short[] keyvscc2vk = new short[] {
             0x0, 0x1b, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0xbd, 0xbb, 0x8, 0x9,
             0x51, 0x57, 0x45, 0x52, 0x54, 0x59, 0x55, 0x49, 0x4f, 0x50, 0xdb, 0xdd, 0xd, 0x11, 0x41, 0x53,
             0x44, 0x46, 0x47, 0x48, 0x4a, 0x4b, 0x4c, 0xba, 0xde, 0xc0, 0x10, 0xdc, 0x5a, 0x58, 0x43, 0x56,
@@ -95,7 +100,7 @@ public class Input extends WinAPI {
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0
     };
 
-    static short[] keyvk2vsc = new short[] {
+    static final short[] keyvk2vsc = new short[] {
             0x0, 0x0, 0x0, 0x46, 0x0, 0x0, 0x0, 0x0, 0xe, 0xf, 0x0, 0x0, 0x4c, 0x1c, 0x0, 0x0,
             0x2a, 0x1d, 0x38, 0x0, 0x3a, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1, 0x0, 0x0, 0x0, 0x0,
             0x39, 0x49, 0x51, 0x4f, 0x47, 0x4b, 0x48, 0x4d, 0x50, 0x0, 0x0, 0x0, 0x54, 0x52, 0x53, 0x63,
@@ -114,7 +119,7 @@ public class Input extends WinAPI {
             0x0, 0x5b, 0x0, 0x5f, 0x0, 0x5e, 0x0, 0x0, 0x0, 0x5d, 0x0, 0x62, 0x0, 0x0, 0x0, 0x0
     };
 
-    static short[] keyvk2char = new short[] {
+    static final short[] keyvk2char = new short[] {
             0x0, 0x0, 0x0, 0x3, 0x0, 0x0, 0x0, 0x0, 0x8, 0x9, 0x0, 0x0, 0x0, 0xd, 0x0, 0x0,
             0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x1b, 0x0, 0x0, 0x0, 0x0,
             0x20, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0,
@@ -177,13 +182,11 @@ public class Input extends WinAPI {
 
     // called from the cpu thread
     static public void processInput() {
-        while(StaticData.inputQueue.size()>0) {
-            Object msg = StaticData.inputQueue.remove(0);
-            if (msg instanceof MouseInput) {
-                MouseInput mouseMsg = (MouseInput)msg;
+        while(!StaticData.inputQueue.isEmpty()) {
+            Object msg = StaticData.inputQueue.removeFirst();
+            if (msg instanceof MouseInput mouseMsg) {
                 handeMouseInput(mouseMsg.msg, mouseMsg.pt, mouseMsg.wParam);
-            } else if (msg instanceof KeyboardInput) {
-                KeyboardInput keyboardMsg = (KeyboardInput)msg;
+            } else if (msg instanceof KeyboardInput keyboardMsg) {
                 handeKeyboardInput(keyboardMsg.msg, keyboardMsg.wParam, keyboardMsg.lParam, keyboardMsg.keyState);
             }
         }
@@ -195,9 +198,9 @@ public class Input extends WinAPI {
             this.pt = pt.copy();
             this.wParam = wParam;
         }
-        int msg;
-        WinPoint pt;
-        int wParam;
+        final int msg;
+        final WinPoint pt;
+        final int wParam;
     }
 
     static private class KeyboardInput {
@@ -207,10 +210,10 @@ public class Input extends WinAPI {
             this.lParam = lParam;
             this.keyState = keyState;
         }
-        int msg;
-        int wParam;
-        int lParam;
-        BitSet keyState;
+        final int msg;
+        final int wParam;
+        final int lParam;
+        final BitSet keyState;
     }
 
     // called from java thread
@@ -249,13 +252,13 @@ public class Input extends WinAPI {
             }
         }
         if (LOG) {
-            System.out.println("\nMOUSE 0x"+Ptr.toString(msg)+" "+pt.toString()+" hwnd="+window.handle+"("+StaticData.mouseCapture+")");
+            logger.log(Level.DEBUG,"\nMOUSE 0x"+Ptr.toString(msg)+" "+pt.toString()+" hwnd="+window.handle+"("+StaticData.mouseCapture+")");
         }
         relWinPt = pt.copy();
         window.screenToWindow(relWinPt);
         if (hitTest == WinAPI.HTNOWHERE) {
             hitTest = WinWindow.HTCLIENT;
-            // :TODO: this can result in a send message to another thread
+            // TODO this can result in a send message to another thread
             //hitTest = Message.SendMessageA(window.handle, WinAPI.WM_NCHITTEST, 0, WinAPI.MAKELONG(pt.x, pt.y));
         }
         if (msg != WinWindow.WM_MOUSEWHEEL) {
@@ -264,7 +267,7 @@ public class Input extends WinAPI {
             else
                 window.screenToWindow(pt);
         }
-        // :TODO: double click?
+        // TODO double click?
 
         if (hitTest == WinWindow.HTERROR || hitTest == WinWindow.HTNOWHERE) {
             window.postMessage(WinWindow.WM_SETCURSOR, window.handle, hitTest | (msg >> 16));
@@ -272,7 +275,7 @@ public class Input extends WinAPI {
         }
 
         if (StaticData.mouseCapture == 0) {
-            // :TODO: WM_MOUSEACTIVATE
+            // TODO WM_MOUSEACTIVATE
         }
 
         WinMsg m = window.getThread().getLastMessage();

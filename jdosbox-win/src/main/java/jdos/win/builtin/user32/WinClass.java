@@ -8,7 +8,8 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 import jdos.win.utils.StringUtil;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class WinClass extends WinObject {
     static public WinClass create() {
@@ -37,7 +38,7 @@ public class WinClass extends WinObject {
             winClass = WinClass.get(lpClassName);
         } else {
             String name = StringUtil.getString(lpClassName);
-            winClass = (WinClass)WinSystem.getCurrentProcess().classNames.get(name.toLowerCase());
+            winClass = WinSystem.getCurrentProcess().classNames.get(name.toLowerCase());
         }
         if (winClass == null) {
             SetLastError(Error.ERROR_CLASS_DOES_NOT_EXIST);
@@ -53,7 +54,7 @@ public class WinClass extends WinObject {
         if (window == null)
             return 0;
          if (nIndex>=0) {
-            Integer old = (Integer)window.winClass.extra.get(new Integer(nIndex));
+            Integer old = window.winClass.extra.get(nIndex);
             if (old != null)
                 return old;
             return 0;
@@ -119,10 +120,10 @@ public class WinClass extends WinObject {
         if (window == null)
             return 0;
         if (nIndex>=0) {
-            Integer old = (Integer)window.winClass.extra.get(new Integer(nIndex));
-            window.winClass.extra.put(new Integer(nIndex), new Integer(dwNewLong));
+            Integer old = window.winClass.extra.get(nIndex);
+            window.winClass.extra.put(nIndex, dwNewLong);
             if (old != null)
-                return old.intValue();
+                return old;
             return 0;
         }
         int result = 0;
@@ -272,12 +273,13 @@ public class WinClass extends WinObject {
         writed(address, pClassName);address+=4;
     }
 
+    @Override
     public void onFree() {
         WinSystem.getCurrentProcess().classNames.remove(className.toLowerCase());
     }
 
     public WinDC dc;
-    public int id;
+    public final int id;
     public int style;
     public int eip;
     public int hInstance;
@@ -290,5 +292,5 @@ public class WinClass extends WinObject {
     public int hIconSm;
     public int cbClsExtra;
     public int cbWndExtra;
-    private Hashtable extra = new Hashtable();
+    private final Map<Integer, Integer> extra = new HashMap<>();
 }

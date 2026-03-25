@@ -16,7 +16,7 @@ public class Value {
     private String _string;
     private double _double;
 
-    public class WrongType extends RuntimeException {}
+    public static class WrongType extends RuntimeException {}
     public static final class Etype {
         static final int V_NONE = 0;
         static final int V_HEX = 1;
@@ -135,8 +135,7 @@ public class Value {
     public boolean equals(Object obj) {
         if (obj == this)
             return true;
-        if (obj instanceof Value) {
-            Value other = (Value)obj;
+        if (obj instanceof Value other) {
             if (type != other.type)
                 return false;
             if (type == Etype.V_BOOL)

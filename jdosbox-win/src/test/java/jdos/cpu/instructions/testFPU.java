@@ -5,6 +5,7 @@ import jdos.fpu.FPU;
 import jdos.hardware.Memory;
 
 public class testFPU extends InstructionsTestCase {
+    @Override
     protected void setUp() throws java.lang.Exception  {
         super.setUp();
         //FPU.FPU_Init.call(null);

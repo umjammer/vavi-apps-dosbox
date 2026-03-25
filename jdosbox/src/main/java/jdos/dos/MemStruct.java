@@ -4,13 +4,13 @@ import jdos.hardware.Memory;
 
 public class MemStruct {
     public /*Bitu*/int GetIt(/*Bitu*/int size, /*PhysPt*/int addr) {
-		switch (size) {
-		case 1:return Memory.mem_readb(pt+addr);
-		case 2:return Memory.mem_readw(pt+addr);
-		case 4:return Memory.mem_readd(pt + addr);
-		}
-		return 0;
-	}
+        return switch (size) {
+            case 1 -> Memory.mem_readb(pt + addr);
+            case 2 -> Memory.mem_readw(pt + addr);
+            case 4 -> Memory.mem_readd(pt + addr);
+            default -> 0;
+        };
+    }
 	public void SaveIt(/*Bitu*/int size,/*PhysPt*/int addr,/*Bitu*/int val) {
 		switch (size) {
 		case 1:Memory.mem_writeb(pt+addr,val);break;

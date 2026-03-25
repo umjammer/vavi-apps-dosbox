@@ -10,8 +10,8 @@ public class DIObjectDataFormat {
         dwType = Memory.mem_readd(address);address+=4;
         dwFlags = Memory.mem_readd(address);address+=4;
     }
-    public int pGuid;
-    public int dwOfs;
-    public int dwType;
-    public int dwFlags;
+    public final int pGuid;
+    public final int dwOfs;
+    public final int dwType;
+    public final int dwFlags;
 }

@@ -8,8 +8,14 @@ import jdos.win.builtin.kernel32.WinProcess;
 
 import java.awt.*;
 import java.awt.image.*;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class JavaBitmap {
+
+    private static final Logger logger = System.getLogger(JavaBitmap.class.getName());
+
     public BufferedImage image;
     private int width;
     private int height;
@@ -92,7 +98,7 @@ public class JavaBitmap {
             colorKey = palette[colorKey];
         if (colorKey != cachedColorKey) {
             if (bpp<=8) {
-                int[] p = (int[])palette.clone();
+                int[] p = palette.clone();
                 for (int i=0;i<p.length;i++) {
                     if ((p[i] & 0xFFFFFF) == (colorKey & 0xFFFFFF))
                         p[i]&=0xFFFFFF;
@@ -123,38 +129,44 @@ public class JavaBitmap {
 
     static private class PageHandler8 extends Paging.PageHandler {
         byte[] data;
-        int address;
+        final int address;
 
         public PageHandler8(int address) {
             this.address = address;
         }
 
+        @Override
         public /*Bitu*/int readb(/*PhysPt*/int addr) {
             int index = addr - address;
             return data[index] & 0xFF;
         }
 
+        @Override
         public /*Bitu*/int readw(/*PhysPt*/int addr) {
             int index = addr - address;
             return (data[index] & 0xFF) | ((data[index+1] & 0xFF) << 8);
         }
 
+        @Override
         public /*Bitu*/int readd(/*PhysPt*/int addr) {
             int index = addr - address;
             return (data[index] & 0xFF) | ((data[index+1] & 0xFF) << 8) | ((data[index+2] & 0xFF) << 16) | ((data[index+3] & 0xFF) << 24);
         }
 
+        @Override
         public void writeb(/*PhysPt*/int addr,/*Bitu*/int val) {
             int index = addr - address;
             data[index] = (byte)val;
         }
 
+        @Override
         public void writew(/*PhysPt*/int addr,/*Bitu*/int val) {
             int index = addr - address;
             data[index] = (byte)val;
             data[index+1] = (byte)(val >> 8);
         }
 
+        @Override
         public void writed(/*PhysPt*/int addr,/*Bitu*/int val) {
             int index = addr - address;
             data[index] = (byte)val;
@@ -166,17 +178,19 @@ public class JavaBitmap {
 
     static private class PageHandler16 extends Paging.PageHandler {
         short[] data;
-        int address;
+        final int address;
 
         public PageHandler16(int address) {
             this.address = address;
         }
 
+        @Override
         public /*Bitu*/int readb(/*PhysPt*/int addr) {
             int index = addr - address;
             return (data[(index >> 1)] >>> ((index & 0x1) << 3)) & 0xFF;
         }
 
+        @Override
         public /*Bitu*/int readw(/*PhysPt*/int addr) {
             int index = addr - address;
             int rem = (index & 0x1);
@@ -188,6 +202,7 @@ public class JavaBitmap {
             return local[index] >>> 8 | local[index+1] << 8;
         }
 
+        @Override
         public /*Bitu*/int readd(/*PhysPt*/int addr) {
             int index = addr - address;
             int rem = (index & 0x1);
@@ -198,6 +213,7 @@ public class JavaBitmap {
             return (readw(addr) & 0xFFFF) | readw(addr+2) << 16;
         }
 
+        @Override
         public void writeb(/*PhysPt*/int addr,/*Bitu*/int value) {
             int address = addr - this.address;
             int off = (address & 0x1) << 3;
@@ -208,6 +224,7 @@ public class JavaBitmap {
             local[index] = (short)val;
         }
 
+        @Override
         public void writew(/*PhysPt*/int addr,/*Bitu*/int val) {
             int address = addr - this.address;
             int rem = (address & 0x1);
@@ -223,6 +240,7 @@ public class JavaBitmap {
             }
         }
 
+        @Override
         public void writed(/*PhysPt*/int addr,/*Bitu*/int val) {
             int address = addr - this.address;
             int rem = (address & 0x1);
@@ -276,7 +294,7 @@ public class JavaBitmap {
             Paging.writehandler[frame++] = handler;
         }
         if (WinAPI.LOG) {
-            System.out.println("JavaBitmap.map address=0x"+Long.toString(address & 0xFFFFFFFFl, 16)+" size="+size+" frames="+frameStart+"-"+frame+" handler="+handler+" this="+this);
+            logger.log(Level.DEBUG,"JavaBitmap.map address=0x"+Long.toString(address & 0xFFFFFFFFL, 16)+" size="+size+" frames="+frameStart+"-"+frame+" handler="+handler+" this="+this);
         }
         return address;
     }
@@ -292,7 +310,7 @@ public class JavaBitmap {
         }
         WinSystem.getCurrentProcess().addressSpace.free(address);
         if (WinAPI.LOG) {
-            System.out.println("JavaBitmap.unmap address=0x"+Long.toString(address & 0xFFFFFFFFl, 16));
+            logger.log(Level.DEBUG,"JavaBitmap.unmap address=0x"+Long.toString(address & 0xFFFFFFFFL, 16));
         }
         address = 0;
         if (bpp == 8) {

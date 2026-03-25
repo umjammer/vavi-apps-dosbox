@@ -5,11 +5,17 @@ import jdos.win.system.WinFile;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class HeaderPE {
-    public HeaderDOS dos = new HeaderDOS();
-    public HeaderImageFile imageFile = new HeaderImageFile();
-    public HeaderImageOptional imageOptional = new HeaderImageOptional();
+
+    private static final Logger logger = System.getLogger(HeaderPE.class.getName());
+
+    public final HeaderDOS dos = new HeaderDOS();
+    public final HeaderImageFile imageFile = new HeaderImageFile();
+    public final HeaderImageOptional imageOptional = new HeaderImageOptional();
     public HeaderImageSection[] imageSections = null;
 
     static public boolean fastCheckWinPE(WinFile file) {
@@ -33,13 +39,13 @@ public class HeaderPE {
         buffer = new byte[4];
         fis.read(buffer);
         if (buffer[0]!=0x50 || buffer[1]!=0x45 || buffer[2]!=0 || buffer[3]!=0) {
-            System.out.println("Not Windows EXE format");
+            logger.log(Level.DEBUG,"Not Windows EXE format");
             return false;
         }
         os.write(buffer);
         imageFile.load(os, fis);
         if (imageFile.Machine != 0x14C) { // Intel 80386
-            System.out.println("Not Windows 80386 EXE");
+            logger.log(Level.DEBUG,"Not Windows 80386 EXE");
             return false;
         }
         imageOptional.load(os, fis);

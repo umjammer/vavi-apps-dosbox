@@ -1,6 +1,13 @@
 package jdos.host.router;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
+
 public class IP extends EtherUtil {
+
+    private static final Logger logger = System.getLogger(IP.class.getName());
+
     static public final int LEN = 20;
 
     static public final int MAXTTL = 255;		/* maximum time to live (seconds) */
@@ -57,13 +64,13 @@ public class IP extends EtherUtil {
         parse(buffer, offset);
         if (version == 4 && headerLen<=len && csum(buffer, offset, headerLen)==0) {
             if (pcol ==  6) { // TCP
-                System.out.println("Received TCP Packet");
+                logger.log(Level.DEBUG,"Received TCP Packet");
             } else if (pcol == 17) { // UDP
                 udp.handle(buffer, offset + this.headerLen, len - this.headerLen);
             } else if (pcol == 1) { // ICMP
                 icmp.handle(buffer, offset + this.headerLen, len - this.headerLen);
             } else {
-                System.out.println("IP packet "+pcol);
+                logger.log(Level.DEBUG,"IP packet "+pcol);
             }
         }
     }

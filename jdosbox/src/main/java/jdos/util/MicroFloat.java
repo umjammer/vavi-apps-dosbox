@@ -1211,7 +1211,7 @@ public final class MicroFloat {
       return "NaN";
     }
     boolean n = unpackSign(f);
-    StringBuffer sb = new StringBuffer(15);
+    StringBuilder sb = new StringBuilder(15);
     if (n) {
       sb.append('-');
     }
@@ -1305,7 +1305,7 @@ public final class MicroFloat {
     }
     if (scientific) {
       sb.append('E');
-      sb.append(Integer.toString(base10x));
+      sb.append(base10x);
     }
     return sb.toString();
   }

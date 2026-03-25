@@ -1229,7 +1229,7 @@ public class MicroDouble {
   /**
    * Double-precision integer multiplication of x1 and x2.
    */
-  private static final long dpMul(long x1, long x2) {
+  private static long dpMul(long x1, long x2) {
     long v1 = (x1 >>> 32)        * (x2 >>> 32);
     long v2 = (x1 & 0xffffffffL) * (x2 >>> 32);
     long v3 = (x1 >>> 32)        * (x2 & 0xffffffffL);
@@ -1548,7 +1548,7 @@ public class MicroDouble {
   }
 
   private static String toString(boolean negative, int base10x, long base10m) {
-    StringBuffer sb = new StringBuffer(26);
+    StringBuilder sb = new StringBuilder(26);
     if (negative) {
       sb.append('-');
     }
@@ -1585,7 +1585,7 @@ public class MicroDouble {
     }
     if (scientific) {
       sb.append('E');
-      sb.append(Integer.toString(base10x));
+      sb.append(base10x);
     }
     return sb.toString();
   }
@@ -1959,9 +1959,9 @@ public class MicroDouble {
     return y;
   }
 
-  private static final long BP[]       = { ONE, THREE_HALVES };
-  private static final long DP_HI[]    = { ZERO, 0x3fe2b80340000000L}; // 5.84962487220764160156e-01
-  private static final long DP_LO[]    = { ZERO, 0x3e4cfdeb43cfd006L}; // 1.35003920212974897128e-08
+  private static final long[] BP = { ONE, THREE_HALVES };
+  private static final long[] DP_HI = { ZERO, 0x3fe2b80340000000L}; // 5.84962487220764160156e-01
+  private static final long[] DP_LO = { ZERO, 0x3e4cfdeb43cfd006L}; // 1.35003920212974897128e-08
   // poly coefs for (3/2)*(log(x)-2s-2/3*s**3
   private static final long L1         = 0x3fe3333333333303L; // 5.99999999999994648725e-01
   private static final long L2         = 0x3fdb6db6db6fabffL; //  4.28571428578550184252e-01
@@ -2457,16 +2457,12 @@ public class MicroDouble {
       // argument reduction needed
       long[] y = new long[2];
       int n = remPio2(d, y);
-      switch(n&3) {
-        case 0:
-          return  kernelSin(y[0], y[1], 1);
-        case 1:
-          return  kernelCos(y[0], y[1]);
-        case 2:
-          return negate(kernelSin(y[0], y[1], 1));
-        default:
-          return negate(kernelCos(y[0], y[1]));
-      }
+        return switch (n & 3) {
+            case 0 -> kernelSin(y[0], y[1], 1);
+            case 1 -> kernelCos(y[0], y[1]);
+            case 2 -> negate(kernelSin(y[0], y[1], 1));
+            default -> negate(kernelCos(y[0], y[1]));
+        };
     }
   }
 
@@ -2485,18 +2481,14 @@ public class MicroDouble {
       return NaN;
     } else {
       // argument reduction needed
-      long y[] = new long[2];
+      long[] y = new long[2];
       int n = remPio2(d,y);
-      switch(n&3) {
-        case 0:
-          return kernelCos(y[0],y[1]);
-        case 1:
-          return negate(kernelSin(y[0],y[1],1));
-        case 2:
-          return negate(kernelCos(y[0],y[1]));
-        default:
-          return kernelSin(y[0],y[1],1);
-      }
+        return switch (n & 3) {
+            case 0 -> kernelCos(y[0], y[1]);
+            case 1 -> negate(kernelSin(y[0], y[1], 1));
+            case 2 -> negate(kernelCos(y[0], y[1]));
+            default -> kernelSin(y[0], y[1], 1);
+        };
     }
   }
 
@@ -2598,12 +2590,12 @@ public class MicroDouble {
     }
   }
 
-  private static long S1 = 0xBFC5555555555549L; // -1.66666666666666324348e-01
-  private static long S2 = 0x3F8111111110F8A6L; // 8.33333333332248946124e-03
-  private static long S3 = 0xBF2A01A019C161D5L; // -1.98412698298579493134e-04
-  private static long S4 = 0x3EC71DE357B1FE7DL; // 2.75573137070700676789e-06
-  private static long S5 = 0xBE5AE5E68A2B9CEBL; // -2.50507602534068634195e-08
-  private static long S6 = 0x3DE5D93A5ACFD57CL; // 1.58969099521155010221e-10
+  private static final long S1 = 0xBFC5555555555549L; // -1.66666666666666324348e-01
+  private static final long S2 = 0x3F8111111110F8A6L; // 8.33333333332248946124e-03
+  private static final long S3 = 0xBF2A01A019C161D5L; // -1.98412698298579493134e-04
+  private static final long S4 = 0x3EC71DE357B1FE7DL; // 2.75573137070700676789e-06
+  private static final long S5 = 0xBE5AE5E68A2B9CEBL; // -2.50507602534068634195e-08
+  private static final long S6 = 0x3DE5D93A5ACFD57CL; // 1.58969099521155010221e-10
 
   private static long kernelSin(long x, long y, int iy) {
     int ix = getHI(x) & 0x7fffffff; // high word of x
@@ -2653,7 +2645,7 @@ public class MicroDouble {
     return sub(a, (sub(hz, sub(mul(z, r), mul(x, y)))));
   }
 
-  private static final long PIO2[] = {
+  private static final long[] PIO2 = {
           0x3ff921fb40000000L,  // 1.57079625129699707031e+00
           0x3e74442d00000000L,  // 7.54978941586159635335e-08
           0x3cf8469880000000L,  // 5.39030252995776476554e-15
@@ -2769,7 +2761,7 @@ public class MicroDouble {
     }
     // set z = scalbn(|x|,ilogb(x)-23)
     long z = getLO(x);
-    int e0 = (int) ((ix >> 20) - 1046);
+    int e0 = (ix >> 20) - 1046;
     z = setHI(z, ix - (e0 << 20));
     long[] tx = new long[3];
     for (int i=0; i<2; i++) {
@@ -2973,7 +2965,7 @@ public class MicroDouble {
   /**
    * Mimics <a href="http://java.sun.com/j2se/1.4.2/docs/api/java/lang/Math.html#asin(double)">Math.asin(double)</a>.
    */
-  public static final long asin(long d) {
+  public static long asin(long d) {
     int hx = getHI(d);
     int ix = hx & 0x7fffffff;
     if (ix>= 0x3ff00000) { // |x|>= 1
@@ -3047,14 +3039,14 @@ public class MicroDouble {
     }
   }
 
-  private static final long atanhi[] = {
+  private static final long[] atanhi = {
           0x3fddac670561bb4fL,  // 4.63647609000806093515e-01 atan(0.5)hi
           0x3fe921fb54442d18L,  // 7.85398163397448278999e-01 atan(1.0)hi
           0x3fef730bd281f69bL,  // 9.82793723247329054082e-01 atan(1.5)hi
           0x3ff921fb54442d18L   // 1.57079632679489655800e+00 atan(inf)hi
   };
 
-  private static final long atanlo[] = {
+  private static final long[] atanlo = {
           0x3c7a2b7f222f65e2L,  // 2.26987774529616870924e-17 atan(0.5)lo
           0x3c81a62633145c07L,  // 3.06161699786838301793e-17 atan(1.0)lo
           0x3c7007887af0cbbdL,  // 1.39033110312309984516e-17 atan(1.5)lo
@@ -3699,16 +3691,13 @@ public class MicroDouble {
         n <<= 2;
       }
     }
-    switch (n) {
-      case 0:   y =  kernelSin(mul(PI, y),ZERO,0); break;
-      case 1:
-      case 2:   y =  kernelCos(mul(PI, sub(ONE_HALF, y)),ZERO); break;
-      case 3:
-      case 4:   y =  kernelSin(mul(PI, sub(ONE, y)),ZERO,0); break;
-      case 5:
-      case 6:   y = negate(kernelCos(mul(PI, sub(y, THREE_HALVES)),ZERO)); break;
-      default:  y =  kernelSin(mul(PI, sub(y, TWO)),ZERO,0); break;
-    }
+      y = switch (n) {
+          case 0 -> kernelSin(mul(PI, y), ZERO, 0);
+          case 1, 2 -> kernelCos(mul(PI, sub(ONE_HALF, y)), ZERO);
+          case 3, 4 -> kernelSin(mul(PI, sub(ONE, y)), ZERO, 0);
+          case 5, 6 -> negate(kernelCos(mul(PI, sub(y, THREE_HALVES)), ZERO));
+          default -> kernelSin(mul(PI, sub(y, TWO)), ZERO, 0);
+      };
     return negate(y);
   }
 

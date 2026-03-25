@@ -6,8 +6,14 @@ import jdos.win.Win;
 import java.awt.*;
 import java.awt.geom.AffineTransform;
 import java.awt.image.*;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class Pixel {
+
+    private static final Logger logger = System.getLogger(Pixel.class.getName());
+
     static public int getPitch(int width, int bpp) {
         if (bpp>=8)
             return ((width * ((bpp + 7) / 8) + 3) / 4) * 4;
@@ -25,13 +31,14 @@ public class Pixel {
 
     }
 
-    public static BufferedImage makeColorTransparent(BufferedImage im, final Color color) {
+    public static BufferedImage makeColorTransparent(BufferedImage im, Color color) {
         ImageFilter filter = new RGBImageFilter() {
 
             // the color we are looking for... Alpha bits are set to opaque
-            public int markerRGB = color.getRGB() | 0xFF000000;
+            public final int markerRGB = color.getRGB() | 0xFF000000;
 
-            public final int filterRGB(int x, int y, int rgb) {
+            @Override
+            public int filterRGB(int x, int y, int rgb) {
                 if ((rgb | 0xFF000000) == markerRGB) {
                     // Mark the alpha bits as zero - transparent
                     return 0x00FFFFFF & rgb;
@@ -127,7 +134,7 @@ public class Pixel {
                 // Main.drawImage(bi);try {Thread.sleep(1000*5);} catch (Exception e) {}
                 return bi;
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
         } else {
             if (srcBpp == 16) {
@@ -148,7 +155,7 @@ public class Pixel {
                     //Main.drawImage(bi);try {Thread.sleep(1000*60);} catch (Exception e) {}
                     return bi;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.log(Level.ERROR, e.getMessage(), e);
                 }
             } else if (srcBpp == 24) {
                 try {
@@ -164,7 +171,7 @@ public class Pixel {
                     // Main.drawImage(bi);try {Thread.sleep(1000*60);} catch (Exception e) {}
                     return bi;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.log(Level.ERROR, e.getMessage(), e);
                 }
             } else if (srcBpp == 32) {
                 try {
@@ -181,7 +188,7 @@ public class Pixel {
                     // Main.drawImage(bi);try {Thread.sleep(1000*60);} catch (Exception e) {}
                     return bi;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.log(Level.ERROR, e.getMessage(), e);
                 }
             } else {
                 Win.panic("Currently only 24-bit, 16-bit, 8-bit and 4-bit bitmaps are supported");
@@ -247,27 +254,17 @@ public class Pixel {
     }
     static public void copy(int src, int srcBpp, int[] srcPalette, int dst, int dstBpp, int[] dstPalette, int width, int height, boolean flip) {
         BufferedImage biSrc = createImage(src, srcBpp, srcPalette, width, height, flip);
-        BufferedImage biDest;
-        switch (dstBpp) {
-            case 8:
-                biDest = createImage(dst, dstBpp, dstPalette, width, height, false);
-                break;
-            case 15:
-                biDest = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_555_RGB);
-                break;
-            case 16:
-                biDest = new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
-                break;
-            case 24:
-                biDest = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-                break;
-            case 32:
-                biDest = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
-                break;
-            default:
-                Win.panic("Cannot create "+dstBpp+"-bit destination bitmap");
-                biDest = null;
-        }
+        BufferedImage biDest = switch (dstBpp) {
+            case 8 -> createImage(dst, dstBpp, dstPalette, width, height, false);
+            case 15 -> new BufferedImage(width, height, BufferedImage.TYPE_USHORT_555_RGB);
+            case 16 -> new BufferedImage(width, height, BufferedImage.TYPE_USHORT_565_RGB);
+            case 24 -> new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+            case 32 -> new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+            default -> {
+                Win.panic("Cannot create " + dstBpp + "-bit destination bitmap");
+                yield null;
+            }
+        };
 
         Graphics graphics = biDest.getGraphics();
         graphics.drawImage(biSrc, 0, 0, width, height, null);
@@ -310,10 +307,10 @@ public class Pixel {
 
     static public void copy2(int src, int srcBpp, int[] srcPalette, int dst, int dstBpp, int[] dstPalette, int width, int height) {
         for (int i=0;i<srcPalette.length;i++) {
-            System.out.println(Integer.toHexString(srcPalette[i]) + " "+Integer.toHexString(dstPalette[i]));
+            logger.log(Level.DEBUG,Integer.toHexString(srcPalette[i]) + " "+Integer.toHexString(dstPalette[i]));
         }
         for (int i=0;i<srcPalette.length;i++) {
-            System.out.println(Integer.toHexString(srcPalette[i]) + " "+Integer.toHexString(dstPalette[srcPalette.length-i-1]));
+            logger.log(Level.DEBUG,Integer.toHexString(srcPalette[i]) + " "+Integer.toHexString(dstPalette[srcPalette.length-i-1]));
         }
         // This will prevent dithering
         if (dstBpp == 8 && (srcBpp == 8 || srcBpp == 32)) {

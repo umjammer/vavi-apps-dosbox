@@ -5,13 +5,16 @@ import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.hardware.Memory;
 import jdos.ints.Bios_disk;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Section;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.util.*;
 
 public class DosMSCDEX {
+
+    private static final Logger LOG_MISC = System.getLogger("LOG_MISC");
+    private static final Logger LOG_ALL = System.getLogger("LOG_ALL");
+
     static private final int MSCDEX_VERSION_HIGH = 2;
     static private final int  MSCDEX_VERSION_LOW = 23;
     static private final int  MSCDEX_MAX_DRIVES	= 8;
@@ -32,7 +35,7 @@ public class DosMSCDEX {
 
     static private class DOS_DeviceHeader extends MemStruct {
         public static final int size = 22;
-        public DOS_DeviceHeader(/*PhysPt*/int ptr)				{ pt = ptr; };
+        public DOS_DeviceHeader(/*PhysPt*/int ptr)				{ pt = ptr; }
 
         public void SetNextDeviceHeader(/*RealPt*/int ptr)	{ SaveIt(4, 0, ptr); } //sSave(sDeviceHeader,nextDeviceHeader,ptr); }
         public /*RealPt*/int GetNextDeviceHeader() { return GetIt(4, 0); } //sGet(sDeviceHeader,nextDeviceHeader); }
@@ -77,8 +80,8 @@ public class DosMSCDEX {
         }
 
         /*Bit16u*/int				defaultBufSeg;
-        TDriveInfo[] dinfo = new TDriveInfo[MSCDEX_MAX_DRIVES];
-        Dos_cdrom.CDROM_Interface[] cdrom = new Dos_cdrom.CDROM_Interface[MSCDEX_MAX_DRIVES];
+        final TDriveInfo[] dinfo = new TDriveInfo[MSCDEX_MAX_DRIVES];
+        final Dos_cdrom.CDROM_Interface[] cdrom = new Dos_cdrom.CDROM_Interface[MSCDEX_MAX_DRIVES];
 
         /*Bit16u*/int rootDriverHeaderSeg;
 
@@ -165,8 +168,8 @@ public class DosMSCDEX {
             // Get Mounttype and init needed cdrom interface
             switch (Dos_cdrom.CDROM_GetMountType(physicalPath,forceCD)) {
             case 0x00: {
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC, LogSeverities.LOG_ERROR,"MSCDEX: Mounting physical cdrom not supported: "+physicalPath);
-//                Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: Mounting physical cdrom: %s"	,physicalPath);
+                LOG_MISC.log(Level.ERROR, "MSCDEX: Mounting physical cdrom not supported: "+physicalPath);
+//                LOG_MISC.log(Level.DEBUG, "MSCDEX: Mounting physical cdrom: %s"	,physicalPath);
 //        #if defined (WIN32)
 //                // Check OS
 //                OSVERSIONINFO osi;
@@ -176,52 +179,52 @@ public class DosMSCDEX {
 //                    // only WIN NT/200/XP
 //                    if (useCdromInterface==CDROM_USE_IOCTL_DIO) {
 //                        cdrom[numDrives] = new CDROM_Interface_Ioctl(CDROM_Interface_Ioctl::CDIOCTL_CDA_DIO);
-//                        Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: IOCTL Interface.");
+//                        LOG_MISC.log(Level.DEBUG, "MSCDEX: IOCTL Interface.");
 //                        break;
 //                    }
 //                    if (useCdromInterface==CDROM_USE_IOCTL_DX) {
 //                        cdrom[numDrives] = new CDROM_Interface_Ioctl(CDROM_Interface_Ioctl::CDIOCTL_CDA_DX);
-//                        Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: IOCTL Interface (digital audio extraction).");
+//                        LOG_MISC.log(Level.DEBUG, "MSCDEX: IOCTL Interface (digital audio extraction).");
 //                        break;
 //                    }
 //                    if (useCdromInterface==CDROM_USE_IOCTL_MCI) {
 //                        cdrom[numDrives] = new CDROM_Interface_Ioctl(CDROM_Interface_Ioctl::CDIOCTL_CDA_MCI);
-//                        Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: IOCTL Interface (media control interface).");
+//                        LOG_MISC.log(Level.DEBUG, "MSCDEX: IOCTL Interface (media control interface).");
 //                        break;
 //                    }
 //                }
 //                if (useCdromInterface==CDROM_USE_ASPI) {
 //                    // all Wins - ASPI
 //                    cdrom[numDrives] = new CDROM_Interface_Aspi();
-//                    Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: ASPI Interface.");
+//                    LOG_MISC.log(Level.DEBUG, "MSCDEX: ASPI Interface.");
 //                    break;
 //                }
 //        #endif
 //        #if defined (LINUX) || defined(OS2)
 //                // Always use IOCTL in Linux or OS/2
 //                cdrom[numDrives] = new CDROM_Interface_Ioctl();
-//                Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: IOCTL Interface.");
+//                LOG_MISC.log(Level.DEBUG, "MSCDEX: IOCTL Interface.");
 //        #else
 //                // Default case windows and other oses
 //                cdrom[numDrives] = new CDROM_Interface_SDL();
-//                Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: SDL Interface.");
+//                LOG_MISC.log(Level.DEBUG, "MSCDEX: SDL Interface.");
 //        #endif
                 } break;
             case 0x01:	// iso cdrom interface
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: Mounting iso file as cdrom: "+physicalPath);
+                LOG_MISC.log(Level.DEBUG, "MSCDEX: Mounting iso file as cdrom: "+physicalPath);
                 cdrom[numDrives] = new CDROM_Interface_Image((/*Bit8u*/short)numDrives);
                 break;
             case 0x02:	// fake cdrom interface (directories)
                 cdrom[numDrives] = new CDROM_Interface_Fake();
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: Mounting directory as cdrom: "+physicalPath);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: You wont have full MSCDEX support !");
+                LOG_MISC.log(Level.DEBUG, "MSCDEX: Mounting directory as cdrom: "+physicalPath);
+                LOG_MISC.log(Level.DEBUG, "MSCDEX: You wont have full MSCDEX support !");
                 result = 5;
                 break;
             default	:	// weird result
                 return 6;
             }
 
-            if (!cdrom[numDrives].SetDevice(physicalPath,forceCD)) {
+            if (!cdrom[numDrives].setDevice(physicalPath,forceCD)) {
         //		delete cdrom[numDrives] ; mount seems to delete it
                 return 3;
             }
@@ -241,13 +244,13 @@ public class DosMSCDEX {
                 devHeader.SetName("MSCD001 ");
 
                 //Link it in the device chain
-                /*Bit32u*/long start = Dos.dos_infoblock.GetDeviceChain() & 0xFFFFFFFFl;
+                /*Bit32u*/long start = Dos.dos_infoblock.GetDeviceChain() & 0xFFFFFFFFL;
                 /*Bit16u*/int segm  = (/*Bit16u*/int)(start>>16);
                 /*Bit16u*/int offm  = (/*Bit16u*/int)(start&0xFFFF);
-                while(start != 0xFFFFFFFFl) {
+                while(start != 0xFFFFFFFFL) {
                     segm  = (/*Bit16u*/int)(start>>>16);
                     offm  = (/*Bit16u*/int)(start&0xFFFF);
-                    start = Memory.real_readd(segm,offm) & 0xFFFFFFFFl;
+                    start = Memory.real_readd(segm,offm) & 0xFFFFFFFFL;
                 }
                 Memory.real_writed(segm,offm,seg<<16);
 
@@ -353,8 +356,8 @@ public class DosMSCDEX {
             if (subUnit>=numDrives) return false;
             IntRef tr1i=new IntRef(0),tr2i=new IntRef(0);
             // Assume Media change
-            cdrom[subUnit].InitNewMedia();
-            dinfo[subUnit].lastResult = cdrom[subUnit].GetAudioTracks(tr1i,tr2i,leadOut);
+            cdrom[subUnit].initNewMedia();
+            dinfo[subUnit].lastResult = cdrom[subUnit].getAudioTracks(tr1i,tr2i,leadOut);
             if (!dinfo[subUnit].lastResult) {
                 tr1.value = tr2.value = 0;
                 leadOut.clear();
@@ -368,7 +371,7 @@ public class DosMSCDEX {
         boolean GetTrackInfo(/*Bit8u*/short subUnit, /*Bit8u*/short track, /*Bit8u*/ShortRef attr, Dos_cdrom.TMSF start)
         {
             if (subUnit>=numDrives) return false;
-            dinfo[subUnit].lastResult = cdrom[subUnit].GetAudioTrackInfo(track,start,attr);
+            dinfo[subUnit].lastResult = cdrom[subUnit].getAudioTrackInfo(track,start,attr);
             if (!dinfo[subUnit].lastResult) {
                 attr.value = 0;
                 start.clear();
@@ -382,9 +385,9 @@ public class DosMSCDEX {
             // If value from last stop is used, this is meant as a resume
             // better start using resume command
             if (dinfo[subUnit].audioPaused && (sector==dinfo[subUnit].audioStart) && (dinfo[subUnit].audioEnd!=0)) {
-                dinfo[subUnit].lastResult = cdrom[subUnit].PauseAudio(true);
+                dinfo[subUnit].lastResult = cdrom[subUnit].pauseAudio(true);
             } else
-                dinfo[subUnit].lastResult = cdrom[subUnit].PlayAudioSector(sector,length);
+                dinfo[subUnit].lastResult = cdrom[subUnit].playAudioSector(sector,length);
 
             if (dinfo[subUnit].lastResult) {
                 dinfo[subUnit].audioPlay	= true;
@@ -408,7 +411,7 @@ public class DosMSCDEX {
         boolean GetSubChannelData(/*Bit8u*/short subUnit, /*Bit8u*/ShortRef attr, /*Bit8u*/ShortRef track, /*Bit8u*/ShortRef index, Dos_cdrom.TMSF rel, Dos_cdrom.TMSF abs)
         {
             if (subUnit>=numDrives) return false;
-            dinfo[subUnit].lastResult = cdrom[subUnit].GetAudioSub(attr,track,index,rel,abs);
+            dinfo[subUnit].lastResult = cdrom[subUnit].getAudioSub(attr,track,index,rel,abs);
             if (!dinfo[subUnit].lastResult) {
                 attr.value = track.value = index.value = 0;
                 rel.clear();
@@ -420,7 +423,7 @@ public class DosMSCDEX {
         boolean GetAudioStatus(/*Bit8u*/short subUnit, BooleanRef playing, BooleanRef pause, Dos_cdrom.TMSF start, Dos_cdrom.TMSF end)
         {
             if (subUnit>=numDrives) return false;
-            dinfo[subUnit].lastResult = cdrom[subUnit].GetAudioStatus(playing,pause);
+            dinfo[subUnit].lastResult = cdrom[subUnit].getAudioStatus(playing,pause);
             if (dinfo[subUnit].lastResult) {
                 // Start
                 /*Bit32u*/long addr	= dinfo[subUnit].audioStart + 150;
@@ -456,9 +459,9 @@ public class DosMSCDEX {
                     dinfo[subUnit].audioPlay = false;
             }
             if (dinfo[subUnit].audioPlay)
-                dinfo[subUnit].lastResult = cdrom[subUnit].PauseAudio(false);
+                dinfo[subUnit].lastResult = cdrom[subUnit].pauseAudio(false);
             else
-                dinfo[subUnit].lastResult = cdrom[subUnit].StopAudio();
+                dinfo[subUnit].lastResult = cdrom[subUnit].stopAudio();
 
             if (dinfo[subUnit].lastResult) {
                 if (dinfo[subUnit].audioPlay) {
@@ -580,14 +583,14 @@ public class DosMSCDEX {
         boolean GetUPC(/*Bit8u*/short subUnit, /*Bit8u*/ShortRef attr, StringRef upc)
         {
             if (subUnit>=numDrives) return false;
-            return dinfo[subUnit].lastResult = cdrom[subUnit].GetUPC(attr,upc);
+            return dinfo[subUnit].lastResult = cdrom[subUnit].getUPC(attr,upc);
         }
 
         boolean ReadSectors(/*Bit8u*/short subUnit, boolean raw, /*Bit32u*/long sector, /*Bit16u*/int num, /*PhysPt*/int data) {
             if (subUnit>=numDrives) return false;
             if ((4*num*2048+5) < CPU.CPU_Cycles) CPU.CPU_Cycles -= 4*num*2048;
             else CPU.CPU_Cycles = 5;
-            dinfo[subUnit].lastResult = cdrom[subUnit].ReadSectors(data,raw,sector,num);
+            dinfo[subUnit].lastResult = cdrom[subUnit].readSectors(data,raw,sector,num);
             return dinfo[subUnit].lastResult;
         }
 
@@ -622,7 +625,7 @@ public class DosMSCDEX {
 
             //strip of tailing . (XCOM APOCALYPSE)
             int searchlen = searchName.length();
-            if (searchlen > 1 && searchName.indexOf("..")>=0)
+            if (searchlen > 1 && searchName.contains(".."))
                 if (searchName.charAt(searchlen-1) =='.')  searchName = searchName.substring(0, searchlen-1);
 
             //LOG(LOG_MISC,LOG_ERROR)("MSCDEX: Get DirEntry : Find : %s",searchName);
@@ -632,7 +635,7 @@ public class DosMSCDEX {
             // TODO: has to be iso 9960
             volumeID = Memory.MEM_StrCopy(defBuffer+1,5);
             boolean iso = ("CD001".equals(volumeID));
-            if (!iso) Log.exit("MSCDEX: GetDirEntry: Not an ISO 9960 CD.");
+            if (!iso) throw new IllegalStateException("MSCDEX: GetDirEntry: Not an ISO 9960 CD.");
             // get directory position
             /*Bitu*/int dirEntrySector = Memory.mem_readd(defBuffer + 156 + 2);
             /*Bits*/int dirSize	= Memory.mem_readd(defBuffer + 156 + 10);
@@ -643,7 +646,7 @@ public class DosMSCDEX {
                 // Get string part
                 foundName	= false;
                 if (nextPart) {
-                    if (searchPos.length()>0) {
+                    if (!searchPos.isEmpty()) {
                         useName = searchPos;
                         int pos = searchPos.indexOf("\\");
                         if (pos>=0)
@@ -652,7 +655,7 @@ public class DosMSCDEX {
                             searchPos="";
                     }
 
-                    if (searchPos.length() == 0)
+                    if (searchPos.isEmpty())
                         foundComplete = true;
                 }
                 do {
@@ -682,7 +685,7 @@ public class DosMSCDEX {
                 if (foundName) {
                     if (foundComplete) {
                         if (copyFlag) {
-                            Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_WARN,"MSCDEX: GetDirEntry: Copyflag structure not entirely accurate maybe");
+                            LOG_MISC.log(Level.WARNING, "MSCDEX: GetDirEntry: Copyflag structure not entirely accurate maybe");
                             /*Bit8u*/byte[] readBuf = new byte[256];
                             /*Bit8u*/byte[] writeBuf = new byte[256];
                             if (entryLength > 256)
@@ -698,7 +701,7 @@ public class DosMSCDEX {
                             writeBuf[0x14] = readBuf[0x1b];					// 14h	BYTE	interleave skip factor
                             System.arraycopy(readBuf, 0x1c, writeBuf, 0x15, 2);// 15h	WORD	volume set sequence number
                             writeBuf[0x17] = readBuf[0x20];
-                            System.arraycopy(readBuf, 0x21, writeBuf, 0x18, readBuf[0x20] <= 38 ? readBuf[0x20] : 38); // :TODO: changed 21 to 0x21
+                            System.arraycopy(readBuf, 0x21, writeBuf, 0x18, readBuf[0x20] <= 38 ? readBuf[0x20] : 38); // TODO changed 21 to 0x21
                             Memory.MEM_BlockWrite( buffer, writeBuf, 0x18 + 40 );
                         } else {
                             // Direct copy
@@ -735,7 +738,7 @@ public class DosMSCDEX {
         boolean GetMediaStatus(/*Bit8u*/short subUnit, BooleanRef media, BooleanRef changed, BooleanRef trayOpen)
         {
             if (subUnit>=numDrives) return false;
-            dinfo[subUnit].lastResult = cdrom[subUnit].GetMediaTrayStatus(media,changed,trayOpen);
+            dinfo[subUnit].lastResult = cdrom[subUnit].getMediaTrayStatus(media,changed,trayOpen);
             return dinfo[subUnit].lastResult;
         }
 
@@ -781,7 +784,7 @@ public class DosMSCDEX {
         boolean LoadUnloadMedia(/*Bit8u*/short subUnit, boolean unload)
         {
             if (subUnit>=numDrives) return false;
-            dinfo[subUnit].lastResult = cdrom[subUnit].LoadUnloadMedia(unload);
+            dinfo[subUnit].lastResult = cdrom[subUnit].loadUnloadMedia(unload);
             return dinfo[subUnit].lastResult;
         }
 
@@ -822,7 +825,7 @@ public class DosMSCDEX {
         void InitNewMedia(/*Bit8u*/short subUnit) {
             if (subUnit<numDrives) {
                 // Reopen new media
-                cdrom[subUnit].InitNewMedia();
+                cdrom[subUnit].initNewMedia();
             }
         }
 
@@ -832,7 +835,7 @@ public class DosMSCDEX {
             if (ctrl.out[0]>1) ctrl.out[0]=0;
             if (ctrl.out[1]>1) ctrl.out[1]=1;
             dinfo[subUnit].audioCtrl=ctrl;
-            cdrom[subUnit].ChannelControl(ctrl);
+            cdrom[subUnit].channelControl(ctrl);
             return true;
         }
 
@@ -848,7 +851,7 @@ public class DosMSCDEX {
 
     private static /*Bit16u*/int MSCDEX_IOCTL_Input(/*PhysPt*/int buffer,/*Bit8u*/short drive_unit) {
         /*Bitu*/int ioctl_fct = Memory.mem_readb(buffer);
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL, "MSCDEX: IOCTL INPUT Subfunction "+Integer.toString(ioctl_fct,16));
+        LOG_MISC.log(Level.DEBUG,  "MSCDEX: IOCTL INPUT Subfunction "+Integer.toString(ioctl_fct,16));
         switch (ioctl_fct) {
             case 0x00 : /* Get Device Header address */
                         Memory.mem_writed(buffer+1,Memory.RealMake(mscdex.rootDriverHeaderSeg,0));
@@ -859,7 +862,7 @@ public class DosMSCDEX {
                         /*Bit8u*/int addr_mode = Memory.mem_readb(buffer+1);
                         if (addr_mode==0) {			// HSG
                             /*Bit32u*/long frames=pos.min*60*Dos_cdrom.CD_FPS+ pos.sec*Dos_cdrom.CD_FPS+pos.fr;
-                            if (frames<150) if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR, "MSCDEX: Get position: invalid position "+pos.min+":"+pos.sec+":"+pos.fr);
+                            if (frames<150) LOG_MISC.log(Level.ERROR,  "MSCDEX: Get position: invalid position "+pos.min+":"+pos.sec+":"+pos.fr);
                             else frames-=150;
                             Memory.mem_writed(buffer+2,(int)frames);
                         } else if (addr_mode==1) {	// Red book
@@ -868,7 +871,7 @@ public class DosMSCDEX {
                             Memory.mem_writeb(buffer+4,pos.min);
                             Memory.mem_writeb(buffer+5,0x00);
                         } else {
-                            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR, "MSCDEX: Get position: invalid address mode "+Integer.toString(addr_mode,16));
+                            LOG_MISC.log(Level.ERROR,  "MSCDEX: Get position: invalid address mode "+Integer.toString(addr_mode,16));
                             return 0x03;		// invalid function
                         }
                        }break;
@@ -957,7 +960,7 @@ public class DosMSCDEX {
                         Memory.mem_writeb(buffer+10,0x00);
                         break;
                        }
-            default :	if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"MSCDEX: Unsupported IOCTL INPUT Subfunction "+Integer.toString(ioctl_fct,16));
+            default :	LOG_MISC.log(Level.ERROR, "MSCDEX: Unsupported IOCTL INPUT Subfunction "+Integer.toString(ioctl_fct,16));
                         return 0x03;	// invalid function
         }
         return 0x00;	// success
@@ -965,7 +968,7 @@ public class DosMSCDEX {
 
     private static /*Bit16u*/int MSCDEX_IOCTL_Optput(/*PhysPt*/int buffer,/*Bit8u*/short drive_unit) {
         /*Bitu*/int ioctl_fct = Memory.mem_readb(buffer);
-    //	Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,("MSCDEX: IOCTL OUTPUT Subfunction %02X",ioctl_fct);
+    //	LOG_MISC.log(Level.ERROR, ("MSCDEX: IOCTL OUTPUT Subfunction %02X",ioctl_fct);
         switch (ioctl_fct) {
             case 0x00 :	// Unload /eject media
                         if (!mscdex.LoadUnloadMedia(drive_unit,true)) return 0x02;
@@ -982,36 +985,40 @@ public class DosMSCDEX {
                         // do nothing . report as success
                         break;
             case 0x02 : // Reset Drive
-                        Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_WARN,"cdromDrive reset");
+                        LOG_MISC.log(Level.WARNING, "cdromDrive reset");
                         if (!mscdex.StopAudio(drive_unit))  return 0x02;
                         break;
             case 0x05 :	// load media
                         if (!mscdex.LoadUnloadMedia(drive_unit,false)) return 0x02;
                         break;
-            default	:	if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"MSCDEX: Unsupported IOCTL OUTPUT Subfunction "+Integer.toString(ioctl_fct,16));
+            default	:	LOG_MISC.log(Level.ERROR, "MSCDEX: Unsupported IOCTL OUTPUT Subfunction "+Integer.toString(ioctl_fct,16));
                         return 0x03;	// invalid function
         }
         return 0x00;	// success
     }
 
-    static private Callback.Handler MSCDEX_Strategy_Handler = new Callback.Handler() {
+    static private final Callback.Handler MSCDEX_Strategy_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "MSCDEX_Strategy_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
-            curReqheaderPtr = Memory.PhysMake((int)CPU_Regs.reg_esVal.dword, CPU_Regs.reg_ebx.word());
-        //	Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,("MSCDEX: Device Strategy Routine called, request header at %x",curReqheaderPtr);
+            curReqheaderPtr = Memory.PhysMake(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_ebx.word());
+        //	LOG_MISC.log(Level.ERROR, ("MSCDEX: Device Strategy Routine called, request header at %x",curReqheaderPtr);
             return Callback.CBRET_NONE;
         }
     };
 
-    static private Callback.Handler MSCDEX_Interrupt_Handler = new Callback.Handler() {
+    static private final Callback.Handler MSCDEX_Interrupt_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "MSCDEX_Interrupt_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             if (curReqheaderPtr==0) {
-                Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"MSCDEX: invalid call to interrupt handler");
+                LOG_MISC.log(Level.ERROR, "MSCDEX: invalid call to interrupt handler");
                 return Callback.CBRET_NONE;
             }
             /*Bit8u*/short	subUnit		= (short)Memory.mem_readb(curReqheaderPtr+1);
@@ -1019,7 +1026,7 @@ public class DosMSCDEX {
             /*Bit16u*/int	errcode		= 0;
             /*PhysPt*/int	buffer		= 0;
 
-            if (Log.level<=LogSeverities.LOG_NORMAL)Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL, "MSCDEX: Driver Function "+Integer.toString(funcNr,16));
+            LOG_MISC.log(Level.DEBUG,  "MSCDEX: Driver Function "+Integer.toString(funcNr,16));
 
             if ((funcNr==0x03) || (funcNr==0x0c) || (funcNr==0x80) || (funcNr==0x82)) {
                 buffer = Memory.PhysMake(Memory.mem_readw(curReqheaderPtr+0x10),Memory.mem_readw(curReqheaderPtr+0x0E));
@@ -1041,7 +1048,7 @@ public class DosMSCDEX {
                                 break;
                 case 0x80	:	// Read long
                 case 0x82	: { // Read long prefetch . both the same here :)
-                                /*Bit32u*/long start = Memory.mem_readd(curReqheaderPtr + 0x14) & 0xFFFFFFFFl;
+                                /*Bit32u*/long start = Memory.mem_readd(curReqheaderPtr + 0x14) & 0xFFFFFFFFL;
                                 /*Bit16u*/int len	 = Memory.mem_readw(curReqheaderPtr+0x12);
                                 boolean raw	 = (Memory.mem_readb(curReqheaderPtr+0x18)==1);
                                 if (Memory.mem_readb(curReqheaderPtr+0x0D)==0x00) // HSG
@@ -1053,8 +1060,8 @@ public class DosMSCDEX {
                 case 0x83	:	// Seek - dont care :)
                                 break;
                 case 0x84	: {	/* Play Audio Sectors */
-                                /*Bit32u*/long start = Memory.mem_readd(curReqheaderPtr + 0x0E) & 0xFFFFFFFFl;
-                                /*Bit32u*/long len	 = Memory.mem_readd(curReqheaderPtr + 0x12) & 0xFFFFFFFFl;
+                                /*Bit32u*/long start = Memory.mem_readd(curReqheaderPtr + 0x0E) & 0xFFFFFFFFL;
+                                /*Bit32u*/long len	 = Memory.mem_readd(curReqheaderPtr + 0x12) & 0xFFFFFFFFL;
                                 if (Memory.mem_readb(curReqheaderPtr+0x0D)==0x00) // HSG
                                     mscdex.PlayAudioSector(subUnit,start,len);
                                 else // RED BOOK
@@ -1067,166 +1074,170 @@ public class DosMSCDEX {
                 case 0x88	:	/* Resume Audio */
                                 mscdex.ResumeAudio(subUnit);
                                 break;
-                default		:	if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"MSCDEX: Unsupported Driver Request "+Integer.toString(funcNr,16));
+                default		:	LOG_MISC.log(Level.ERROR, "MSCDEX: Unsupported Driver Request "+Integer.toString(funcNr,16));
                                 break;
 
             }
 
             // Set Statusword
             Memory.mem_writew(curReqheaderPtr+3,mscdex.GetStatusWord(subUnit,errcode));
-            if (Log.level<=LogSeverities.LOG_NORMAL)Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: Status : "+Integer.toString(Memory.mem_readw(curReqheaderPtr+3),16));
+            LOG_MISC.log(Level.DEBUG, "MSCDEX: Status : "+Integer.toString(Memory.mem_readw(curReqheaderPtr+3),16));
             return Callback.CBRET_NONE;
         }
     };
 
-    static private Dos_system.MultiplexHandler MSCDEX_Handler = new Dos_system.MultiplexHandler() {
-        public boolean call() {
-            if(CPU_Regs.reg_eax.high() == 0x11) {
-                if(CPU_Regs.reg_eax.low() == 0x00) {
-                    /*PhysPt*/int check = Memory.PhysMake((int)CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word());
-                    if(Memory.mem_readw(check+6) == 0xDADA) {
-                        //MSCDEX sets word on stack to ADAD if it DADA on entry.
-                        Memory.mem_writew(check+6,0xADAD);
-                    }
-                    CPU_Regs.reg_eax.low(0xff);
-                    return true;
-                } else {
-                    Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"NETWORK REDIRECTOR USED!!!");
-                    CPU_Regs.reg_eax.word(0x49);//NETWERK SOFTWARE NOT INSTALLED
-                    Callback.CALLBACK_SCF(true);
-                    return true;
+    static private final Dos_system.MultiplexHandler MSCDEX_Handler = () -> {
+        if(CPU_Regs.reg_eax.high() == 0x11) {
+            if(CPU_Regs.reg_eax.low() == 0x00) {
+                /*PhysPt*/int check = Memory.PhysMake(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word());
+                if(Memory.mem_readw(check+6) == 0xDADA) {
+                    //MSCDEX sets word on stack to ADAD if it DADA on entry.
+                    Memory.mem_writew(check+6,0xADAD);
                 }
+                CPU_Regs.reg_eax.low(0xff);
+                return true;
+            } else {
+                LOG_MISC.log(Level.ERROR, "NETWORK REDIRECTOR USED!!!");
+                CPU_Regs.reg_eax.word(0x49);//NETWERK SOFTWARE NOT INSTALLED
+                Callback.CALLBACK_SCF(true);
+                return true;
             }
+        }
 
-            if (CPU_Regs.reg_eax.high()!=0x15) return false;		// not handled here, continue chain
+        if (CPU_Regs.reg_eax.high()!=0x15) return false;		// not handled here, continue chain
 
-            /*PhysPt*/int data = Memory.PhysMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word());
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"MSCDEX: INT 2F "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" BX= "+Integer.toString(CPU_Regs.reg_ebx.word(), 16)+" CX="+Integer.toString(CPU_Regs.reg_ecx.word(),16));
-            switch (CPU_Regs.reg_eax.word()) {
+        /*PhysPt*/int data = Memory.PhysMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word());
+        LOG_MISC.log(Level.DEBUG, "MSCDEX: INT 2F "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" BX= "+Integer.toString(CPU_Regs.reg_ebx.word(), 16)+" CX="+Integer.toString(CPU_Regs.reg_ecx.word(),16));
+        switch (CPU_Regs.reg_eax.word()) {
 
-                case 0x1500:	/* Install check */
-                                CPU_Regs.reg_ebx.word(mscdex.GetNumDrives());
-                                if (CPU_Regs.reg_ebx.word()>0) CPU_Regs.reg_ecx.word(mscdex.GetFirstDrive());
-                                CPU_Regs.reg_eax.low(0xff);
-                                return true;
-                case 0x1501:	/* Get cdrom driver info */
-                                mscdex.GetDriverInfo(data);
-                                return true;
-                case 0x1502:	/* Get Copyright filename */
-                                if (mscdex.GetCopyrightName(CPU_Regs.reg_ecx.word(),data)) {
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                                return true;
-                case 0x1503:	/* Get Abstract filename */
-                                if (mscdex.GetAbstractName(CPU_Regs.reg_ecx.word(),data)) {
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                                return true;
-                case 0x1504:	/* Get Documentation filename */
-                                if (mscdex.GetDocumentationName(CPU_Regs.reg_ecx.word(),data)) {
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                                return true;
-                case 0x1505: {	// read vtoc
-                                /*Bit16u*/IntRef error = new IntRef(0);
-                                if (mscdex.ReadVTOC(CPU_Regs.reg_ecx.word(),CPU_Regs.reg_edx.word(),data,error)) {
-        //							CPU_Regs.reg_ax = error;	// return code
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    CPU_Regs.reg_eax.word(error.value);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                             }
-                                return true;
-                case 0x1508: {	// read sectors
-                                /*Bit32u*/long sector = (CPU_Regs.reg_esi.word()<<16)+CPU_Regs.reg_edi.word();
-                                if (mscdex.ReadSectors(CPU_Regs.reg_ecx.word(),sector,CPU_Regs.reg_edx.word(),data)) {
-                                    CPU_Regs.reg_eax.word(0);
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    // possibly: MSCDEX_ERROR_DRIVE_NOT_READY if sector is beyond total length
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                                return true;
-                             }
-                case 0x1509:	// write sectors - not supported
-                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_INVALID_FUNCTION);
+            case 0x1500:	/* Install check */
+                            CPU_Regs.reg_ebx.word(mscdex.GetNumDrives());
+                            if (CPU_Regs.reg_ebx.word()>0) CPU_Regs.reg_ecx.word(mscdex.GetFirstDrive());
+                            CPU_Regs.reg_eax.low(0xff);
+                            return true;
+            case 0x1501:	/* Get cdrom driver info */
+                            mscdex.GetDriverInfo(data);
+                            return true;
+            case 0x1502:	/* Get Copyright filename */
+                            if (mscdex.GetCopyrightName(CPU_Regs.reg_ecx.word(),data)) {
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
                                 Callback.CALLBACK_SCF(true);
-                                return true;
-                case 0x150B:	/* Valid CDROM drive ? */
-                                CPU_Regs.reg_eax.word((mscdex.IsValidDrive(CPU_Regs.reg_ecx.word()) ? 0x5ad8 : 0x0000));
-                                CPU_Regs.reg_ebx.word(0xADAD);
-                                return true;
-                case 0x150C:	/* Get MSCDEX Version */
-                                CPU_Regs.reg_ebx.word(mscdex.GetVersion());
-                                return true;
-                case 0x150D:	/* Get drives */
-                                mscdex.GetDrives(data);
-                                return true;
-                case 0x150E:	/* Get/Set Volume Descriptor Preference */
-                                if (mscdex.IsValidDrive(CPU_Regs.reg_ecx.word())) {
-                                    if (CPU_Regs.reg_ebx.word() == 0) {
-                                        // get preference
-                                        CPU_Regs.reg_edx.word(0x100);	// preference?
+                            }
+                            return true;
+            case 0x1503:	/* Get Abstract filename */
+                            if (mscdex.GetAbstractName(CPU_Regs.reg_ecx.word(),data)) {
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                            return true;
+            case 0x1504:	/* Get Documentation filename */
+                            if (mscdex.GetDocumentationName(CPU_Regs.reg_ecx.word(),data)) {
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                            return true;
+            case 0x1505: {	// read vtoc
+                            /*Bit16u*/IntRef error = new IntRef(0);
+                            if (mscdex.ReadVTOC(CPU_Regs.reg_ecx.word(),CPU_Regs.reg_edx.word(),data,error)) {
+    //							CPU_Regs.reg_ax = error;	// return code
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                CPU_Regs.reg_eax.word(error.value);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                         }
+                            return true;
+            case 0x1508: {	// read sectors
+                            /*Bit32u*/long sector = (CPU_Regs.reg_esi.word()<<16)+CPU_Regs.reg_edi.word();
+                            if (mscdex.ReadSectors(CPU_Regs.reg_ecx.word(),sector,CPU_Regs.reg_edx.word(),data)) {
+                                CPU_Regs.reg_eax.word(0);
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                // possibly: MSCDEX_ERROR_DRIVE_NOT_READY if sector is beyond total length
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                            return true;
+                         }
+            case 0x1509:	// write sectors - not supported
+                            CPU_Regs.reg_eax.word(MSCDEX_ERROR_INVALID_FUNCTION);
+                            Callback.CALLBACK_SCF(true);
+                            return true;
+            case 0x150B:	/* Valid CDROM drive ? */
+                            CPU_Regs.reg_eax.word((mscdex.IsValidDrive(CPU_Regs.reg_ecx.word()) ? 0x5ad8 : 0x0000));
+                            CPU_Regs.reg_ebx.word(0xADAD);
+                            return true;
+            case 0x150C:	/* Get MSCDEX Version */
+                            CPU_Regs.reg_ebx.word(mscdex.GetVersion());
+                            return true;
+            case 0x150D:	/* Get drives */
+                            mscdex.GetDrives(data);
+                            return true;
+            case 0x150E:	/* Get/Set Volume Descriptor Preference */
+                            if (mscdex.IsValidDrive(CPU_Regs.reg_ecx.word())) {
+                                if (CPU_Regs.reg_ebx.word() == 0) {
+                                    // get preference
+                                    CPU_Regs.reg_edx.word(0x100);	// preference?
+                                    Callback.CALLBACK_SCF(false);
+                                } else if (CPU_Regs.reg_ebx.word() == 1) {
+                                    // set preference
+                                    if (CPU_Regs.reg_edx.high() == 1) {
+                                        // valid
                                         Callback.CALLBACK_SCF(false);
-                                    } else if (CPU_Regs.reg_ebx.word() == 1) {
-                                        // set preference
-                                        if (CPU_Regs.reg_edx.high() == 1) {
-                                            // valid
-                                            Callback.CALLBACK_SCF(false);
-                                        } else {
-                                            CPU_Regs.reg_eax.word(MSCDEX_ERROR_INVALID_FUNCTION);
-                                            Callback.CALLBACK_SCF(true);
-                                        }
                                     } else {
                                         CPU_Regs.reg_eax.word(MSCDEX_ERROR_INVALID_FUNCTION);
                                         Callback.CALLBACK_SCF(true);
                                     }
                                 } else {
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_INVALID_FUNCTION);
                                     Callback.CALLBACK_SCF(true);
                                 }
-                                return true;
-                case 0x150F: {	// Get directory entry
-                                /*Bit16u*/IntRef error = new IntRef(0);
-                                boolean success = mscdex.GetDirectoryEntry(CPU_Regs.reg_ecx.low(),(CPU_Regs.reg_ecx.high()&1)!=0,data,Memory.PhysMake(CPU_Regs.reg_esi.word(),CPU_Regs.reg_edi.word()),error);
-                                CPU_Regs.reg_eax.word(error.value);
-                                Callback.CALLBACK_SCF(!success);
-                             }	return true;
-                case 0x1510:	/* Device driver request */
-                                if (mscdex.SendDriverRequest(CPU_Regs.reg_ecx.word(),data)) {
-                                    Callback.CALLBACK_SCF(false);
-                                } else {
-                                    CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
-                                    Callback.CALLBACK_SCF(true);
-                                }
-                                return true;
-            }
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"MSCDEX: Unknwon call : "+Integer.toString(CPU_Regs.reg_eax.word(),16));
-            return true;
+                            } else {
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                            return true;
+            case 0x150F: {	// Get directory entry
+                            /*Bit16u*/IntRef error = new IntRef(0);
+                            boolean success = mscdex.GetDirectoryEntry(CPU_Regs.reg_ecx.low(),(CPU_Regs.reg_ecx.high()&1)!=0,data,Memory.PhysMake(CPU_Regs.reg_esi.word(),CPU_Regs.reg_edi.word()),error);
+                            CPU_Regs.reg_eax.word(error.value);
+                            Callback.CALLBACK_SCF(!success);
+                         }	return true;
+            case 0x1510:	/* Device driver request */
+                            if (mscdex.SendDriverRequest(CPU_Regs.reg_ecx.word(),data)) {
+                                Callback.CALLBACK_SCF(false);
+                            } else {
+                                CPU_Regs.reg_eax.word(MSCDEX_ERROR_UNKNOWN_DRIVE);
+                                Callback.CALLBACK_SCF(true);
+                            }
+                            return true;
         }
+        LOG_MISC.log(Level.ERROR, "MSCDEX: Unknwon call : "+Integer.toString(CPU_Regs.reg_eax.word(),16));
+        return true;
     };
 
     static private class device_MSCDEX extends DOS_Device {
         device_MSCDEX() { SetName("MSCD001"); }
+        @Override
         public boolean Read(byte[] data,/*Bit16u*/IntRef size) { return false;}
+        @Override
         public boolean Write(byte[] data,/*Bit16u*/IntRef size) {
-            Log.log(LogTypes.LOG_ALL,LogSeverities.LOG_NORMAL,"Write to mscdex device");
+            LOG_ALL.log(Level.DEBUG, "Write to mscdex device");
             return false;
         }
+        @Override
         public boolean Seek(/*Bit32u*/LongRef pos,/*Bit32u*/int type) {return false;}
+        @Override
         public boolean Close() {return false;}
+        @Override
         public /*Bit16u*/int GetInformation() {return 0xc880;}
+        @Override
         public boolean ReadFromControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {
             if (MSCDEX_IOCTL_Input(bufptr,(short)0)==0) {
                 retcode.value=size;
@@ -1234,6 +1245,7 @@ public class DosMSCDEX {
             }
             return false;
         }
+        @Override
         public boolean WriteToControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {
             if (MSCDEX_IOCTL_Optput(bufptr,(short)0)==0) {
                 retcode.value=size;
@@ -1269,7 +1281,7 @@ public class DosMSCDEX {
         return mscdex.GetVolumeName(subUnit,name);
     }
 
-    static private Dos_cdrom.TMSF[] leadOut = new Dos_cdrom.TMSF[MSCDEX_MAX_DRIVES];
+    static private final Dos_cdrom.TMSF[] leadOut = new Dos_cdrom.TMSF[MSCDEX_MAX_DRIVES];
 
     static {
         for (int i=0;i<leadOut.length;i++)
@@ -1303,25 +1315,21 @@ public class DosMSCDEX {
         forceCD	= numCD;
     }
 
-    public static Section.SectionFunction MSCDEX_ShutDown = new Section.SectionFunction() {
-        public void call(Section section) {
-            mscdex = null;
-            curReqheaderPtr = 0;
-        }
+    public static final Section.SectionFunction MSCDEX_ShutDown = section -> {
+        mscdex = null;
+        curReqheaderPtr = 0;
     };
 
-    public static Section.SectionFunction MSCDEX_Init = new Section.SectionFunction() {
-        public void call(Section section) {
-            // AddDestroy func
-            section.AddDestroyFunction(MSCDEX_ShutDown);
-            /* Register the mscdex device */
-            DOS_Device newdev = new device_MSCDEX();
-            Dos_devices.DOS_AddDevice(newdev);
-            curReqheaderPtr = 0;
-            /* Add Multiplexer */
-            Dos_misc.DOS_AddMultiplexHandler(MSCDEX_Handler);
-            /* Create MSCDEX */
-            mscdex = new CMscdex();
-        }
+    public static final Section.SectionFunction MSCDEX_Init = section -> {
+        // AddDestroy func
+        section.addDestroyFunction(MSCDEX_ShutDown);
+        /* Register the mscdex device */
+        DOS_Device newdev = new device_MSCDEX();
+        Dos_devices.DOS_AddDevice(newdev);
+        curReqheaderPtr = 0;
+        /* Add Multiplexer */
+        Dos_misc.DOS_AddMultiplexHandler(MSCDEX_Handler);
+        /* Create MSCDEX */
+        mscdex = new CMscdex();
     };
 }

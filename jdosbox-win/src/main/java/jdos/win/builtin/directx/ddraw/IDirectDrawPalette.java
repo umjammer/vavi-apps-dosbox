@@ -90,10 +90,12 @@ public class IDirectDrawPalette extends IUnknown {
     }
 
     // HRESULT GetCaps(this, LPDWORD lpdwCaps)
-    static private Callback.Handler GetCaps = new HandlerBase() {
+    static private final Callback.Handler GetCaps = new HandlerBase() {
+        @Override
         public String getName() {
             return "IDirectDrawPalette.GetCaps";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpdwCaps = CPU.CPU_Pop32();
@@ -107,10 +109,12 @@ public class IDirectDrawPalette extends IUnknown {
     };
 
     // HRESULT GetEntries(this, DWORD dwFlags, DWORD dwBase, DWORD dwNumEntries, LPPALETTEENTRY lpEntries)
-    static private Callback.Handler GetEntries = new HandlerBase() {
+    static private final Callback.Handler GetEntries = new HandlerBase() {
+        @Override
         public String getName() {
             return "IDirectDrawPalette.GetEntries";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -125,10 +129,12 @@ public class IDirectDrawPalette extends IUnknown {
     };
 
     // HRESULT Initialize(this, LPDIRECTDRAW lpDD, DWORD dwFlags, LPPALETTEENTRY lpDDColorTable)
-    static private Callback.Handler Initialize = new HandlerBase() {
+    static private final Callback.Handler Initialize = new HandlerBase() {
+        @Override
         public String getName() {
             return "IDirectDrawPalette.Initialize";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDD = CPU.CPU_Pop32();
@@ -139,10 +145,12 @@ public class IDirectDrawPalette extends IUnknown {
     };
 
     // HRESULT SetEntries(this, DWORD dwFlags, DWORD dwStartingEntry, DWORD dwCount, LPPALETTEENTRY lpEntries)
-    static private Callback.Handler SetEntries = new HandlerBase() {
+    static private final Callback.Handler SetEntries = new HandlerBase() {
+        @Override
         public String getName() {
             return "IDirectDrawPalette.SetEntries";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -154,7 +162,7 @@ public class IDirectDrawPalette extends IUnknown {
 //                if (WinAPI.LOG) {
 //                    int oldColor = getData(This, OFFSET_COLOR_DATA+(dwStartingEntry+i)*4);
 //                    if (color != oldColor) {
-//                        System.out.println(i+". 0x"+ Ptr.toString(oldColor)+" -> 0x"+Ptr.toString(color));
+//                        logger.log(Level.DEBUG,i+". 0x"+ Ptr.toString(oldColor)+" -> 0x"+Ptr.toString(color));
 //                    }
 //                }
                 setData(This, OFFSET_COLOR_DATA+(i+dwStartingEntry)*4, color);

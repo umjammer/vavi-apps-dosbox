@@ -35,6 +35,7 @@ public class WinEvent extends WaitObject {
         return WinAPI.TRUE;
     }
 
+    @Override
     boolean isReady() {
         return set;
     }
@@ -43,6 +44,7 @@ public class WinEvent extends WaitObject {
         set = false;
     }
 
+    @Override
     public int wait(WinThread thread, int timeout) {
         if (set) {
             CPU_Regs.reg_eax.dword = WaitObject.WAIT_OBJECT_0;
@@ -57,6 +59,7 @@ public class WinEvent extends WaitObject {
         return 0;
     }
 
+    @Override
     public void release() {
         for (int i=0;i<waiting.size();i++) {
             if (waiting.get(i).released()) {
@@ -68,6 +71,7 @@ public class WinEvent extends WaitObject {
         }
     }
 
+    @Override
     void get(WaitGroup group) {
         waiting.remove(group);
         // Don't set here, the WaitForSingleObject will re-enter
@@ -76,6 +80,6 @@ public class WinEvent extends WaitObject {
         //}
     }
 
-    public boolean manual;
+    public final boolean manual;
     public boolean set;
 }

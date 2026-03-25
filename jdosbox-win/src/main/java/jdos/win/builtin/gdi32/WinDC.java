@@ -16,12 +16,18 @@ import java.awt.*;
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineMetrics;
 import java.awt.image.BufferedImage;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class WinDC extends WinObject {
-    static WinFont defaultFont = WinFont.get(GdiObj.GetStockObject(DEVICE_DEFAULT_FONT));
-    static WinPalette defaultPalette = WinPalette.create(JavaBitmap.getDefaultPalette());
-    static WinPen defaultPen = WinPen.get(GdiObj.GetStockObject(BLACK_PEN));
-    static WinBrush defaultBrush = WinBrush.get(GdiObj.GetStockObject(WHITE_BRUSH));
+
+    private static final Logger logger = System.getLogger(WinDC.class.getName());
+
+    static final WinFont defaultFont = WinFont.get(GdiObj.GetStockObject(DEVICE_DEFAULT_FONT));
+    static final WinPalette defaultPalette = WinPalette.create(JavaBitmap.getDefaultPalette());
+    static final WinPen defaultPen = WinPen.get(GdiObj.GetStockObject(BLACK_PEN));
+    static final WinBrush defaultBrush = WinBrush.get(GdiObj.GetStockObject(WHITE_BRUSH));
 
     static public WinDC create(JavaBitmap image, boolean owner) {
         return new WinDC(nextObjectId(), image, owner);
@@ -188,7 +194,7 @@ public class WinDC extends WinObject {
 
     // BOOL PatBlt(HDC hdc, int nXLeft, int nYLeft, int nWidth, int nHeight, DWORD dwRop)
     static public int PatBlt(int hdc, int nXLeft, int nYLeft, int nWidth, int nHeight, int dwRop) {
-        System.out.println("PatBlt not fully implemented yet");
+        logger.log(Level.DEBUG,"PatBlt not fully implemented yet");
         WinDC dc = WinDC.get(hdc);
         if (dc == null)
             return FALSE;
@@ -248,40 +254,46 @@ public class WinDC extends WinObject {
         if (dc == null || gdi == null)
             return 0;
         int old = 0;
-        if (gdi instanceof WinBitmap) {
-            old = dc.hBitmap;
-            dc.hBitmap = gdi.handle;
-            if (dc.owner) {
-                dc.image.close();
+        switch (gdi) {
+            case WinBitmap winBitmap -> {
+                old = dc.hBitmap;
+                dc.hBitmap = gdi.handle;
+                if (dc.owner) {
+                    dc.image.close();
+                }
+                dc.image = winBitmap.createJavaBitmap(true);
+                dc.owner = true;
             }
-            dc.image = ((WinBitmap)gdi).createJavaBitmap(true);
-            dc.owner = true;
-        } else if (gdi instanceof WinFont) {
-            old = dc.hFont;
-            dc.hFont = gdi.handle;
-        } else if (gdi instanceof WinRegion) {
-            if (dc.hClipRgn != 0)
-                WinRegion.get(dc.hClipRgn).close();
-            dc.hClipRgn = WinRegion.get(obj).copy().handle;
-            old = WinRegion.get(dc.hClipRgn).getType();
-        } else if (gdi instanceof WinPen) {
-            old = dc.hPen;
-            dc.hPen = gdi.handle;
-        } else if (gdi instanceof WinBrush) {
-            old = dc.hBrush;
-            dc.hBrush = gdi.handle;
-        } else if (gdi instanceof WinPalette) {
-            old = dc.hPalette;
-            dc.hPalette = gdi.handle;
-        } else {
-            Win.panic("WinDC.select was not implemented for "+gdi);
+            case WinFont winFont -> {
+                old = dc.hFont;
+                dc.hFont = gdi.handle;
+            }
+            case WinRegion winRegion -> {
+                if (dc.hClipRgn != 0)
+                    WinRegion.get(dc.hClipRgn).close();
+                dc.hClipRgn = WinRegion.get(obj).copy().handle;
+                old = WinRegion.get(dc.hClipRgn).getType();
+            }
+            case WinPen winPen -> {
+                old = dc.hPen;
+                dc.hPen = gdi.handle;
+            }
+            case WinBrush winBrush -> {
+                old = dc.hBrush;
+                dc.hBrush = gdi.handle;
+            }
+            case WinPalette winPalette -> {
+                old = dc.hPalette;
+                dc.hPalette = gdi.handle;
+            }
+            default -> Win.panic("WinDC.select was not implemented for " + gdi);
         }
         return old;
     }
 
     // HPALETTE SelectPalette(HDC hdc, HPALETTE hpal, BOOL bForceBackground)
     static public int SelectPalette(int hdc, int hpal, int bForceBackground) {
-        // :TODO:
+        // TODO
         return SelectObject(hdc, hpal);
     }
 
@@ -366,7 +378,7 @@ public class WinDC extends WinObject {
     public int clipX;
     public int clipY;
     int ROPmode=R2_COPYPEN;
-    float miterLimit = 10.0f; /* 10.0 is the default, from MSDN */
+    static final float miterLimit = 10.0f; /* 10.0 is the default, from MSDN */
 
     public int CursPosX;
     public int CursPosY;
@@ -381,7 +393,7 @@ public class WinDC extends WinObject {
         } else {
             clipCx = 1;
             clipCy = 1;
-            this.image = StaticData.screen; // :TODO:
+            this.image = StaticData.screen; // TODO
             this.owner = false;
         }
         bkColor = 0xFFFFFFFF;
@@ -404,7 +416,7 @@ public class WinDC extends WinObject {
     public Graphics2D getGraphics() {
         BufferedImage image = getImage();
         Graphics2D g = image.createGraphics();
-        // :TODO: merge clip
+        // TODO merge clip
         if (clipCx>0 && clipCy>0)
             g.setClip(x+clipX, y+clipY, clipCx, clipCy);
         return g;
@@ -423,6 +435,7 @@ public class WinDC extends WinObject {
     private static final int SHADEBLENDCAPS =  120;
     private static final int COLORMGMTCAPS =   121;
 
+    @Override
     protected void onFree() {
         if (owner) {
             image.close();

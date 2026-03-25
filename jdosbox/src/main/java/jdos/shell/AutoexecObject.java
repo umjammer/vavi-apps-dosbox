@@ -1,24 +1,25 @@
 package jdos.shell;
 
 import jdos.dos.drives.Drive_virtual;
-import jdos.misc.Log;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
+
 
 /* Object to manage lines in the autoexec.bat The lines get removed from
  * the file if the object gets destroyed. The environment is updated
  * as well if the line set a a variable */
 public class AutoexecObject {
-    private static Vector autoexec_strings = new Vector();
+    private static List<String> autoexec_strings = new ArrayList<>();
     private boolean installed = false;
     private String buf;
 
     public static void Shutdown() {
-        autoexec_strings = new Vector();
+        autoexec_strings = new ArrayList<>();
     }
 
     public void Install(String in) {
-        if(installed) Log.exit("autoexec: already created "+buf);
+        if(installed) throw new IllegalStateException("autoexec: already created "+buf);
         installed = true;
         buf = in;
         autoexec_strings.add(buf);
@@ -33,9 +34,9 @@ public class AutoexecObject {
                 String env = buf.substring(4);
                 int pos = env.indexOf("=");
                 if (pos<0) {
-                    Shell.first_shell.SetEnv(env, "");
+                    Shell.first_shell.setEnv(env, "");
                 } else {
-                    Shell.first_shell.SetEnv(env.substring(0, pos), env.substring(pos+1));
+                    Shell.first_shell.setEnv(env.substring(0, pos), env.substring(pos+1));
                 }
 
             }
@@ -43,14 +44,14 @@ public class AutoexecObject {
     }
 
     public void InstallBefore(String in) {
-        if(installed) Log.exit("autoexec: already created "+buf);
+        if(installed) throw new IllegalStateException("autoexec: already created "+buf);
         installed = true;
         buf = in;
         autoexec_strings.add(buf);
         CreateAutoexec();
     }
 
-    // :TODO: when would this be necessary
+    // TODO when would this be necessary
 //    public void close() {
 //        if(!installed) return;
 //
@@ -77,12 +78,11 @@ public class AutoexecObject {
 //    }
 
     public static StringBuffer autoexec_data = new StringBuffer();
-    private void CreateAutoexec() {
+    private static void CreateAutoexec() {
         /* Remove old autoexec.bat if the shell exists */
         if(Shell.first_shell!=null) Drive_virtual.VFILE_Remove("AUTOEXEC.BAT");
         autoexec_data = new StringBuffer();
-        for (int i=0;i<autoexec_strings.size();i++) {
-            String s= (String)autoexec_strings.elementAt(i);
+        for (String s : autoexec_strings) {
             autoexec_data.append(s);
             autoexec_data.append("\r\n");
         }

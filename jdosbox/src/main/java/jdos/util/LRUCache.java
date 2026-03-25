@@ -14,10 +14,10 @@
 // This module is provided "as is", without warranties of any kind.
 package jdos.util;
 
+import java.io.Serial;
 import java.util.LinkedHashMap;
-import java.util.Collection;
 import java.util.Map;
-import java.util.ArrayList;
+
 
 /**
 * An LRU cache, based on <code>LinkedHashMap</code>.
@@ -37,8 +37,8 @@ public class LRUCache {
 
 private static final float   hashTableLoadFactor = 0.75f;
 
-private LinkedHashMap   map;
-private int                  cacheSize;
+private final Map<Object, Object>   map;
+private final int                  cacheSize;
 
 /**
 * Creates a new LRU cache.
@@ -47,9 +47,11 @@ private int                  cacheSize;
 public LRUCache (int cacheSize) {
    this.cacheSize = cacheSize;
    int hashTableCapacity = (int)Math.ceil(cacheSize / hashTableLoadFactor) + 1;
-   map = new LinkedHashMap(hashTableCapacity, hashTableLoadFactor, true) {
+   map = new LinkedHashMap<>(hashTableCapacity, hashTableLoadFactor, true) {
       // (an anonymous inner class)
+      @Serial
       private static final long serialVersionUID = 1;
+      @Override
       protected boolean removeEldestEntry (Map.Entry eldest) {
          return size() > LRUCache.this.cacheSize; }}; }
 

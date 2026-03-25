@@ -90,7 +90,7 @@ public class DSMixer extends IDirectSoundBuffer {
 
         /* FIXME: Small problem here when we're overwriting buf_mixpos, it then STILL uses old freqAcc, not sure if it matters or not */
         cp_fields(dsb, ibp, obp, iAdvance, oAdvance, size, freqAcc, dsb.freqAdjust);
-        // DSOUND_MixerVol(dsb); // :TODO: volume is broken, it needs to take into account start/len
+        // DSOUND_MixerVol(dsb); // TODO volume is broken, it needs to take into account start/len
     }
 
     /**
@@ -196,9 +196,9 @@ public class DSMixer extends IDirectSoundBuffer {
         /* FIXME: dwPan{Left|Right}AmpFactor */
 
         /* FIXME: use calculated vol and pan ampfactors */
-        temp = (double) (volpan.lVolume - (volpan.lPan > 0 ? volpan.lPan : 0));
+        temp = volpan.lVolume - (Math.max(volpan.lPan, 0));
         volpan.dwTotalLeftAmpFactor = (int) (Math.pow(2.0, temp / 600.0) * 0xffff);
-        temp = (double) (volpan.lVolume + (volpan.lPan < 0 ? volpan.lPan : 0));
+        temp = volpan.lVolume + (Math.min(volpan.lPan, 0));
         volpan.dwTotalRightAmpFactor = (int) (Math.pow(2.0, temp / 600.0) * 0xffff);
     }
 

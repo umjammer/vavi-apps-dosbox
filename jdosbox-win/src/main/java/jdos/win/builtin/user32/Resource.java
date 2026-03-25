@@ -13,8 +13,14 @@ import jdos.win.utils.StreamHelper;
 import jdos.win.utils.StringUtil;
 
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class Resource extends WinAPI {
+
+    private static final Logger logger = System.getLogger(Resource.class.getName());
+
     // HACCEL WINAPI LoadAccelerators(HINSTANCE hInstance, LPCTSTR lpTableName)
     public static int LoadAcceleratorsA(int hInstance, int lpTableName) {
         faked();
@@ -28,22 +34,19 @@ public class Resource extends WinAPI {
         }
         if (uType == 0) { // IMAGE_BITMAP
             Module m = WinSystem.getCurrentProcess().loader.getModuleByHandle(hinst);
-            if (m instanceof NativeModule) {
-                NativeModule module = (NativeModule)m;
+            if (m instanceof NativeModule module) {
                 int bitmapAddress = module.getAddressOfResource(NativeModule.RT_BITMAP, lpszName);
                 if (bitmapAddress != 0) {
                     return WinBitmap.create(bitmapAddress, false).getHandle();
                 } else {
-                    // :TODO: what should the error be
+                    // TODO what should the error be
                     return 0;
                 }
             } else {
-                String res = null;
-                switch (lpszName) {
-                    case OBM_CHECKBOXES:
-                        res = "obm_checkboxes.bmp";
-                        break;
-                }
+                String res = switch (lpszName) {
+                    case OBM_CHECKBOXES -> "obm_checkboxes.bmp";
+                    default -> null;
+                };
                 if (res == null)
                     Win.panic("LoadImage currently does not support builtin image: "+lpszName);
                 InputStream is = WinCursor.class.getResourceAsStream("/jdos/win/builtin/res/" + res);
@@ -54,7 +57,7 @@ public class Resource extends WinAPI {
                     Memory.mem_memcpy(address, data, 14, data.length-14);
                     return WinBitmap.create(address, true).handle;
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.log(Level.ERROR, e.getMessage(), e);
                     Win.panic("LoadImage could not find "+res);
                 }
             }
@@ -67,8 +70,7 @@ public class Resource extends WinAPI {
     // int WINAPI LoadString(HINSTANCE hInstance, UINT uID, LPTSTR lpBuffer, int nBufferMax)
     static public int LoadStringA(int hInstance, int uID, int lpBuffer, int nBufferMax) {
         Module m = WinSystem.getCurrentProcess().loader.getModuleByHandle(hInstance);
-        if (m instanceof NativeModule) {
-            NativeModule module = (NativeModule)m;
+        if (m instanceof NativeModule module) {
             int stringAddress = module.getAddressOfResource(NativeModule.RT_STRING, (uID >> 4)+1);
             if (stringAddress != 0) {
                 int index = uID & 0xf;

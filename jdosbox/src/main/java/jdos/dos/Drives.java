@@ -84,9 +84,5 @@ public class Drives {
         result.value = StringHelper.toString(output);
     }
     
-    public static Section.SectionFunction DRIVES_Init = new Section.SectionFunction() {
-        public void call(Section section) {
-            DriveManager.Init(section);
-        }
-    };
+    public static final Section.SectionFunction DRIVES_Init = DriveManager::Init;
 }

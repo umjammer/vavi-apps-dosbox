@@ -6,6 +6,7 @@ public class Prop_double extends Property {
         default_value.set(_value);
         value.set(_value);
     }
+    @Override
     public void SetValue(String str) {
         SetVal(new Value(str, Value.Etype.V_DOUBLE), false, true);
     }

@@ -8,15 +8,17 @@ import jdos.ints.Bios;
 import jdos.ints.Bios_keyboard;
 import jdos.ints.Int10;
 import jdos.ints.Int10_char;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.util.IntRef;
 import jdos.util.LongRef;
 import jdos.util.ShortRef;
 import jdos.util.StringRef;
 
 public class Dos_devices {
+
+    private static final Logger LOG_IOCTL = System.getLogger("LOG_IOCTL");
+
     static public final int DOS_DEVICES = 10;
 
     static public DOS_Device[] Devices;
@@ -68,7 +70,7 @@ public class Dos_devices {
                 return;
             }
         }
-        Log.exit("DOS:Too many devices added");
+        throw new IllegalStateException("DOS:Too many devices added");
     }
 
     static public void DOS_DelDevice(DOS_Device dev) {
@@ -91,28 +93,36 @@ public class Dos_devices {
 
     static private class device_NUL extends DOS_Device {
         public device_NUL() { SetName("NUL"); }
+        @Override
         public boolean Read(byte[] data,/*Bit16u*/IntRef size) {
             for(/*Bitu*/int i = 0; i < size.value;i++)
                 data[i]=0;
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL, LogSeverities.LOG_NORMAL,GetName()+":READ");
+            LOG_IOCTL.log(Level.DEBUG, GetName()+":READ");
             return true;
         }
+        @Override
         public boolean Write(byte[] data,/*Bit16u*/IntRef size) {
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,GetName()+":WRITE");
+            LOG_IOCTL.log(Level.DEBUG, GetName()+":WRITE");
             return true;
         }
+        @Override
         public boolean Seek(/*Bit32u*/LongRef pos,/*Bit32u*/int type) {
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,GetName()+":SEEK");
+            LOG_IOCTL.log(Level.DEBUG, GetName()+":SEEK");
             return true;
         }
+        @Override
         public boolean Close() { return true; }
+        @Override
         public /*Bit16u*/int GetInformation() { return 0x8084; }
+        @Override
         public boolean ReadFromControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {return false;}
+        @Override
         public boolean WriteToControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {return false;}
     }
 
     static private class device_LPT1 extends device_NUL {
         public device_LPT1() { SetName("LPT1");}
+        @Override
         public /*Bit16u*/int GetInformation() { return 0x80A0; }
     }
 
@@ -133,6 +143,7 @@ public class Dos_devices {
             ansi.warned=false;
             ClearAnsi();
         }
+        @Override
         public boolean Read(byte[] data,/*Bit16u*/IntRef size) {
             /*Bit16u*/int oldax= CPU_Regs.reg_eax.word();
             /*Bit16u*/int count=0;
@@ -191,6 +202,7 @@ public class Dos_devices {
             CPU_Regs.reg_eax.word(oldax);
             return true;
         }
+        @Override
         public boolean Write(byte[] data,/*Bit16u*/IntRef size) {
             /*Bit16u*/int count=0;
             /*Bitu*/int i;
@@ -226,7 +238,7 @@ public class Dos_devices {
                 case 'D':/* scrolling DOWN*/
                 case 'M':/* scrolling UP*/
                 default:
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"ANSI: unknown char "+String.valueOf((char)data[count])+" after a esc"); /*prob () */
+                    LOG_IOCTL.log(Level.DEBUG, "ANSI: unknown char "+ (char) data[count] +" after a esc"); /*prob () */
                     ClearAnsi();
                     break;
                 }
@@ -263,7 +275,7 @@ public class Dos_devices {
                             ansi.attr|=0x08;
                             break;
                         case 4: /* underline */
-                            Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"ANSI:no support for underline yet");
+                            LOG_IOCTL.log(Level.DEBUG, "ANSI:no support for underline yet");
                             break;
                         case 5: /* blinking */
                             ansi.attr|=0x80;
@@ -345,7 +357,7 @@ public class Dos_devices {
                 case 'H':/* Cursor Pos*/
                     if(!ansi.warned) { //Inform the debugger that ansi is used.
                         ansi.warned = true;
-                        Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_WARN,"ANSI SEQUENCES USED");
+                        LOG_IOCTL.log(Level.WARNING, "ANSI SEQUENCES USED");
                     }
                     /* Turn them into positions that are on the screen */
                     if(ansi.data[0] == 0) ansi.data[0] = 1;
@@ -397,7 +409,7 @@ public class Dos_devices {
                 case 'J': /*erase screen and move cursor home*/
                     if(ansi.data[0]==0) ansi.data[0]=2;
                     if(ansi.data[0]!=2) {/* every version behaves like type 2 */
-                        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"ANSI: esc["+ansi.data[0]+"J called : not supported handling as 2");
+                        LOG_IOCTL.log(Level.DEBUG, "ANSI: esc["+ansi.data[0]+"J called : not supported handling as 2");
                     }
                     Int10_char.INT10_ScrollWindow((short)0,(short)0,(short)255,(short)255,(byte)0,ansi.attr,page);
                     ClearAnsi();
@@ -405,7 +417,7 @@ public class Dos_devices {
                     break;
                 case 'h': /* SET   MODE (if code =7 enable linewrap) */
                 case 'I': /* RESET MODE */
-                    Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"ANSI: set/reset mode called(not supported)");
+                    LOG_IOCTL.log(Level.DEBUG, "ANSI: set/reset mode called(not supported)");
                     ClearAnsi();
                     break;
                 case 'u': /* Restore Cursor Pos */
@@ -435,7 +447,7 @@ public class Dos_devices {
                 case 'p':/* reassign keys (needs strings) */
                 case 'i':/* printer stuff */
                 default:
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_IOCTL,LogSeverities.LOG_NORMAL,"ANSI: unhandled char "+String.valueOf((char)data[count])+" in esc[");
+                    LOG_IOCTL.log(Level.DEBUG, "ANSI: unhandled char "+ (char) data[count] +" in esc[");
                     ClearAnsi();
                     break;
                 }
@@ -444,14 +456,17 @@ public class Dos_devices {
             size.value=count;
             return true;
         }
+        @Override
         public boolean Seek(/*Bit32u*/LongRef pos,/*Bit32u*/int type) {
             // seek is valid
             pos.value = 0;
             return true;
         }
+        @Override
         public boolean Close() {
             return true;
         }
+        @Override
         public /*Bit16u*/int GetInformation() {
             synchronized (Bios_keyboard.lock) {
                 /*Bit16u*/int head=Memory.mem_readw(Bios.BIOS_KEYBOARD_BUFFER_HEAD);
@@ -469,9 +484,11 @@ public class Dos_devices {
             }
             return 0x80D3; /* No Key Available */
         }
+        @Override
         public boolean ReadFromControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {
             return false;
         }
+        @Override
         public boolean WriteToControlChannel(/*PhysPt*/int bufptr,/*Bit16u*/int size,/*Bit16u*/IntRef retcode) {
             return false;
         }
@@ -489,7 +506,7 @@ public class Dos_devices {
             boolean sci;
             boolean enabled;
             /*Bit8u*/short attr;
-            /*Bit8u*/byte[] data=new byte[NUMBER_ANSI_DATA];
+            /*Bit8u*/final byte[] data=new byte[NUMBER_ANSI_DATA];
             /*Bit8u*/short numberofarg;
             /*Bit16u*/int nrows;
             /*Bit16u*/int ncols;
@@ -497,6 +514,6 @@ public class Dos_devices {
             /*Bit8s*/byte saverow;
             boolean warned;
         }
-        private Ansi ansi = new Ansi();
+        private final Ansi ansi = new Ansi();
     }
 }

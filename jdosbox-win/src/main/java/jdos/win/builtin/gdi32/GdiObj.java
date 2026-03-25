@@ -25,20 +25,18 @@ public class GdiObj extends WinAPI {
         if (dc == null) {
             return 0;
         }
-        switch (uObjectType) {
-            case OBJ_EXTPEN: /* fall through */
-            case OBJ_PEN:	 return dc.hPen;
-            case OBJ_BRUSH:	 return dc.hBrush;
-            case OBJ_PAL:	 return dc.hPalette;
-            case OBJ_FONT:	 return dc.hFont;
-            case OBJ_BITMAP: return dc.hBitmap;
+        return switch (uObjectType) { /* fall through */
+            case OBJ_EXTPEN, OBJ_PEN -> dc.hPen;
+            case OBJ_BRUSH -> dc.hBrush;
+            case OBJ_PAL -> dc.hPalette;
+            case OBJ_FONT -> dc.hFont;
+            case OBJ_BITMAP -> dc.hBitmap;
 
             /* tests show that OBJ_REGION is explicitly ignored */
-            case OBJ_REGION:
-            default:
+            default ->
                 /* the SDK only mentions those above */
-                return 0;
-        }
+                    0;
+        };
     }
 
     // int GetObjectA(HGDIOBJ hgdiobj, int cbBuffer, LPVOID lpvObject)
@@ -46,8 +44,7 @@ public class GdiObj extends WinAPI {
         WinGDI gdi = WinGDI.getGDI(hgdiobj);
         if (gdi == null)
             return 0;
-        if (gdi instanceof WinBitmap) {
-            WinBitmap bitmap = (WinBitmap)gdi;
+        if (gdi instanceof WinBitmap bitmap) {
             return bitmap.get(lpvObject, cbBuffer);
         } else {
             Win.panic("GetObject not implemented yet for type " + gdi);

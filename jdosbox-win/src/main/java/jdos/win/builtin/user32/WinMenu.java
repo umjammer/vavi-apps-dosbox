@@ -85,12 +85,12 @@ public class WinMenu extends WinObject {
             window.hSysMenu = 0;
         }
         if (window.hSysMenu==0 && (window.dwStyle & WS_SYSMENU)!=0) {
-            // :TODO: MENU_GetSysMenu
+            // TODO MENU_GetSysMenu
             window.hSysMenu = create().handle;
         }
         int result = 0;
         if (window.hSysMenu != 0) {
-            // :TODO: return the submenu
+            // TODO return the submenu
             result = window.hSysMenu;
         }
         return (bRevert==0)?result:0;

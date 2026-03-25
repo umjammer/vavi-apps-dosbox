@@ -1,8 +1,14 @@
 package jdos.util;
 
-import java.util.Vector;
+import java.lang.System.Logger;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class StringHelper {
+
+    private static final Logger logger = System.getLogger(StringHelper.class.getName());
+
     static public String StripWord(StringRef line) {
         String scan=line.value;
         scan=scan.trim();
@@ -23,269 +29,12 @@ public class StringHelper {
         return scan;
     }
 
-    public static String sprintf(String format, Object[] args) {
-        int pos = format.indexOf('%');
-        if (pos>=0) {
-            StringBuffer buffer = new StringBuffer();
-            int argIndex = 0;
-            while (pos>=0) {
-                buffer.append(format.substring(0, pos));
-                if (pos+1<format.length()) {
-                    char c = format.charAt(++pos);
-                    if (c == '%') {
-                        buffer.append("%");
-                        format = format.substring(2);
-                    } else {
-                        boolean leftJustify = false;
-                        boolean showPlus = false;
-                        boolean spaceSign = false;
-                        boolean prefix = false;
-                        boolean leftPadZero = false;
-                        int width = 0;
-                        int precision = -1;
-                        boolean longValue = false;
-                        boolean shortValue = false;
-
-                        // flags
-                        while (true) {
-                            if (c=='-') {
-                                leftJustify = true;
-                            } else if (c=='+') {
-                                showPlus = true;
-                            } else if (c==' ') {
-                                spaceSign = true;
-                            } else if (c=='#') {
-                                prefix = true;
-                            } else if (c=='0') {
-                                leftPadZero = true;
-                            } else {
-                                break;
-                            }
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-                        }
-
-                        // width
-                        String w = "";
-                        while (true) {
-                            if (c>='0' && c<='9') {
-                                w+=c;
-                            } else {
-                                break;
-                            }
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-                        }
-                        if (w.length()>0) {
-                            width = Integer.parseInt(w);
-                        }
-
-                        // precision
-                        if (c=='.') {
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-
-                            String p = "";
-                            while (true) {
-                                if (c>='0' && c<='9') {
-                                    p+=c;
-                                } else {
-                                    break;
-                                }
-                                if (pos+1<format.length()) {
-                                    c = format.charAt(++pos);
-                                } else {
-                                    return buffer.toString();
-                                }
-                            }
-                            if (p.length()>0) {
-                                precision = Integer.parseInt(p);
-                            }
-                        }
-
-                        // length
-                        if (c=='h') {
-                            shortValue = true;
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-                        } else if (c=='l') {
-                            longValue = true;
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-                        } else if (c=='L') {
-                            longValue = true;
-                            if (pos+1<format.length()) {
-                                c = format.charAt(++pos);
-                            } else {
-                                return buffer.toString();
-                            }
-                        }
-
-                        String value = "";
-                        String strPrfix = "";
-                        boolean negnumber = false;
-                        if (c == 'c') {
-                            if (args[argIndex] instanceof Character) {
-                                value = String.valueOf(args[argIndex]);
-                            } else if (args[argIndex] instanceof String) {
-                                value = (String)args[argIndex];
-                            } else {
-                                System.out.println("Invalid printf argument type for %c: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            if (value.length()>1)
-                                value = value.substring(0,1);
-                        } else if (c == 's') {
-                            if (args[argIndex] instanceof Character) {
-                                value = String.valueOf(args[argIndex]);
-                            } else if (args[argIndex] instanceof String) {
-                                value = (String)args[argIndex];
-                            } else {
-                                System.out.println("Invalid printf argument type for %s: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            if (precision>0 && value.length()>precision) {
-                                value = value.substring(0,precision);
-                            }
-                        } else if (c == 'x') {
-                            if (args[argIndex] instanceof Integer) {
-                                value = Integer.toString(((Integer)args[argIndex]).intValue(), 16);
-                            } else if (args[argIndex] instanceof Long) {
-                                value = Long.toString(((Long)args[argIndex]).longValue(), 16);
-                            } else {
-                                System.out.println("Invalid printf argument type for %x: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            negnumber = value.startsWith("-");
-                            if (negnumber)
-                                value = value.substring(1);
-                            if (precision==0 && value.equals("0")) {
-                                format = format.substring(pos);
-                                continue;
-                            }
-                            if (prefix) {
-                                strPrfix += "0x"+value;
-                            }
-                        } else if (c == 'X') {
-                            if (args[argIndex] instanceof Integer) {
-                                value = Integer.toString(((Integer)args[argIndex]).intValue(), 16);
-                            } else if (args[argIndex] instanceof Long) {
-                                value = Long.toString(((Long)args[argIndex]).longValue(), 16);
-                            } else {
-                                System.out.println("Invalid printf argument type for %X: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            negnumber = value.startsWith("-");
-                            if (negnumber)
-                                value = value.substring(1);
-                            if (precision==0 && value.equals("0")) {
-                                format = format.substring(pos);
-                                continue;
-                            }
-                            if (precision>0) {
-                                while (value.length()<precision) {
-                                    value = "0"+value;
-                                }
-                            }
-                            value = value.toUpperCase();
-                            if (prefix) {
-                                strPrfix += "0X"+value;
-                            }
-                        } else if (c == 'd') {
-                            if (args[argIndex] instanceof Integer) {
-                                value = Integer.toString(((Integer)args[argIndex]).intValue());
-                            } else if (args[argIndex] instanceof Long) {
-                                value = String.valueOf(((Long)args[argIndex]).longValue());
-                            } else {
-                                System.out.println("Invalid printf argument type for %d: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            negnumber = value.startsWith("-");
-                            if (negnumber)
-                                value = value.substring(1);
-                            if (precision==0 && value.equals("0")) {
-                                format = format.substring(pos);
-                                continue;
-                            }
-                            if (precision>0) {
-                                while (value.length()<precision) {
-                                    value = "0"+value;
-                                }
-                            }
-                        } else if (c == 'f') {
-                            if (args[argIndex] instanceof Double) {
-                                value = String.valueOf(((Double)args[argIndex]).doubleValue());
-                            } else if (args[argIndex] instanceof Float) {
-                                value = String.valueOf(((Float)args[argIndex]).doubleValue());
-                            } else {
-                                System.out.println("Invalid printf argument type for %f: "+args[argIndex].getClass());
-                                return buffer.toString();
-                            }
-                            negnumber = value.startsWith("-");
-                            if (negnumber)
-                                value = value.substring(1);
-                            int dec = value.indexOf('.');
-                            if (dec>=0) {
-                                if (precision==0) {
-                                    value = value.substring(0, dec);
-                                } else if (value.length()>dec+1+precision) {
-                                    value = value.substring(0, dec+1+precision);
-                                }
-                            }
-                        }
-
-                        if (negnumber) {
-                            strPrfix = "-";
-                        } else {
-                            if (showPlus) {
-                                strPrfix = "+"+strPrfix;
-                            } else if (spaceSign) {
-                                strPrfix = " "+strPrfix;
-                            }
-                        }
-                        while (width>strPrfix.length()+value.length()) {
-                            if (leftPadZero) {
-                                strPrfix+="0";
-                            } else if (leftJustify) {
-                                value=value+" ";
-                            } else {
-                                strPrfix=" "+strPrfix;
-                            }
-                        }
-                        buffer.append(strPrfix);
-                        buffer.append(value);
-                        format = format.substring(++pos);
-                    }
-                }
-                argIndex++;
-                pos = format.indexOf('%');
-            }
-            buffer.append(format);
-            return buffer.toString();
-        } else {
-            return format;
-        }
-    }
     public static String leftJustify(String value, int places) {
         while (value.length()<places)
             value+=" ";
         return value;
     }
+
     public static String format(int d, int rightJustify) {
         String result = Integer.toString(d);
         while (result.length()<rightJustify) {
@@ -293,6 +42,7 @@ public class StringHelper {
         }
         return result;
     }
+
     public static String format(double d, int places) {
         String result = String.valueOf(d);
         int pos = result.indexOf('.');
@@ -312,6 +62,7 @@ public class StringHelper {
         }
         return result;
     }
+
     public static void strreplace(byte[] b, char old, char n) {
         for (int i=0;i<b.length;i++) {
             if (b[i]==0)
@@ -320,6 +71,7 @@ public class StringHelper {
                 b[i] = (byte)n;
         }
     }
+
     public static boolean isalpha(char c) {
         return ((c>='a' && c<='z') || (c>='A' && c<='Z'));
     }
@@ -331,14 +83,14 @@ public class StringHelper {
     public static String toString(byte[] b) {
         return new String(b, 0, strlen(b));
     }
+
     public static String toString(byte[] b, int off, int len) {
         return new String(b, off, Math.min(len,strlen(b,off)));
     }
 
     public static void strcpy(byte[] b, int offset, byte[] b1, int offset2) {
         int len = strlen(b1, offset2);
-        for (int i=0;i<len;i++)
-            b[i+offset] = b1[i+offset2];
+        if (len >= 0) System.arraycopy(b1, 0 + offset2, b, 0 + offset, len);
         b[offset+len]=0;
     }
     
@@ -375,11 +127,7 @@ public class StringHelper {
         }
         if (s1.length-off>=len && s2.length-off2>=len)
             return 0;
-        if (s1.length-off>s2.length-off2)
-            return 1;
-        if (s2.length-off2>s1.length-off)
-            return -1;
-        return 0;
+        return Integer.compare(s1.length - off, s2.length - off2);
     }
 
     public static int memcmp(byte[] s1, byte[] s2, int len) {
@@ -391,11 +139,7 @@ public class StringHelper {
         }
         if (s1.length>=len && s2.length>=len)
             return 0;
-        if (s1.length>s2.length)
-            return 1;
-        if (s2.length>s1.length)
-            return -1;
-        return 0;
+        return Integer.compare(s1.length, s2.length);
     }
 
     public static int strlen(byte[] b, int off) {
@@ -412,19 +156,19 @@ public class StringHelper {
         return temp;
     }
 
-    public static String replace(final String aInput, final String aOldPattern, final String aNewPattern){
-        if ( aOldPattern.equals("") ) {
+    public static String replace(String aInput, String aOldPattern, String aNewPattern){
+        if (aOldPattern.isEmpty()) {
             throw new IllegalArgumentException("Old pattern must have content.");
         }
 
-        final StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         //startIdx and idxOld delimit various chunks of aInput; these
         //chunks always end where aOldPattern begins
         int startIdx = 0;
         int idxOld = 0;
         while ((idxOld = aInput.indexOf(aOldPattern, startIdx)) >= 0) {
             //grab a part of aInput which does not include aOldPattern
-            result.append( aInput.substring(startIdx, idxOld) );
+            result.append(aInput, startIdx, idxOld);
             //add aNewPattern to take place of aOldPattern
             result.append( aNewPattern );
 
@@ -437,32 +181,32 @@ public class StringHelper {
         return result.toString();
     }
 
-    public static String[] split(final String input, String delimiter) {
-        if (input != null && input.length() > 0) {
+    public static String[] split(String input, String delimiter) {
+        if (input != null && !input.isEmpty()) {
             int index1 = 0;
             int index2 = input.indexOf(delimiter);
-            Vector result = new Vector();
+            List<String> result = new ArrayList<>();
             while (index2 >= 0) {
                 String token = input.substring(index1, index2);
-                result.addElement(token);
+                result.add(token);
                 index1 = index2 + delimiter.length();
                 index2 = input.indexOf(delimiter, index1);
             }
             if (index1 <= input.length() - 1) {
-                result.addElement(input.substring(index1));
+                result.add(input.substring(index1));
             }
             String[] sda = new String[result.size()];
-            result.copyInto(sda);
+            result.addAll(Arrays.asList(sda));
             return sda;
         }
         return new String[0];
     }
 
-    public static String[] splitWithQuotes(final String input, char delimiter) {
-        if (input != null && input.length() > 0) {
-            StringBuffer part = new StringBuffer();
+    public static String[] splitWithQuotes(String input, char delimiter) {
+        if (input != null && !input.isEmpty()) {
+            StringBuilder part = new StringBuilder();
             boolean quote = false;
-            Vector result = new Vector();
+            List<String> result = new ArrayList<>();
 
             for (int i=0;i<input.length();i++) {
                 char c = input.charAt(i);
@@ -476,14 +220,14 @@ public class StringHelper {
                     quote = true;
                 } else if (c == delimiter) {
                     result.add(part.toString());
-                    part = new StringBuffer();
+                    part = new StringBuilder();
                 } else {
                     part.append(c);
                 }
             }
-            result.addElement(part.toString());
+            result.add(part.toString());
             String[] sda = new String[result.size()];
-            result.copyInto(sda);
+            result.addAll(Arrays.asList(sda));
             return sda;
         }
         return new String[0];

@@ -66,7 +66,7 @@ public class MyActivity extends Activity {
         int memory = am.getMemoryClass();
         int largeMemory = am.getLargeMemoryClass();
         long maxMemory = Runtime.getRuntime().maxMemory();
-        System.out.println("Normal heap size: " + memory + "\nLarge heap size: " + largeMemory);
+        logger.log(Level.DEBUG,"Normal heap size: " + memory + "\nLarge heap size: " + largeMemory);
 
         monitor = new Monitor(this);
         setContentView(monitor);

@@ -19,7 +19,8 @@ public class Drive_local_cdrom extends Drive_local {
         if (DosMSCDEX.MSCDEX_GetVolumeName(subUnit,name)) dirCache.SetLabel(name.value,true,true);
     }
 
-	public DOS_File FileOpen(String name,/*Bit32u*/int flags) {
+	@Override
+    public DOS_File FileOpen(String name,/*Bit32u*/int flags) {
         if ((flags&0xf)==Dos_files.OPEN_READWRITE) {
             flags &= ~Dos_files.OPEN_READWRITE;
         } else if ((flags&0xf)== Dos_files.OPEN_WRITE) {
@@ -36,33 +37,39 @@ public class Drive_local_cdrom extends Drive_local {
 	    return false;
     }
 
-	public boolean FileUnlink(String _name) {
+	@Override
+    public boolean FileUnlink(String _name) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
 	    return false;
     }
 
-	public boolean RemoveDir(String _dir) {
+	@Override
+    public boolean RemoveDir(String _dir) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
 	    return false;
     }
 
-	public boolean MakeDir(String _dir) {
+	@Override
+    public boolean MakeDir(String _dir) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
 	    return false;
     }
 
-	public boolean Rename(String oldname,String newname) {
+	@Override
+    public boolean Rename(String oldname, String newname) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
 	    return false;
     }
 
-	public boolean GetFileAttr(String name,/*Bit16u*/IntRef attr) {
+	@Override
+    public boolean GetFileAttr(String name,/*Bit16u*/IntRef attr) {
         boolean result = super.GetFileAttr(name,attr);
 	    if (result) attr.value |= Dos_system.DOS_ATTR_READ_ONLY;
 	    return result;
     }
 
-	public boolean FindFirst(String _dir, Dos_DTA dta,boolean fcb_findfirst/*=false*/) {
+	@Override
+    public boolean FindFirst(String _dir, Dos_DTA dta, boolean fcb_findfirst/*=false*/) {
         // If media has changed, reInit drivecache.
         if (DosMSCDEX.MSCDEX_HasMediaChanged(subUnit)) {
             dirCache.EmptyCache();
@@ -70,10 +77,11 @@ public class Drive_local_cdrom extends Drive_local {
             StringRef name = new StringRef();
             if (DosMSCDEX.MSCDEX_GetVolumeName(subUnit,name)) dirCache.SetLabel(name.value,true,true);
         }
-        return super.FindFirst(_dir,dta, fcb_findfirst); // :TODO: added fcb_findfirst
+        return super.FindFirst(_dir,dta, fcb_findfirst); // TODO added fcb_findfirst
     }
 
-	public void SetDir(String path) {
+	@Override
+    public void SetDir(String path) {
         // If media has changed, reInit drivecache.
         if (DosMSCDEX.MSCDEX_HasMediaChanged(subUnit)) {
             dirCache.EmptyCache();
@@ -84,15 +92,18 @@ public class Drive_local_cdrom extends Drive_local {
         super.SetDir(path);
     }
 
-	public boolean isRemote() {
+	@Override
+    public boolean isRemote() {
         return true;
     }
 
-	public boolean isRemovable() {
+	@Override
+    public boolean isRemovable() {
         return true;
     }
 
-	public /*Bits*/int UnMount() {
+	@Override
+    public /*Bits*/int UnMount() {
         if(DosMSCDEX.MSCDEX_RemoveDrive(driveLetter)!=0) {
             return 0;
         }
@@ -100,5 +111,5 @@ public class Drive_local_cdrom extends Drive_local {
     }
 
 	private /*Bit8u*/short subUnit;
-	private char driveLetter;
+	private final char driveLetter;
 }

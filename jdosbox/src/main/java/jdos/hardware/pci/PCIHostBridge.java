@@ -42,18 +42,22 @@ public class PCIHostBridge extends PCI_Device {
         Memory.phys_writeb(pci_routing + 0x03, 5);		// irq
     }
 
+    @Override
     public int ParseReadRegister(int regnum) {
         return regnum;
     }
 
+    @Override
     public boolean OverrideReadRegister(int regnum, IntRef rval, IntRef rval_mask) {
         return false;
     }
 
+    @Override
     public int ParseWriteRegister(int regnum, int value) {
         return value;
     }
 
+    @Override
     public boolean InitializeRegisters(byte[] registers) {
         registers[0x08] = 0x02; // revision
         registers[0x0a] = 0x00;

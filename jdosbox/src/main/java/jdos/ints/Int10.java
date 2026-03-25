@@ -1,22 +1,24 @@
 package jdos.ints;
 
 import jdos.Dosbox;
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.hardware.IO;
 import jdos.hardware.IoHandler;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Section;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.types.MachineType;
 import jdos.types.SVGACards;
 import jdos.util.IntRef;
 import jdos.util.ShortRef;
 
 public class Int10 {
+
+    private static final Logger logger = System.getLogger(Int10.class.getName());
+    private static final Logger LOG_INT10 = System.getLogger("LOG_INT10");
+
     public static final int S3_LFB_BASE=		0xC0000000;
 
     public static final int BIOSMEM_SEG=		0x40;
@@ -113,16 +115,23 @@ public class Int10 {
             this.vdispend = vdispend;
             this.special = special;
         }
-        /*Bit16u*/int	mode;
-        int	type;
-        /*Bitu*/int	swidth, sheight;
-        /*Bitu*/int	twidth, theight;
-        /*Bitu*/int	cwidth, cheight;
-        /*Bitu*/int	ptotal,pstart,plength;
+        /*Bit16u*/final int	mode;
+        final int	type;
+        /*Bitu*/final int	swidth;
+        final int sheight;
+        /*Bitu*/final int	twidth;
+        final int theight;
+        /*Bitu*/final int	cwidth;
+        final int cheight;
+        /*Bitu*/final int	ptotal;
+        final int pstart;
+        final int plength;
 
-        /*Bitu*/int	htotal,vtotal;
-        /*Bitu*/int	hdispend,vdispend;
-        /*Bitu*/int	special;
+        /*Bitu*/final int	htotal;
+        final int vtotal;
+        /*Bitu*/final int	hdispend;
+        final int vdispend;
+        /*Bitu*/final int	special;
     }
 
     public static class Int10Data {
@@ -147,7 +156,7 @@ public class Int10 {
             /*Bit16u*/int pmode_interface_palette;
             /*Bit16u*/int used;
         }
-        public Rom rom = new Rom();
+        public final Rom rom = new Rom();
         public /*Bit16u*/int vesa_setmode;
         public boolean vesa_nolfb;
         public boolean vesa_oldvbe;
@@ -176,10 +185,12 @@ public class Int10 {
         }
     }
 
-    static private Callback.Handler INT10_Handler = new Callback.Handler() {
+    static private final Callback.Handler INT10_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Int10.INT10_Handler 0x"+(CPU_Regs.reg_eax.high() & 0xFF);
         }
+    @Override
     public /*Bitu*/int call() {
         if (false) {
             switch ((short)(CPU_Regs.reg_eax.high() & 0xFF)) {
@@ -194,7 +205,7 @@ public class Int10 {
 
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_INT10, LogSeverities.LOG_NORMAL,"Function AX:"+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" , BX "+Integer.toString(CPU_Regs.reg_ebx.word(), 16)+" DX "+Integer.toString(CPU_Regs.reg_edx.word(), 16));
+                LOG_INT10.log(Level.DEBUG, "Function AX:"+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" , BX "+Integer.toString(CPU_Regs.reg_ebx.word(), 16)+" DX "+Integer.toString(CPU_Regs.reg_edx.word(), 16));
                 break;
             }
         }
@@ -223,7 +234,7 @@ public class Int10 {
         case 0x05:								/* Set Active Page */
             if ((CPU_Regs.reg_eax.low() & 0x80)!=0 && Dosbox.IS_TANDY_ARCH()) {
                 /*Bit8u*/int crtcpu=Memory.real_readb(BIOSMEM_SEG, BIOSMEM_CRTCPU_PAGE);
-                switch ((int)CPU_Regs.reg_eax.low()) {
+                switch (CPU_Regs.reg_eax.low()) {
                 case 0x80:
                     CPU_Regs.reg_ebx.high((crtcpu & 7));
                     CPU_Regs.reg_ebx.low(((crtcpu >> 3) & 0x7));
@@ -363,7 +374,7 @@ public class Int10 {
             //case 0xF1:							/* ET4000: GET DAC TYPE */
             //case 0xF2:							/* ET4000: CHECK/SET HiColor MODE */
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 10:Unhandled EGA/VGA Palette Function "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                LOG_INT10.log(Level.ERROR, "Function 10:Unhandled EGA/VGA Palette Function "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                 break;
             }
             break;
@@ -394,10 +405,10 @@ public class Int10 {
                 break;
     /* Graphics mode calls */
             case 0x20:			/* Set User 8x8 Graphics characters */
-                Memory.RealSetVec(0x1f,Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebp.word()));
+                Memory.RealSetVec(0x1f,Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebp.word()));
                 break;
             case 0x21:			/* Set user graphics characters */
-                Memory.RealSetVec(0x43,Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebp.word()));
+                Memory.RealSetVec(0x43,Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebp.word()));
                 Memory.real_writew(BIOSMEM_SEG,BIOSMEM_CHAR_HEIGHT,CPU_Regs.reg_ecx.word());
                 graphics_chars();
                 break;
@@ -420,14 +431,14 @@ public class Int10 {
     /* General */
             case 0x30:/* Get Font Information */
                 switch (CPU_Regs.reg_ebx.high()) {
-                case 0x00:	/* interupt 0x1f vector */
+                case 0x00:	/* interupt 0x1f List<?> */
                     {
                         /*RealPt*/int int_1f=Memory.RealGetVec(0x1f);
                         CPU_Regs.SegSet16ES(Memory.RealSeg(int_1f));
                         CPU_Regs.reg_ebp.word(Memory.RealOff(int_1f));
                     }
                     break;
-                case 0x01:	/* interupt 0x43 vector */
+                case 0x01:	/* interupt 0x43 List<?> */
                     {
                         /*RealPt*/int int_43=Memory.RealGetVec(0x43);
                         CPU_Regs.SegSet16ES(Memory.RealSeg(int_43));
@@ -462,7 +473,7 @@ public class Int10 {
                     CPU_Regs.reg_ebp.word(Memory.RealOff(int10.rom.font_16_alternate));
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 11:30 Request for font "+Integer.toString(CPU_Regs.reg_ebx.high(),16));
+                    LOG_INT10.log(Level.ERROR, "Function 11:30 Request for font "+Integer.toString(CPU_Regs.reg_ebx.high(),16));
                     break;
                 }
                 if ((CPU_Regs.reg_ebx.high()<=7) || (Dosbox.svgaCard== SVGACards.SVGA_TsengET4K)) {
@@ -471,7 +482,7 @@ public class Int10 {
                 }
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 11:Unsupported character generator call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                LOG_INT10.log(Level.ERROR, "Function 11:Unsupported character generator call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                 break;
             }
             break;
@@ -490,7 +501,7 @@ public class Int10 {
             case 0x30:							/* Select vertical resolution */
                 {
                     if (!Dosbox.IS_VGA_ARCH()) break;
-                    if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_WARN,"Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" (select vertical resolution)");
+                    LOG_INT10.log(Level.WARNING, "Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" (select vertical resolution)");
                     if (Dosbox.svgaCard != SVGACards.SVGA_None) {
                         if (CPU_Regs.reg_eax.low() > 2) {
                             CPU_Regs.reg_eax.low(0);		// invalid subfunction
@@ -540,7 +551,7 @@ public class Int10 {
                 }
             case 0x32:							/* Video addressing */
                 if (!Dosbox.IS_VGA_ARCH()) break;
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
+                LOG_INT10.log(Level.ERROR, "Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
                 if (Dosbox.svgaCard==SVGACards.SVGA_TsengET4K) CPU_Regs.reg_eax.low((CPU_Regs.reg_eax.low() & 1));
                 if (CPU_Regs.reg_eax.low()>1) CPU_Regs.reg_eax.low(0);		//invalid subfunction
                 else CPU_Regs.reg_eax.low(0x12);			//fake a success call
@@ -575,7 +586,7 @@ public class Int10 {
                 }
             case 0x35:
                 if (!Dosbox.IS_VGA_ARCH()) break;
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
+                LOG_INT10.log(Level.ERROR, "Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
                 CPU_Regs.reg_eax.low(0x12);
                 break;
             case 0x36: {						/* VGA Refresh control */
@@ -597,7 +608,7 @@ public class Int10 {
                 break;
             }
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
+                LOG_INT10.log(Level.ERROR, "Function 12:Call "+Integer.toString(CPU_Regs.reg_ebx.low(), 16)+" not handled");
                 if (Dosbox.machine!=MachineType.MCH_EGA) CPU_Regs.reg_eax.low(0);
                 break;
             }
@@ -657,7 +668,7 @@ public class Int10 {
                 CPU_Regs.reg_eax.low(0x1B);
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"1B:Unhandled call BX "+Integer.toString(CPU_Regs.reg_ebx.word(),16));
+                LOG_INT10.log(Level.ERROR, "1B:Unhandled call BX "+Integer.toString(CPU_Regs.reg_ebx.word(),16));
                 CPU_Regs.reg_eax.low(0);
                 break;
             }
@@ -674,11 +685,11 @@ public class Int10 {
                     }
                     break;
                 case 1:
-                    if (Int10_video_state.INT10_VideoState_Save(CPU_Regs.reg_ecx.word(),Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.low(0x1c);
+                    if (Int10_video_state.INT10_VideoState_Save(CPU_Regs.reg_ecx.word(),Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.low(0x1c);
                     else CPU_Regs.reg_eax.low(0);
                     break;
                 case 2:
-                    if (Int10_video_state.INT10_VideoState_Restore(CPU_Regs.reg_ecx.word(),Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.low(0x1c);
+                    if (Int10_video_state.INT10_VideoState_Restore(CPU_Regs.reg_ecx.word(),Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.low(0x1c);
                     else CPU_Regs.reg_eax.low(0);
                     break;
                 default:
@@ -692,11 +703,11 @@ public class Int10 {
             switch ((short)(CPU_Regs.reg_eax.low() & 0xFF)) {
             case 0x00:							/* Get SVGA Information */
                 CPU_Regs.reg_eax.low(0x4f);
-                CPU_Regs.reg_eax.high(Int10_vesa.VESA_GetSVGAInformation((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()));
+                CPU_Regs.reg_eax.high(Int10_vesa.VESA_GetSVGAInformation(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()));
                 break;
             case 0x01:							/* Get SVGA Mode Information */
                 CPU_Regs.reg_eax.low(0x4f);
-                CPU_Regs.reg_eax.high(Int10_vesa.VESA_GetSVGAModeInformation(CPU_Regs.reg_ecx.word(),(int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()));
+                CPU_Regs.reg_eax.high(Int10_vesa.VESA_GetSVGAModeInformation(CPU_Regs.reg_ecx.word(), CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()));
                 break;
             case 0x02:							/* Set videomode */
                 CPU_Regs.reg_eax.low(0x4f);
@@ -719,11 +730,11 @@ public class Int10 {
                     }
                     break;
                     case 1:
-                        if (Int10_video_state.INT10_VideoState_Save(CPU_Regs.reg_ecx.word(),Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.high(0);
+                        if (Int10_video_state.INT10_VideoState_Save(CPU_Regs.reg_ecx.word(),Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.high(0);
                         else CPU_Regs.reg_eax.high(1);
                         break;
                     case 2:
-                        if (Int10_video_state.INT10_VideoState_Restore(CPU_Regs.reg_ecx.word(),Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.high(0);
+                        if (Int10_video_state.INT10_VideoState_Restore(CPU_Regs.reg_ecx.word(),Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_ebx.word()))) CPU_Regs.reg_eax.high(0);
                         else CPU_Regs.reg_eax.high(1);
                         break;
                     default:
@@ -739,7 +750,7 @@ public class Int10 {
                     CPU_Regs.reg_eax.high(Int10_vesa.VESA_GetCPUWindow((short)CPU_Regs.reg_ebx.low(), CPU_Regs.reg_edx));
                     CPU_Regs.reg_eax.low(0x4f);
                 } else {
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.high(),16));
+                    LOG_INT10.log(Level.ERROR, "Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.high(),16));
                     CPU_Regs.reg_eax.high(0x01);
                 }
                 break;
@@ -774,7 +785,7 @@ public class Int10 {
                 }
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.low(),16));
+                    LOG_INT10.log(Level.ERROR, "Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.low(),16));
                     CPU_Regs.reg_eax.high(0x1);
                     break;
                 }
@@ -792,7 +803,7 @@ public class Int10 {
                     CPU_Regs.reg_eax.low(0x4f);
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.low(),16));
+                    LOG_INT10.log(Level.ERROR, "Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" Subfunction "+Integer.toString(CPU_Regs.reg_ebx.low(),16));
                     CPU_Regs.reg_eax.high(0x01);
                     break;
                 }
@@ -834,7 +845,7 @@ public class Int10 {
                 break;
 
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                LOG_INT10.log(Level.ERROR, "Unhandled VESA Function "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                 CPU_Regs.reg_eax.low(0x0);
                 break;
             }
@@ -864,11 +875,11 @@ public class Int10 {
             }
             break;
         case 0xff:
-            if (!warned_ff) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_NORMAL,"INT10:FF:Weird NC call");
+            LOG_INT10.log(Level.DEBUG, "INT10:FF:Weird NC call");
             warned_ff=true;
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Function "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" not supported");
+            LOG_INT10.log(Level.ERROR, "Function "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" not supported");
     //		CPU_Regs.reg_eax.low()=0x00;		//Successfull, breaks marriage
             break;
         }
@@ -900,7 +911,7 @@ public class Int10 {
     }
 
     private static void SetupTandyBios() {
-        final byte[] TandyConfig = {
+        byte[] TandyConfig = {
             0x21, 0x42, 0x49, 0x4f, 0x53, 0x20, 0x52, 0x4f, 0x4d, 0x20, 0x76, 0x65, 0x72,
             0x73, 0x69, 0x6f, 0x6e, 0x20, 0x30, 0x32, 0x2e, 0x30, 0x30, 0x2e, 0x30, 0x30,
             0x0d, 0x0a, 0x43, 0x6f, 0x6d, 0x70, 0x61, 0x74, 0x69, 0x62, 0x69, 0x6c, 0x69,
@@ -920,19 +931,21 @@ public class Int10 {
         }
     }
 
-    public static Section.SectionFunction INT10_Destroy = new Section.SectionFunction() {
+    public static final Section.SectionFunction INT10_Destroy = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             int10 = null;
         }
     };
 
-    public static Section.SectionFunction INT10_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction INT10_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
-            System.out.println("INT10_Init");
+            logger.log(Level.DEBUG,"INT10_Init");
             // int10 = new Int10Data(); Happend in Dosbox.DOSBOX_RealInit
             INT10_InitVGA();
             if (Dosbox.IS_TANDY_ARCH()) SetupTandyBios();
-            /* Setup the INT 10 vector */
+            /* Setup the INT 10 List<?> */
             call_10=Callback.CALLBACK_Allocate();
             Callback.CALLBACK_Setup(call_10,INT10_Handler,Callback.CB_IRET,"Int 10 video");
             Memory.RealSetVec(0x10,Callback.CALLBACK_RealPointer(call_10));
@@ -942,7 +955,7 @@ public class Int10 {
             Int10_vesa.INT10_SetupVESA();
             Int10_memory.INT10_SetupRomMemoryChecksum();//SetupVesa modifies the rom as well.
             Int10_modes.INT10_SetVideoMode(0x3);
-            section.AddDestroyFunction(INT10_Destroy,false);
+            section.addDestroyFunction(INT10_Destroy,false);
         }
     };
 }

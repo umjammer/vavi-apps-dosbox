@@ -4,12 +4,18 @@ import java.io.File;
 import java.io.BufferedOutputStream;
 import java.io.BufferedInputStream;
 import java.io.FileOutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 import java.util.Enumeration;
 
 public class UnZip {
+
+    private static final Logger logger = System.getLogger(UnZip.class.getName());
+
     static final int BUFFER = 2048*32;
+
     public static boolean unzip(String fileName, String dir, Progress progress) {
         BufferedOutputStream dest = null;
         BufferedInputStream is = null;
@@ -17,17 +23,17 @@ public class UnZip {
         try {
             ZipEntry entry;
             ZipFile zipfile = new ZipFile(fileName);
-            Enumeration e = zipfile.entries();
+            Enumeration<? extends ZipEntry> e = zipfile.entries();
             long totalSize = 0;
             String root = null;
             while(e.hasMoreElements()) {
-                entry = (ZipEntry) e.nextElement();
+                entry = e.nextElement();
                 totalSize+=entry.getSize();
             }
             e = zipfile.entries();
             while(e.hasMoreElements()) {
-                entry = (ZipEntry) e.nextElement();
-                System.out.println("Extracting: " +entry);
+                entry = e.nextElement();
+                logger.log(Level.DEBUG,"Extracting: " +entry);
                 progress.status("Extracting: " +entry);
                 if (entry.isDirectory()) {
                     if (root == null) {
@@ -38,7 +44,7 @@ public class UnZip {
                 }
                 is = new BufferedInputStream(zipfile.getInputStream(entry));
                 int count;
-                byte data[] = new byte[BUFFER];
+                byte[] data = new byte[BUFFER];
                 File newFile = new File(dir+"/"+entry.getName());
                 if (!newFile.getParentFile().exists()) {
                     if (root == null) {
@@ -53,7 +59,7 @@ public class UnZip {
                     dest.write(data, 0, count);
                     progress.incrementSpeedValue(count);
                     if (progress.hasCancelled()) {
-                        System.out.println("Cancelled Unzip operation");
+                        logger.log(Level.DEBUG,"Cancelled Unzip operation");
                         dest.flush();
                         dest.close();
                         is.close();
@@ -70,7 +76,7 @@ public class UnZip {
             zipfile.close();
             return true;
         } catch(Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
         return false;
     }

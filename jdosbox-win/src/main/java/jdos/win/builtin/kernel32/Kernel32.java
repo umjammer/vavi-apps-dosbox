@@ -20,10 +20,15 @@ import jdos.win.system.*;
 import jdos.win.utils.Error;
 import jdos.win.utils.*;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Random;
 import java.util.TimeZone;
 
 public class Kernel32 extends BuiltinModule {
+
+    private static final Logger logger = System.getLogger(Kernel32.class.getName());
+
     static private final int HEAP_CREATE_ENABLE_EXECUTE = 0x00040000;
     static private final int HEAP_GENERATE_EXCEPTIONS = 0x00000004;
     static private final int HEAP_ZERO_MEMORY = 0x00000008;
@@ -217,10 +222,12 @@ public class Kernel32 extends BuiltinModule {
     }
 
     // int CompareString(LCID Locale, DWORD dwCmpFlags, LPCTSTR lpString1, int cchCount1, LPCTSTR lpString2, int cchCount2)
-    private Callback.Handler CompareStringA = new HandlerBase() {
+    private final Callback.Handler CompareStringA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CompareStringA";
         }
+        @Override
         public void onCall() {
             int Locale = CPU.CPU_Pop32();
             int dwCmpFlags = CPU.CPU_Pop32();
@@ -259,10 +266,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI CreateEvent(LPSECURITY_ATTRIBUTES lpEventAttributes, BOOL bManualReset, BOOL bInitialState, LPCTSTR lpName)
-    private Callback.Handler CreateEventA = new HandlerBase() {
+    private final Callback.Handler CreateEventA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateEventA";
         }
+        @Override
         public void onCall() {
             int lpEventAttributes = CPU.CPU_Pop32();
             int bManualReset = CPU.CPU_Pop32();
@@ -291,7 +300,7 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI CreateFile(LPCTSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes, DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
-    private Callback.Handler CreateFileA = new HandlerBase() {
+    private final Callback.Handler CreateFileA = new HandlerBase() {
         private boolean create(FilePath file) {
             try {
                 if (!file.createNewFile()) {
@@ -307,9 +316,11 @@ public class Kernel32 extends BuiltinModule {
             return true;
         }
 
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateFileA";
         }
+        @Override
         public void onCall() {
             int lpFileName = CPU.CPU_Pop32();
             int dwDesiredAccess = CPU.CPU_Pop32();
@@ -392,10 +403,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI CreateFileMapping(HANDLE hFile, LPSECURITY_ATTRIBUTES lpAttributes, DWORD flProtect, DWORD dwMaximumSizeHigh, DWORD dwMaximumSizeLow, LPCTSTR lpName)
-    private Callback.Handler CreateFileMappingA = new HandlerBase() {
+    private final Callback.Handler CreateFileMappingA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateFileMappingA";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int addAtributes = CPU.CPU_Pop32();
@@ -409,8 +422,7 @@ public class Kernel32 extends BuiltinModule {
             if (name != null) {
                 WinObject object = WinObject.getNamedObject(name);
                 if (object != null) {
-                    if (object instanceof WinFileMapping) {
-                        WinFileMapping mapping = (WinFileMapping)object;
+                    if (object instanceof WinFileMapping mapping) {
                         CPU_Regs.reg_eax.dword = mapping.handle;
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_ALREADY_EXISTS);
                         return;
@@ -424,10 +436,12 @@ public class Kernel32 extends BuiltinModule {
             CPU_Regs.reg_eax.dword = mapping.handle;
         }
     };
-    private Callback.Handler CreateFileMappingW = new HandlerBase() {
+    private final Callback.Handler CreateFileMappingW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateFileMappingW";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int addAtributes = CPU.CPU_Pop32();
@@ -440,10 +454,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI CreateMutex(LPSECURITY_ATTRIBUTES lpMutexAttributes, BOOL bInitialOwner, LPCTSTR lpName)
-    private Callback.Handler CreateMutexA = new HandlerBase() {
+    private final Callback.Handler CreateMutexA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateMutexA";
         }
+        @Override
         public void onCall() {
             int lpMutexAttributes = CPU.CPU_Pop32();
             int bInitialOwner = CPU.CPU_Pop32();
@@ -454,8 +470,7 @@ public class Kernel32 extends BuiltinModule {
             if (name != null) {
                 WinObject object = WinObject.getNamedObject(name);
                 if (object != null) {
-                    if (object instanceof WinMutex) {
-                        WinMutex mapping = (WinMutex)object;
+                    if (object instanceof WinMutex mapping) {
                         CPU_Regs.reg_eax.dword = mapping.handle;
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_ALREADY_EXISTS);
                         return;
@@ -472,10 +487,12 @@ public class Kernel32 extends BuiltinModule {
         }
     };
 
-    private Callback.Handler CreateThreadCleanup = new HandlerBase() {
+    private final Callback.Handler CreateThreadCleanup = new HandlerBase() {
+        @Override
         public String getName() {
             return "Kernel32.CreateThread - Cleanup";
         }
+        @Override
         public void onCall() {
             int handle = CPU.CPU_Pop32();
             WinThread thread = WinThread.get(handle);
@@ -486,10 +503,12 @@ public class Kernel32 extends BuiltinModule {
     private long threadCleanup = 0;
 
     // HANDLE WINAPI CreateThread(LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId)
-    private Callback.Handler CreateThread = new HandlerBase() {
+    private final Callback.Handler CreateThread = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.CreateThread";
         }
+        @Override
         public void onCall() {
             int attributes = CPU.CPU_Pop32();
             int stackSizeCommit = CPU.CPU_Pop32();
@@ -503,11 +522,11 @@ public class Kernel32 extends BuiltinModule {
                 stackSizeCommit = 0;
             }
             if ((flags & 0x00000004)!=0) {
-                System.out.println("CreateThread with suspend flags not supported yet");
+                logger.log(Level.DEBUG,"CreateThread with suspend flags not supported yet");
                 Win.exit();
             }
             if (attributes != 0) {
-                System.out.println("***WARNING*** attributes are not supported for CreateThread");
+                logger.log(Level.DEBUG,"***WARNING*** attributes are not supported for CreateThread");
             }
             WinThread thread = WinSystem.getCurrentProcess().createThread(start, stackSizeCommit, stackSizeReserved);
             if (threadCleanup==0) {
@@ -527,10 +546,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI DebugBreak(void)
-    private Callback.Handler DebugBreak = new HandlerBase() {
+    private final Callback.Handler DebugBreak = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.DebugBreak";
         }
+        @Override
         public void onCall() {
             Console.out("DebugBreak was called\n");
             Win.exit();
@@ -538,30 +559,36 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // PVOID DecodePointer(PVOID Ptr)
-    static private Callback.Handler DecodePointer = new HandlerBase() {
+    static private final Callback.Handler DecodePointer = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.DecodePointer";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = CPU.CPU_Pop32() ^ pointerObfuscator;
         }
     };
 
     // void WINAPI DeleteCriticalSection(LPCRITICAL_SECTION lpCriticalSection)
-    static private Callback.Handler DeleteCriticalSection = new HandlerBase() {
+    static private final Callback.Handler DeleteCriticalSection = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.DeleteCriticalSection";
         }
+        @Override
         public void onCall() {
             WinCriticalException.delete(CPU.CPU_Pop32());
         }
     };
 
     // BOOL WINAPI DeleteFile(LPCTSTR lpFileName)
-    static private Callback.Handler DeleteFileA = new HandlerBase() {
+    static private final Callback.Handler DeleteFileA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.DeleteFileA";
         }
+        @Override
         public void onCall() {
             int lpFileName = CPU.CPU_Pop32();
             if (lpFileName == 0) {
@@ -575,7 +602,7 @@ public class Kernel32 extends BuiltinModule {
                 file.delete();
                 if (file.exists()) {
                     CPU_Regs.reg_eax.dword = WinAPI.FALSE;
-                    Scheduler.getCurrentThread().setLastError(Error.ERROR_ACCESS_DENIED); // :TODO: is this right
+                    Scheduler.getCurrentThread().setLastError(Error.ERROR_ACCESS_DENIED); // TODO is this right
                     return;
                 }
                 CPU_Regs.reg_eax.dword = WinAPI.TRUE;
@@ -587,10 +614,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI DisableThreadLibraryCalls(HMODULE hModule)
-    static private Callback.Handler DisableThreadLibraryCalls = new HandlerBase() {
+    static private final Callback.Handler DisableThreadLibraryCalls = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.DisableThreadLibraryCalls";
         }
+        @Override
         public void onCall() {
             int hModule = CPU.CPU_Pop32();
             Module module = WinSystem.getCurrentProcess().loader.getModuleByHandle(hModule);
@@ -603,67 +632,79 @@ public class Kernel32 extends BuiltinModule {
             }
         }
     };
-    static int pointerObfuscator = new Random().nextInt();
+    static final int pointerObfuscator = new Random().nextInt();
 
     // PVOID EncodePointer(PVOID Ptr)
-    static private Callback.Handler EncodePointer = new HandlerBase() {
+    static private final Callback.Handler EncodePointer = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.EncodePointer";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = CPU.CPU_Pop32() ^ pointerObfuscator;
         }
     };
 
     // void WINAPI EnterCriticalSection(LPCRITICAL_SECTION lpCriticalSection)
-    private Callback.Handler EnterCriticalSection = new HandlerBase() {
+    private final Callback.Handler EnterCriticalSection = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.EnterCriticalSection";
         }
+        @Override
         public void onCall() {
             WinCriticalException.enter(CPU.CPU_Pop32());
         }
     };
 
     // BOOL EnumSystemLocales(LOCALE_ENUMPROC lpLocaleEnumProc, DWORD dwFlags)
-    static private Callback.Handler EnumSystemLocalesA = new HandlerBase() {
+    static private final Callback.Handler EnumSystemLocalesA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.EnumSystemLocalesA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    static private Callback.Handler EnumSystemLocalesW = new HandlerBase() {
+    static private final Callback.Handler EnumSystemLocalesW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.EnumSystemLocalesW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // VOID WINAPI ExitProcess(UINT uExitCode)
-    private Callback.Handler ExitProcess = new HandlerBase() {
+    private final Callback.Handler ExitProcess = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.ExitProcess";
         }
+        @Override
         public void onCall() {
             int exitCode = CPU.CPU_Pop32();
-            System.out.println("Win32 Process has exited (PID "+WinSystem.getCurrentProcess().getHandle()+"): code = " + exitCode);
+            logger.log(Level.DEBUG,"Win32 Process has exited (PID "+WinSystem.getCurrentProcess().getHandle()+"): code = " + exitCode);
             WinSystem.memory.printInfo();
             WinSystem.getCurrentProcess().exit();
             System.out.print(" -> ");
             WinSystem.memory.printInfo();
-            System.out.println();
+            logger.log(Level.DEBUG, "");
         }
     };
 
     // VOID WINAPI ExitThread(DWORD dwExitCode)
-    private Callback.Handler ExitThread = new HandlerBase() {
+    private final Callback.Handler ExitThread = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.ExitThread";
         }
+        @Override
         public void onCall() {
             int exitCode = CPU.CPU_Pop32();
             Scheduler.getCurrentThread().exit(exitCode);
@@ -671,28 +712,34 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI FatalAppExit(UINT uAction, LPCTSTR lpMessageText)
-    static private Callback.Handler FatalAppExitA = new HandlerBase() {
+    static private final Callback.Handler FatalAppExitA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FatalAppExitA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    static private Callback.Handler FatalAppExitW = new HandlerBase() {
+    static private final Callback.Handler FatalAppExitW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FatalAppExitW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI FileTimeToLocalFileTime(const FILETIME *lpFileTime, LPFILETIME lpLocalFileTime)
-    private Callback.Handler FileTimeToLocalFileTime = new HandlerBase() {
+    private final Callback.Handler FileTimeToLocalFileTime = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FileTimeToLocalFileTime";
         }
+        @Override
         public void onCall() {
             int lpFileTime = CPU.CPU_Pop32();
             int lpLocalFileTime = CPU.CPU_Pop32();
@@ -703,10 +750,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI FileTimeToSystemTime(const FILETIME *lpFileTime, LPSYSTEMTIME lpSystemTime)
-    static private Callback.Handler FileTimeToSystemTime = new HandlerBase() {
+    static private final Callback.Handler FileTimeToSystemTime = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FileTimeToSystemTime";
         }
+        @Override
         public void onCall() {
             int lpFileTime = CPU.CPU_Pop32();
             int lpSystemTime = CPU.CPU_Pop32();
@@ -721,10 +770,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI FindClose(HANDLE hFindFile)
-    static private Callback.Handler FindClose = new HandlerBase() {
+    static private final Callback.Handler FindClose = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FindClose";
         }
+        @Override
         public void onCall() {
             int hFindFile = CPU.CPU_Pop32();
             WinFindFile object = WinFindFile.get(hFindFile);
@@ -742,10 +793,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI FindFirstFile(LPCTSTR lpFileName, LPWIN32_FIND_DATA lpFindFileData)
-    private Callback.Handler FindFirstFileA = new HandlerBase() {
+    private final Callback.Handler FindFirstFileA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FindFirstFileA";
         }
+        @Override
         public void onCall() {
             int lpFileName = CPU.CPU_Pop32();
             int lpFindFileData = CPU.CPU_Pop32();
@@ -797,10 +850,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI FindNextFile(HANDLE hFindFile, LPWIN32_FIND_DATA lpFindFileData)
-    static private Callback.Handler FindNextFileA = new HandlerBase() {
+    static private final Callback.Handler FindNextFileA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FindNextFileA";
         }
+        @Override
         public void onCall() {
             int hFindFile = CPU.CPU_Pop32();
             int lpFindFileData = CPU.CPU_Pop32();
@@ -818,10 +873,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI FormatMessage(DWORD dwFlags, LPCVOID lpSource, DWORD dwMessageId, DWORD dwLanguageId, LPTSTR lpBuffer, DWORD nSize, va_list *Arguments)
-    static private Callback.Handler FormatMessageA = new HandlerBase() {
+    static private final Callback.Handler FormatMessageA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FormatMessageA";
         }
+        @Override
         public void onCall() {
             int dwFlags = CPU.CPU_Pop32();
             int lpSource = CPU.CPU_Pop32();
@@ -847,19 +904,23 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI FreeEnvironmentStrings(LPTCH lpszEnvironmentBlock)
-    static private Callback.Handler FreeEnvironmentStringsA = new HandlerBase() {
+    static private final Callback.Handler FreeEnvironmentStringsA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FreeEnvironmentStringsA";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
-    static private Callback.Handler FreeEnvironmentStringsW = new HandlerBase() {
+    static private final Callback.Handler FreeEnvironmentStringsW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FreeEnvironmentStringsW";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
@@ -867,10 +928,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI FreeLibrary(HMODULE hModule)
-    static private Callback.Handler FreeLibrary = new HandlerBase() {
+    static private final Callback.Handler FreeLibrary = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.FreeLibrary";
         }
+        @Override
         public void onCall() {
             int hModule = CPU.CPU_Pop32();
             Module module = WinSystem.getCurrentProcess().getModuleByHandle(hModule);
@@ -878,65 +941,77 @@ public class Kernel32 extends BuiltinModule {
                 CPU_Regs.reg_eax.dword = WinAPI.FALSE;
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
             } else {
-                System.out.println(getName()+" faked: "+module.name);
+                logger.log(Level.DEBUG,getName()+" faked: "+module.name);
                 CPU_Regs.reg_eax.dword = WinAPI.TRUE;
             }
         }
     };
 
     // UINT GetACP(void)
-    static private Callback.Handler GetACP = new HandlerBase() {
+    static private final Callback.Handler GetACP = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetACP";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = 1252; // ANSI Latin 1; Western European (Windows)
         }
     };
 
     // LPTSTR WINAPI GetCommandLine(void)
-    private Callback.Handler GetCommandLineA = new HandlerBase() {
+    private final Callback.Handler GetCommandLineA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCommandLineA";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getCommandLine();
         }
     };
-    private Callback.Handler GetCommandLineW = new HandlerBase() {
+    private final Callback.Handler GetCommandLineW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCommandLineW";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getCommandLineW();
         }
     };
 
     // UINT WINAPI GetConsoleCP(void)
-    private Callback.Handler GetConsoleCP = new HandlerBase() {
+    private final Callback.Handler GetConsoleCP = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetConsoleCP";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI GetConsoleMode(HANDLE hConsoleHandle, LPDWORD lpMode)
-    private Callback.Handler GetConsoleMode = new HandlerBase() {
+    private final Callback.Handler GetConsoleMode = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetConsoleMode";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // UINT WINAPI GetConsoleOutputCP(void)
-    private Callback.Handler GetConsoleOutputCP = new HandlerBase() {
+    private final Callback.Handler GetConsoleOutputCP = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetConsoleOutputCP";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
@@ -951,10 +1026,12 @@ public class Kernel32 extends BuiltinModule {
     */
 
     // BOOL GetCPInfo(UINT CodePage, LPCPINFO lpCPInfo)
-    private Callback.Handler GetCPInfo = new HandlerBase() {
+    private final Callback.Handler GetCPInfo = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCPInfo";
         }
+        @Override
         public void onCall() {
             int CodePage = CPU.CPU_Pop32();
             int add = CPU.CPU_Pop32();
@@ -972,10 +1049,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI GetCurrentDirectory(DWORD nBufferLength, LPTSTR lpBuffer)
-    static private Callback.Handler GetCurrentDirectoryA = new HandlerBase() {
+    static private final Callback.Handler GetCurrentDirectoryA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCurrentDirectoryA";
         }
+        @Override
         public void onCall() {
             int nBufferLength = CPU.CPU_Pop32();
             int lpBuffer = CPU.CPU_Pop32();
@@ -992,48 +1071,58 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI GetCurrentProcess(void)
-    static private Callback.Handler GetCurrentProcess = new HandlerBase() {
+    static private final Callback.Handler GetCurrentProcess = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCurrentProcess";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getHandle();
         }
     };
 
     // DWORD WINAPI GetCurrentProcessId(void)
-    private Callback.Handler GetCurrentProcessId = new HandlerBase() {
+    private final Callback.Handler GetCurrentProcessId = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetCurrentProcessId";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getHandle();
         }
     };
 
     // int GetDateFormat(LCID Locale, DWORD dwFlags, const SYSTEMTIME *lpDate, LPCTSTR lpFormat, LPTSTR lpDateStr, int cchDate)
-    static private Callback.Handler GetDateFormatA = new HandlerBase() {
+    static private final Callback.Handler GetDateFormatA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetDateFormatA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    static private Callback.Handler GetDateFormatW = new HandlerBase() {
+    static private final Callback.Handler GetDateFormatW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetDateFormatW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI GetDiskFreeSpace(LPCTSTR lpRootPathName, LPDWORD lpSectorsPerCluster, LPDWORD lpBytesPerSector, LPDWORD lpNumberOfFreeClusters, LPDWORD lpTotalNumberOfClusters)
-    static private Callback.Handler GetDiskFreeSpaceA = new HandlerBase() {
+    static private final Callback.Handler GetDiskFreeSpaceA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetDiskFreeSpaceA";
         }
+        @Override
         public void onCall() {
             int lpRootPathName = CPU.CPU_Pop32();
             int lpSectorsPerCluster = CPU.CPU_Pop32();
@@ -1050,10 +1139,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // UINT WINAPI GetDriveType(LPCTSTR lpRootPathName)
-    private Callback.Handler GetDriveTypeA = new HandlerBase() {
+    private final Callback.Handler GetDriveTypeA = new HandlerBase() {
+            @Override
             public java.lang.String getName() {
                 return "Kernel32.GetDriveTypeA";
             }
+            @Override
             public void onCall() {
                 int lpFileName = CPU.CPU_Pop32();
                 String dir;
@@ -1072,36 +1163,44 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPTCH WINAPI GetEnvironmentStrings(void)
-    private Callback.Handler GetEnvironmentStrings = new HandlerBase() {
+    private final Callback.Handler GetEnvironmentStrings = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetEnvironmentStrings";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getEnvironment();
         }
     };
-    private Callback.Handler GetEnvironmentStringsA = new HandlerBase() {
+    private final Callback.Handler GetEnvironmentStringsA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetEnvironmentStringsA";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getEnvironment();
         }
     };
-    private Callback.Handler GetEnvironmentStringsW = new HandlerBase() {
+    private final Callback.Handler GetEnvironmentStringsW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetEnvironmentStringsW";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getEnvironmentW();
         }
     };
 
     // DWORD WINAPI GetFileAttributes(LPCTSTR lpFileName)
-    private Callback.Handler GetFileAttributesA = new HandlerBase() {
+    private final Callback.Handler GetFileAttributesA = new HandlerBase() {
+            @Override
             public java.lang.String getName() {
                 return "Kernel32.GetFileAttributesA";
             }
+            @Override
             public void onCall() {
                 int lpFileName = CPU.CPU_Pop32();
                 if (lpFileName == 0) {
@@ -1124,10 +1223,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI GetFileSize(HANDLE hFile, LPDWORD lpFileSizeHigh)
-    private Callback.Handler GetFileSize = new HandlerBase() {
+    private final Callback.Handler GetFileSize = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetFileSize";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int lpFileSizeHigh = CPU.CPU_Pop32();
@@ -1146,10 +1247,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI GetFileType(HANDLE hFile)
-    private Callback.Handler GetFileType = new HandlerBase() {
+    private final Callback.Handler GetFileType = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetFileType";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             WinFile file = WinFile.get(hFile);
@@ -1163,28 +1266,34 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // int GetLocaleInfo(LCID Locale, LCTYPE LCType, LPTSTR lpLCData, int cchData)
-    static private Callback.Handler GetLocaleInfoA = new HandlerBase() {
+    static private final Callback.Handler GetLocaleInfoA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetLocaleInfoA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    static private Callback.Handler GetLocaleInfoW = new HandlerBase() {
+    static private final Callback.Handler GetLocaleInfoW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetLocaleInfoW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // void WINAPI GetLocalTime(LPSYSTEMTIME lpSystemTime)
-     private Callback.Handler GetLocalTime = new HandlerBase() {
+     private final Callback.Handler GetLocalTime = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetLocalTime";
         }
+        @Override
         public void onCall() {
             int lpSystemTime = CPU.CPU_Pop32();
             SystemTime.write(lpSystemTime, TimeZone.getDefault(), System.currentTimeMillis());
@@ -1192,10 +1301,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     //DWORD WINAPI GetModuleFileName(HMODULE hModule, LPTSTR lpFilename, DWORD nSize)
-    private Callback.Handler GetModuleFileNameA = new HandlerBase() {
+    private final Callback.Handler GetModuleFileNameA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetModuleFileNameA";
         }
+        @Override
         public void onCall() {
             int handle = CPU.CPU_Pop32();
             int buffer = CPU.CPU_Pop32();
@@ -1216,10 +1327,12 @@ public class Kernel32 extends BuiltinModule {
             }
         }
     };
-    private Callback.Handler GetModuleFileNameW = new HandlerBase() {
+    private final Callback.Handler GetModuleFileNameW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetModuleFileNameW";
         }
+        @Override
         public void onCall() {
             int handle = CPU.CPU_Pop32();
             int buffer = CPU.CPU_Pop32();
@@ -1242,10 +1355,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HMODULE WINAPI GetModuleHandle(LPCTSTR lpModuleName)
-    private Callback.Handler GetModuleHandleA = new HandlerBase() {
+    private final Callback.Handler GetModuleHandleA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetModuleHandleA";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             if (add == 0) {
@@ -1258,34 +1373,40 @@ public class Kernel32 extends BuiltinModule {
             }
         }
     };
-    static private Callback.Handler GetModuleHandleW = new HandlerBase() {
+    static private final Callback.Handler GetModuleHandleW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetModuleHandleW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // FARPROC WINAPI GetProcAddress(HMODULE hModule, LPCSTR lpProcName)
-     private Callback.Handler GetProcAddress = new HandlerBase() {
+     private final Callback.Handler GetProcAddress = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetProcAddress";
         }
+        @Override
         public void onCall() {
             int handle = CPU.CPU_Pop32();
             int procName = CPU.CPU_Pop32();
             String name = new LittleEndianFile(procName).readCString();
-            System.out.println("GetProcAddress "+name);
+            logger.log(Level.DEBUG,"GetProcAddress "+name);
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getProcAddress(handle, name);
         }
     };
     
     // HANDLE WINAPI GetProcessHeap(void)
-    private Callback.Handler GetProcessHeap = new HandlerBase() {
+    private final Callback.Handler GetProcessHeap = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetProcessHeap";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getHeapHandle();
         }
@@ -1314,10 +1435,12 @@ public class Kernel32 extends BuiltinModule {
     }
      */
     // VOID WINAPI GetStartupInfo(LPSTARTUPINFO lpStartupInfo)
-    private Callback.Handler GetStartupInfoA = new HandlerBase() {
+    private final Callback.Handler GetStartupInfoA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetStartupInfoA";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             int cb = Memory.mem_readd(add);
@@ -1346,24 +1469,28 @@ public class Kernel32 extends BuiltinModule {
             Memory.mem_writed(add, WinFile.STD_ERROR); add+=4; // hStdError
         }
     };
-    static private Callback.Handler GetStartupInfoW = new HandlerBase() {
+    static private final Callback.Handler GetStartupInfoW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetStartupInfoW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // HANDLE WINAPI GetStdHandle(DWORD nStdHandle)
-    static private Callback.Handler GetStdHandle = new HandlerBase() {
-        final int STD_INPUT_HANDLE = -10;
-        final int STD_OUTPUT_HANDLE = -11;
-        final int STD_ERROR_HANDLE = -12;
+    static private final Callback.Handler GetStdHandle = new HandlerBase() {
+        static final int STD_INPUT_HANDLE = -10;
+        static final int STD_OUTPUT_HANDLE = -11;
+        static final int STD_ERROR_HANDLE = -12;
 
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetStdHandle";
         }
+        @Override
         public void onCall() {
             int param = CPU.CPU_Pop32();
             switch (param) {
@@ -1384,20 +1511,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL GetStringTypeA(LCID Locale, DWORD dwInfoType, LPCSTR lpSrcStr, int cchSrc, LPWORD lpCharType)
-    static private Callback.Handler GetStringTypeA = new HandlerBase() {
+    static private final Callback.Handler GetStringTypeA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetStringTypeA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL GetStringTypeW(DWORD dwInfoType, LPCWSTR lpSrcStr, int cchSrc, LPWORD lpCharType)
-    private Callback.Handler GetStringTypeW = new HandlerBase() {
+    private final Callback.Handler GetStringTypeW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetStringTypeW";
         }
+        @Override
         public void onCall() {
             int type = CPU.CPU_Pop32();
             int src = CPU.CPU_Pop32();
@@ -1452,31 +1583,35 @@ public class Kernel32 extends BuiltinModule {
     */
 
     // void WINAPI GetSystemInfo(LPSYSTEM_INFO lpSystemInfo)
-    static private Callback.Handler GetSystemInfo = new HandlerBase() {
+    static private final Callback.Handler GetSystemInfo = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetSystemInfo";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             Memory.mem_writew(add, 0); // PROCESSOR_ARCHITECTURE_INTEL
             Memory.mem_writew(add + 2, 0); // Reserved
             Memory.mem_writed(add + 4, 4096); // Page Size
-            Memory.mem_writed(add+8, 0x0001000); // :TODO: not sure if this matter, this is just what I say Windows 7 return
-            Memory.mem_writed(add+12, 0x7ffeffff); // :TODO: not sure if this matter, this is just what I say Windows 7 return
+            Memory.mem_writed(add+8, 0x0001000); // TODO not sure if this matter, this is just what I say Windows 7 return
+            Memory.mem_writed(add+12, 0x7ffeffff); // TODO not sure if this matter, this is just what I say Windows 7 return
             Memory.mem_writed(add+16, 1);
             Memory.mem_writed(add+20, 1); // Processor count
             Memory.mem_writed(add+24, 586); // Processor Type
             Memory.mem_writed(add+28, 4096); // Allocation Granulatiry Win 7 64-bit said 65536, but I think this might be better for here
-            Memory.mem_writew(add+32, 6); // :TODO: no idea
-            Memory.mem_writew(add+34, 6660); // :TODO: no idea
+            Memory.mem_writew(add+32, 6); // TODO no idea
+            Memory.mem_writew(add+34, 6660); // TODO no idea
         }
     };
 
     // void WINAPI GetSystemTime(LPSYSTEMTIME lpSystemTime)
-    private Callback.Handler GetSystemTime = new HandlerBase() {
+    private final Callback.Handler GetSystemTime = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetSystemTime";
         }
+        @Override
         public void onCall() {
             int lpSystemTime = CPU.CPU_Pop32();
             SystemTime.write(lpSystemTime, TimeZone.getTimeZone("UTC"), System.currentTimeMillis());
@@ -1490,10 +1625,12 @@ public class Kernel32 extends BuiltinModule {
         }
      */
     // void WINAPI GetSystemTimeAsFileTime(LPFILETIME lpSystemTimeAsFileTime)
-    static private Callback.Handler GetSystemTimeAsFileTime = new HandlerBase() {
+    static private final Callback.Handler GetSystemTimeAsFileTime = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetSystemTimeAsFileTime";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             long time = WinFile.millisToFiletime(System.currentTimeMillis());
@@ -1502,10 +1639,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // UINT WINAPI GetTempFileName(LPCTSTR lpPathName, LPCTSTR lpPrefixString, UINT uUnique, LPTSTR lpTempFileName)
-    private Callback.Handler GetTempFileNameA = new ReturnHandlerBase() {
+    private final Callback.Handler GetTempFileNameA = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTempFileNameA";
         }
+        @Override
         public int processReturn() {
             int lpPathName = CPU.CPU_Pop32();
             int lpPrefixString = CPU.CPU_Pop32();
@@ -1541,10 +1680,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI GetTempPath(DWORD nBufferLength, LPTSTR lpBuffer)
-    private Callback.Handler GetTempPathA = new ReturnHandlerBase() {
+    private final Callback.Handler GetTempPathA = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTempPathA";
         }
+        @Override
         public int processReturn() {
             int nBufferLength = CPU.CPU_Pop32();
             int lpBuffer = CPU.CPU_Pop32();
@@ -1554,38 +1695,46 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI GetTickCount(void)
-    private Callback.Handler GetTickCount = new HandlerBase() {
+    private final Callback.Handler GetTickCount = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTickCount";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinSystem.getTickCount();
         }
     };
 
     // int GetTimeFormat(LCID Locale, DWORD dwFlags, const SYSTEMTIME *lpTime, LPCTSTR lpFormat, LPTSTR lpTimeStr, int cchTime)
-    static private Callback.Handler GetTimeFormatA = new HandlerBase() {
+    static private final Callback.Handler GetTimeFormatA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTimeFormatA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    static private Callback.Handler GetTimeFormatW = new HandlerBase() {
+    static private final Callback.Handler GetTimeFormatW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTimeFormatW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // DWORD WINAPI GetTimeZoneInformation(LPTIME_ZONE_INFORMATION lpTimeZoneInformation);
-    static private Callback.Handler GetTimeZoneInformation = new HandlerBase() {
+    static private final Callback.Handler GetTimeZoneInformation = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetTimeZoneInformation";
         }
+        @Override
         public void onCall() {
             int lpTimeZoneInformation = CPU.CPU_Pop32();
             Memory.mem_zero(lpTimeZoneInformation, 172);
@@ -1601,20 +1750,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LCID GetUserDefaultLCID(void)
-    static private Callback.Handler GetUserDefaultLCID = new HandlerBase() {
+    static private final Callback.Handler GetUserDefaultLCID = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetUserDefaultLCID";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // DWORD WINAPI GetVersion(void)
-    static private Callback.Handler GetVersion = new HandlerBase() {
+    static private final Callback.Handler GetVersion = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetVersion";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = 0x0A280105; // 5.2.2600 WinXP SP2
         }
@@ -1646,10 +1799,12 @@ public class Kernel32 extends BuiltinModule {
     */
 
     // BOOL WINAPI GetVersionEx(LPOSVERSIONINFO lpVersionInfo)
-    static private Callback.Handler GetVersionExA = new HandlerBase() {
+    static private final Callback.Handler GetVersionExA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetVersionExA";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             int size = Memory.mem_readd(add);
@@ -1675,20 +1830,24 @@ public class Kernel32 extends BuiltinModule {
             }
         }
     };
-    static private Callback.Handler GetVersionExW = new HandlerBase() {
+    static private final Callback.Handler GetVersionExW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetVersionExW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI GetVolumeInformation(LPCTSTR lpRootPathName, LPTSTR lpVolumeNameBuffer, DWORD nVolumeNameSize, LPDWORD lpVolumeSerialNumber, LPDWORD lpMaximumComponentLength, LPDWORD lpFileSystemFlags, LPTSTR lpFileSystemNameBuffer, DWORD nFileSystemNameSize)
-    static private Callback.Handler GetVolumeInformationA = new HandlerBase() {
+    static private final Callback.Handler GetVolumeInformationA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetVolumeInformationA";
         }
+        @Override
         public void onCall() {
             int lpRootPathName = CPU.CPU_Pop32();
             int lpVolumeNameBuffer = CPU.CPU_Pop32();
@@ -1728,10 +1887,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // UINT WINAPI GetWindowsDirectory(LPTSTR lpBuffer, UINT uSize)
-    static private Callback.Handler GetWindowsDirectoryA = new HandlerBase() {
+    static private final Callback.Handler GetWindowsDirectoryA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetWindowsDirectoryA";
         }
+        @Override
         public void onCall() {
             int lpBuffer = CPU.CPU_Pop32();
             int uSize = CPU.CPU_Pop32();
@@ -1739,10 +1900,12 @@ public class Kernel32 extends BuiltinModule {
             CPU_Regs.reg_eax.dword = WinAPI.WIN32_PATH.length()+1;
         }
     };
-    static private Callback.Handler GetWindowsDirectoryW = new HandlerBase() {
+    static private final Callback.Handler GetWindowsDirectoryW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GetWindowsDirectoryW";
         }
+        @Override
         public void onCall() {
             int lpBuffer = CPU.CPU_Pop32();
             int uSize = CPU.CPU_Pop32();
@@ -1753,10 +1916,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HGLOBAL WINAPI GlobalAlloc(UINT uFlags, SIZE_T dwBytes)
-    static private Callback.Handler GlobalAlloc = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalAlloc = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalAlloc";
         }
+        @Override
         public int processReturn() {
             int uFlags = CPU.CPU_Pop32();
             int dwBytes = CPU.CPU_Pop32();
@@ -1768,10 +1933,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HGLOBAL WINAPI GlobalFree(HGLOBAL hMem)
-    static private Callback.Handler GlobalFree = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalFree = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalFree";
         }
+        @Override
         public int processReturn() {
             int hMem = CPU.CPU_Pop32();
             WinSystem.getCurrentProcess().heap.free(hMem);
@@ -1780,10 +1947,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HGLOBAL WINAPI GlobalHandle(LPCVOID pMem)
-    static private Callback.Handler GlobalHandle = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalHandle = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalHandle";
         }
+        @Override
         public int processReturn() {
             int hMem = CPU.CPU_Pop32();
             return hMem;
@@ -1791,10 +1960,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPVOID WINAPI GlobalLock(HGLOBAL hMem)
-    static private Callback.Handler GlobalLock = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalLock = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalLock";
         }
+        @Override
         public int processReturn() {
             int hMem = CPU.CPU_Pop32();
             return hMem;
@@ -1802,10 +1973,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HGLOBAL WINAPI GlobalReAlloc(HGLOBAL hMem, SIZE_T dwBytes, UINT uFlags)
-    static private Callback.Handler GlobalReAlloc = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalReAlloc = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalReAlloc";
         }
+        @Override
         public int processReturn() {
             int hMem = CPU.CPU_Pop32();
             int dwBytes = CPU.CPU_Pop32();
@@ -1817,10 +1990,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI GlobalUnlock(HGLOBAL hMem)
-    static private Callback.Handler GlobalUnlock = new ReturnHandlerBase() {
+    static private final Callback.Handler GlobalUnlock = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalUnlock";
         }
+        @Override
         public int processReturn() {
             int hMem = CPU.CPU_Pop32();
             return 0;
@@ -1828,10 +2003,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI GlobalMemoryStatus(LPMEMORYSTATUS lpBuffer)
-    static private Callback.Handler GlobalMemoryStatus = new HandlerBase() {
+    static private final Callback.Handler GlobalMemoryStatus = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.GlobalMemoryStatus";
         }
+        @Override
         public void onCall() {
             int lpBuffer = CPU.CPU_Pop32();
             IntRef free = new IntRef(0);
@@ -1852,20 +2029,22 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPVOID WINAPI HeapAlloc(HANDLE hHeap, DWORD dwFlags, SIZE_T dwBytes)
-    private Callback.Handler HeapAlloc = new HandlerBase() {
+    private final Callback.Handler HeapAlloc = new HandlerBase() {
         static final int HEAP_GENERATE_EXCEPTIONS = 0x00000004;
         static final int HEAP_NO_SERIALIZE = 0x00000001;
         static final int HEAP_ZERO_MEMORY = 0x00000008;
 
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapAlloc";
         }
+        @Override
         public void onCall() {
             int hHeap = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
             int dwBytes = CPU.CPU_Pop32();
             if ((dwFlags & HEAP_GENERATE_EXCEPTIONS)!=0) {
-                System.out.println(getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
+                logger.log(Level.DEBUG,getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
                 //Win.exit();
             }
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getWinHeap().allocateHeap(hHeap, dwBytes);
@@ -1876,16 +2055,18 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HANDLE WINAPI HeapCreate(DWORD flOptions, SIZE_T dwInitialSize, SIZE_T dwMaximumSize)
-    private Callback.Handler HeapCreate = new HandlerBase() {
+    private final Callback.Handler HeapCreate = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapCreate";
         }
+        @Override
         public void onCall() {
             int flOptions = CPU.CPU_Pop32();
             int dwInitialSize = (CPU.CPU_Pop32() + Paging.MEM_PAGE_SIZE) & (Paging.MEM_PAGE_SIZE-1);
             int dwMaximumSize = (CPU.CPU_Pop32() + Paging.MEM_PAGE_SIZE) & (Paging.MEM_PAGE_SIZE-1);
             if ((flOptions & HEAP_GENERATE_EXCEPTIONS)!=0) {
-                System.out.println(getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
+                logger.log(Level.DEBUG,getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
             }
             if (dwInitialSize==0)
                 dwInitialSize = Paging.MEM_PAGE_SIZE;
@@ -1894,20 +2075,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI HeapDestroy(HANDLE hHeap)
-    static private Callback.Handler HeapDestroy = new HandlerBase() {
+    static private final Callback.Handler HeapDestroy = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapDestroy";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI HeapFree(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem)
-    private Callback.Handler HeapFree = new HandlerBase() {
+    private final Callback.Handler HeapFree = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapFree";
         }
+        @Override
         public void onCall() {
             int hHeap = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -1917,27 +2102,31 @@ public class Kernel32 extends BuiltinModule {
     };
 
     //LPVOID WINAPI HeapReAlloc(HANDLE hHeap, DWORD dwFlags, LPVOID lpMem, SIZE_T dwBytes)
-    static private Callback.Handler HeapReAlloc = new HandlerBase() {
+    static private final Callback.Handler HeapReAlloc = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapReAlloc";
         }
+        @Override
         public void onCall() {
             int hHeap = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
             int lpMem = CPU.CPU_Pop32();
             int dwBytes = CPU.CPU_Pop32();
             if ((dwFlags & HEAP_GENERATE_EXCEPTIONS)!=0) {
-                System.out.println(getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
+                logger.log(Level.DEBUG,getName()+" option HEAP_GENERATE_EXCEPTIONS not implemented yet");
             }
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getWinHeap().realloc(hHeap, lpMem, dwBytes, (dwFlags & HEAP_ZERO_MEMORY) != 0);
         }
     };
 
     // SIZE_T WINAPI HeapSize(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
-    static private Callback.Handler HeapSize = new HandlerBase() {
+    static private final Callback.Handler HeapSize = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapSize";
         }
+        @Override
         public void onCall() {
             int hHeap = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -1947,10 +2136,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI HeapValidate(HANDLE hHeap, DWORD dwFlags, LPCVOID lpMem)
-    private Callback.Handler HeapValidate = new HandlerBase() {
+    private final Callback.Handler HeapValidate = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.HeapValidate";
         }
+        @Override
         public void onCall() {
             int heap = CPU.CPU_Pop32();
             int flags = CPU.CPU_Pop32();
@@ -1960,10 +2151,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG WINAPI _hread( HFILE hFile, LPVOID buffer, LONG count)
-    private Callback.Handler _hread = new ReturnHandlerBase() {
+    private final Callback.Handler _hread = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32._hread";
         }
+        @Override
         public int processReturn() {
             int handle = CPU.CPU_Pop32();
             int buffer = CPU.CPU_Pop32();
@@ -1978,20 +2171,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI InitializeCriticalSection(LPCRITICAL_SECTION lpCriticalSection)
-    private Callback.Handler InitializeCriticalSection = new HandlerBase() {
+    private final Callback.Handler InitializeCriticalSection = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.InitializeCriticalSection";
         }
+        @Override
         public void onCall() {
             WinCriticalException.initialize(CPU.CPU_Pop32(), 0);
         }
     };
 
     // BOOL WINAPI InitializeCriticalSectionAndSpinCount(LPCRITICAL_SECTION lpCriticalSection, DWORD dwSpinCount)
-    private Callback.Handler InitializeCriticalSectionAndSpinCount = new HandlerBase() {
+    private final Callback.Handler InitializeCriticalSectionAndSpinCount = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.InitializeCriticalSectionAndSpinCount";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             int spinCount = CPU.CPU_Pop32();
@@ -2001,10 +2198,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG InterlockedDecrement(LONG volatile *Addend)
-    static private Callback.Handler InterlockedDecrement = new HandlerBase() {
+    static private final Callback.Handler InterlockedDecrement = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.InterlockedDecrement";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             int value = Memory.mem_readd(address);
@@ -2015,10 +2214,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG InterlockedExchange(LONG volatile *Target, LONG Value)
-    static private Callback.Handler InterlockedExchange = new ReturnHandlerBase() {
+    static private final Callback.Handler InterlockedExchange = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.InterlockedExchange";
         }
+        @Override
         public int processReturn() {
             int Target = CPU.CPU_Pop32();
             int Value = CPU.CPU_Pop32();
@@ -2029,10 +2230,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG InterlockedIncrement(LONG volatile *Addend)
-    static private Callback.Handler InterlockedIncrement = new HandlerBase() {
+    static private final Callback.Handler InterlockedIncrement = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.InterlockedIncrement";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             int value = Memory.mem_readd(address);
@@ -2043,10 +2246,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI IsBadReadPtr(const VOID *lp, UINT_PTR ucb)
-    static private Callback.Handler IsBadReadPtr = new ReturnHandlerBase() {
+    static private final Callback.Handler IsBadReadPtr = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.IsBadReadPtr";
         }
+        @Override
         public int processReturn() {
             int lp = CPU.CPU_Pop32();
             int ucb = CPU.CPU_Pop32();
@@ -2062,10 +2267,12 @@ public class Kernel32 extends BuiltinModule {
             return FALSE;
         }
     };
-    static private Callback.Handler IsBadWritePtr = new ReturnHandlerBase() {
+    static private final Callback.Handler IsBadWritePtr = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.IsBadWritePtr";
         }
+        @Override
         public int processReturn() {
             int lp = CPU.CPU_Pop32();
             int ucb = CPU.CPU_Pop32();
@@ -2083,30 +2290,36 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI IsDebuggerPresent(void)
-    static private Callback.Handler IsDebuggerPresent = new HandlerBase() {
+    static private final Callback.Handler IsDebuggerPresent = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.IsDebuggerPresent";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = WinAPI.FALSE;
         }
     };
 
     // BOOL IsValidCodePage(UINT CodePage)
-    static private Callback.Handler IsValidCodePage = new HandlerBase() {
+    static private final Callback.Handler IsValidCodePage = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.IsValidCodePage";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL IsValidLocale(LCID Locale, DWORD dwFlags)
-    static private Callback.Handler IsValidLocale = new HandlerBase() {
+    static private final Callback.Handler IsValidLocale = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.IsValidLocale";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
@@ -2115,18 +2328,22 @@ public class Kernel32 extends BuiltinModule {
     // Direct port of Wine's function
     //
     // int LCMapString(LCID Locale, DWORD dwMapFlags, LPCTSTR lpSrcStr, int cchSrc, LPTSTR lpDestStr, int cchDest)
-    static private Callback.Handler LCMapStringA = new HandlerBase() {
+    static private final Callback.Handler LCMapStringA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.LCMapStringA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    private Callback.Handler LCMapStringW = new HandlerBase() {
+    private final Callback.Handler LCMapStringW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.LCMapStringW";
         }
+        @Override
         public void onCall() {
             int lcid = CPU.CPU_Pop32();
             int flags = CPU.CPU_Pop32();
@@ -2265,20 +2482,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI LeaveCriticalSection(LPCRITICAL_SECTION lpCriticalSection)
-    private Callback.Handler LeaveCriticalSection = new HandlerBase() {
+    private final Callback.Handler LeaveCriticalSection = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.LeaveCriticalSection";
         }
+        @Override
         public void onCall() {
             WinCriticalException.leave(CPU.CPU_Pop32());
         }
     };
 
     // HFILE WINAPI _lclose(HFILE hFile)
-    private Callback.Handler _lclose = new ReturnHandlerBase() {
+    private final Callback.Handler _lclose = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32._lclose";
         }
+        @Override
         public int processReturn() {
             int hFile = CPU.CPU_Pop32();
             WinFile object = WinFile.get(hFile);
@@ -2292,10 +2513,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG _llseek(HFile hFile, LONG lOffset, int nOrigin)
-    private Callback.Handler _llseek = new ReturnHandlerBase() {
+    private final Callback.Handler _llseek = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32._llseek";
         }
+        @Override
         public int processReturn() {
             int hFile = CPU.CPU_Pop32();
             int lOffset = CPU.CPU_Pop32();
@@ -2311,10 +2534,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // UINT WINAPI _lread( HFILE handle, LPVOID buffer, UINT count )
-    private Callback.Handler _lread = new ReturnHandlerBase() {
+    private final Callback.Handler _lread = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32._lread";
         }
+        @Override
         public int processReturn() {
             int handle = CPU.CPU_Pop32();
             int buffer = CPU.CPU_Pop32();
@@ -2329,10 +2554,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // HMODULE WINAPI LoadLibrary(LPCTSTR lpFileName)
-    private Callback.Handler LoadLibraryA = new HandlerBase() {
+    private final Callback.Handler LoadLibraryA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.LoadLibraryA";
         }
+        @Override
         public void onCall() {
             String name = new LittleEndianFile(CPU.CPU_Pop32()).readCString();
             log("name="+name);
@@ -2340,10 +2567,12 @@ public class Kernel32 extends BuiltinModule {
         }
     };
 
-    static private Callback.Handler LoadLibraryW = new HandlerBase() {
+    static private final Callback.Handler LoadLibraryW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.LoadLibraryW";
         }
+        @Override
         public void onCall() {
             String name = new LittleEndianFile(CPU.CPU_Pop32()).readCStringW();
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().loadModule(name);
@@ -2351,10 +2580,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPTSTR WINAPI lstrcpy(LPTSTR lpString1, LPTSTR lpString2)
-    static private Callback.Handler lstrcpyA = new HandlerBase() {
+    static private final Callback.Handler lstrcpyA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.lstrcpyA";
         }
+        @Override
         public void onCall() {
             int lpString1 = CPU.CPU_Pop32();
             int lpString2 = CPU.CPU_Pop32();
@@ -2364,29 +2595,35 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // int WINAPI lstrlen(LPCTSTR lpString)
-    static private Callback.Handler lstrlenA = new HandlerBase() {
+    static private final Callback.Handler lstrlenA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.lstrlenA";
         }
+        @Override
         public void onCall() {
             int lpString = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = StringUtil.strlenA(lpString);
         }
     };
-    static private Callback.Handler lstrlenW = new HandlerBase() {
+    static private final Callback.Handler lstrlenW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.lstrlenW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // LPVOID WINAPI MapViewOfFile(HANDLE hFileMappingObject, DWORD dwDesiredAccess, DWORD dwFileOffsetHigh, DWORD dwFileOffsetLow, SIZE_T dwNumberOfBytesToMap)
-    private Callback.Handler MapViewOfFile = new HandlerBase() {
+    private final Callback.Handler MapViewOfFile = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.MapViewOfFile";
         }
+        @Override
         public void onCall() {
             int hFileMappingObject = CPU.CPU_Pop32();
             int dwDesiredAccess = CPU.CPU_Pop32(); // 0x01 Query, 0x02 Write, 0x04 Read, 0x08 Write, 0x10 Extend
@@ -2404,10 +2641,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // int MulDiv(int nNumber, int nNumerator, int nDenominator)
-    private Callback.Handler MulDiv = new HandlerBase() {
+    private final Callback.Handler MulDiv = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.MulDiv";
         }
+        @Override
         public void onCall() {
             int nNumber = CPU.CPU_Pop32();
             int nNumerator = CPU.CPU_Pop32();
@@ -2417,10 +2656,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // int MultiByteToWideChar(UINT CodePage, DWORD dwFlags, LPCSTR lpMultiByteStr, int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar)
-    private Callback.Handler MultiByteToWideChar = new HandlerBase() {
+    private final Callback.Handler MultiByteToWideChar = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.MultiByteToWideChar";
         }
+        @Override
         public void onCall() {
             int CodePage = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -2444,9 +2685,9 @@ public class Kernel32 extends BuiltinModule {
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_PARAMETER);
                     } else {
                         CPU_Regs.reg_eax.dword = c.length+1;
-                        for (int i=0;i<c.length;i++) {
-                            Memory.mem_writew(lpWideCharStr, c[i]);
-                            lpWideCharStr+=2;
+                        for (char value : c) {
+                            Memory.mem_writew(lpWideCharStr, value);
+                            lpWideCharStr += 2;
                         }
                         Memory.mem_writew(lpWideCharStr, 0);
                     }
@@ -2460,30 +2701,36 @@ public class Kernel32 extends BuiltinModule {
     };
     
     // void WINAPI OutputDebugString(LPCTSTR lpOutputString)
-    static private Callback.Handler OutputDebugStringW = new HandlerBase() {
+    static private final Callback.Handler OutputDebugStringW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.OutputDebugStringW";
         }
+        @Override
         public void onCall() {
             int lpOutputString = CPU.CPU_Pop32();
-            System.out.println(new LittleEndianFile(lpOutputString).readCStringW());
+            logger.log(Level.DEBUG,new LittleEndianFile(lpOutputString).readCStringW());
         }
     };
-    static private Callback.Handler OutputDebugStringA = new HandlerBase() {
+    static private final Callback.Handler OutputDebugStringA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.OutputDebugStringA";
         }
+        @Override
         public void onCall() {
             int lpOutputString = CPU.CPU_Pop32();
-            System.out.println(new LittleEndianFile(lpOutputString).readCString());
+            logger.log(Level.DEBUG,new LittleEndianFile(lpOutputString).readCString());
         }
     };
 
     // BOOL WINAPI QueryPerformanceCounter(LARGE_INTEGER *lpPerformanceCount)
-    private Callback.Handler QueryPerformanceCounter = new HandlerBase() {
+    private final Callback.Handler QueryPerformanceCounter = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.QueryPerformanceCounter";
         }
+        @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
             long time = System.nanoTime() * 21 / 17600; // 1GHz to 1.193182 MHz
@@ -2496,10 +2743,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI RaiseException(DWORD dwExceptionCode, DWORD dwExceptionFlags, DWORD nNumberOfArguments, const ULONG_PTR *lpArguments)
-    private Callback.Handler RaiseException = new HandlerBase() {
+    private final Callback.Handler RaiseException = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.RaiseException";
         }
+        @Override
         public void onCall() {
             Console.out("RaiseException was called\n");
             Win.exit();
@@ -2507,10 +2756,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI ReadFile(HANDLE hFile,LPVOID lpBuffer, DWORD nNumberOfBytesToRead, LPDWORD lpNumberOfBytesRead, LPOVERLAPPED lpOverlapped)
-    private Callback.Handler ReadFile = new HandlerBase() {
+    private final Callback.Handler ReadFile = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.ReadFile";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int lpBuffer = CPU.CPU_Pop32();
@@ -2538,10 +2789,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI ReleaseMutex(HANDLE hMutex)
-    private Callback.Handler ReleaseMutex = new HandlerBase() {
+    private final Callback.Handler ReleaseMutex = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.ReleaseMutex";
         }
+        @Override
         public void onCall() {
             int hMutex = CPU.CPU_Pop32();
             WinMutex mutex = WinMutex.get(hMutex);
@@ -2556,10 +2809,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // VOID RtlMoveMemory(VOID UNALIGNED *Destination, const VOID UNALIGNED *Source, SIZE_T Length)
-    private Callback.Handler RtlMoveMemory = new HandlerBase() {
+    private final Callback.Handler RtlMoveMemory = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.RtlMoveMemory";
         }
+        @Override
         public void onCall() {
             int Destination = CPU.CPU_Pop32();
             int Source = CPU.CPU_Pop32();
@@ -2569,20 +2824,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI RtlUnwind(PVOID TargetFrame, PVOID TargetIp, PEXCEPTION_RECORD ExceptionRecord, PVOID ReturnValue)
-    static private Callback.Handler RtlUnwind = new HandlerBase() {
+    static private final Callback.Handler RtlUnwind = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.RtlUnwind";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // VOID RtlZeroMemory(VOID UNALIGNED *Destination, SIZE_T Length)
-    private Callback.Handler RtlZeroMemory = new HandlerBase() {
+    private final Callback.Handler RtlZeroMemory = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.RtlZeroMemory";
         }
+        @Override
         public void onCall() {
             int Destination = CPU.CPU_Pop32();
             int Length = CPU.CPU_Pop32();
@@ -2591,39 +2850,45 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI SetConsoleCtrlHandler(PHANDLER_ROUTINE HandlerRoutine, BOOL Add)
-    private Callback.Handler SetConsoleCtrlHandler = new HandlerBase() {
+    private final Callback.Handler SetConsoleCtrlHandler = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetConsoleCtrlHandler";
         }
+        @Override
         public void onCall() {
             int HandlerRoutine = CPU.CPU_Pop32();
             int Add = CPU.CPU_Pop32();
-            System.out.println(getName()+" faked");
+            logger.log(Level.DEBUG,getName()+" faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
 
     // UINT WINAPI SetErrorMode(UINT uMode)
-    private Callback.Handler SetErrorMode = new HandlerBase() {
+    private final Callback.Handler SetErrorMode = new HandlerBase() {
         private int mode = 0;
 
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetErrorMode";
         }
+        @Override
         public void onCall() {
             int uMode = CPU.CPU_Pop32();
             int old = mode;
             mode = uMode;
-            System.out.println(getName()+" faked");
+            logger.log(Level.DEBUG,getName()+" faked");
             CPU_Regs.reg_eax.dword = old;
         }
     };
 
     // BOOL WINAPI SetEvent(HANDLE hEvent)
-    private Callback.Handler SetEvent = new HandlerBase() {
+    private final Callback.Handler SetEvent = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetEvent";
         }
+        @Override
         public void onCall() {
             int hEvent = CPU.CPU_Pop32();
             WinEvent event = WinEvent.get(hEvent);
@@ -2637,10 +2902,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // DWORD WINAPI SetFilePointer(HANDLE hFile, LONG lDistanceToMove, PLONG lpDistanceToMoveHigh, DWORD dwMoveMethod)
-    private Callback.Handler SetFilePointer = new HandlerBase() {
+    private final Callback.Handler SetFilePointer = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetFilePointer";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int lDistanceToMove = CPU.CPU_Pop32();
@@ -2668,10 +2935,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // UINT SetHandleCount(UINT uNumber)
-    private Callback.Handler SetHandleCount = new HandlerBase() {
+    private final Callback.Handler SetHandleCount = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetHandleCount";
         }
+        @Override
         public void onCall() {
             // This only did something interesting on Win32s
             CPU_Regs.reg_eax.dword = CPU.CPU_Pop32();
@@ -2679,10 +2948,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // void WINAPI SetLastError(DWORD dwErrCode)
-    private Callback.Handler SetLastError = new HandlerBase() {
+    private final Callback.Handler SetLastError = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetLastError";
         }
+        @Override
         public void onCall() {
             int error = CPU.CPU_Pop32();
             Scheduler.getCurrentThread().setLastError(error);
@@ -2690,20 +2961,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI SetStdHandle(DWORD nStdHandle, HANDLE hHandle)
-    private Callback.Handler SetStdHandle = new HandlerBase() {
+    private final Callback.Handler SetStdHandle = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetStdHandle";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI SetThreadPriority(HANDLE hThread, int nPriority)
-    private Callback.Handler SetThreadPriority = new HandlerBase() {
+    private final Callback.Handler SetThreadPriority = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetThreadPriority";
         }
+        @Override
         public void onCall() {
             int hThread = CPU.CPU_Pop32();
             int nPriority = CPU.CPU_Pop32();
@@ -2719,22 +2994,26 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPTOP_LEVEL_EXCEPTION_FILTER WINAPI SetUnhandledExceptionFilter(LPTOP_LEVEL_EXCEPTION_FILTER lpTopLevelExceptionFilter)
-    private Callback.Handler SetUnhandledExceptionFilter = new HandlerBase() {
+    private final Callback.Handler SetUnhandledExceptionFilter = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.SetUnhandledExceptionFilter";
         }
+        @Override
         public void onCall() {
             CPU.CPU_Pop32();
-            System.out.println(getName()+" faked");
+            logger.log(Level.DEBUG,getName()+" faked");
             CPU_Regs.reg_eax.dword = 0;
         }
     };
 
     // VOID WINAPI Sleep(DWORD dwMilliseconds)
-    private Callback.Handler Sleep = new HandlerBase() {
+    private final Callback.Handler Sleep = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.Sleep";
         }
+        @Override
         public void onCall() {
             int dwMilliseconds = CPU.CPU_Pop32();
             Scheduler.getCurrentThread().sleep(dwMilliseconds);
@@ -2742,50 +3021,60 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI TerminateProcess(HANDLE hProcess, UINT uExitCode)
-    static private Callback.Handler TerminateProcess = new HandlerBase() {
+    static private final Callback.Handler TerminateProcess = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.TerminateProcess";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // DWORD WINAPI TlsAlloc(void)
-    private Callback.Handler TlsAlloc = new HandlerBase() {
+    private final Callback.Handler TlsAlloc = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.TlsAlloc";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = Scheduler.getCurrentThread().tlsAlloc();
         }
     };
 
     // BOOL WINAPI TlsFree(DWORD dwTlsIndex)
-    private Callback.Handler TlsFree = new HandlerBase() {
+    private final Callback.Handler TlsFree = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.TlsFree";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = Scheduler.getCurrentThread().tlsFree(CPU.CPU_Pop32());
         }
     };
 
     // LPVOID WINAPI TlsGetValue(DWORD dwTlsIndex)
-    private Callback.Handler TlsGetValue = new HandlerBase() {
+    private final Callback.Handler TlsGetValue = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.TlsGetValue";
         }
+        @Override
         public void onCall() {
             CPU_Regs.reg_eax.dword = Scheduler.getCurrentThread().tlsGetValue(CPU.CPU_Pop32());
         }
     };
 
     // BOOL WINAPI TlsSetValue(DWORD dwTlsIndex, LPVOID lpTlsValue)
-    private Callback.Handler TlsSetValue = new HandlerBase() {
+    private final Callback.Handler TlsSetValue = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.TlsSetValue";
         }
+        @Override
         public void onCall() {
             int index = CPU.CPU_Pop32();
             int value = CPU.CPU_Pop32();
@@ -2794,20 +3083,24 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LONG WINAPI UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
-    private Callback.Handler UnhandledExceptionFilter = new HandlerBase() {
+    private final Callback.Handler UnhandledExceptionFilter = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.UnhandledExceptionFilter";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI UnmapViewOfFile(LPCVOID lpBaseAddress)
-    private Callback.Handler UnmapViewOfFile = new HandlerBase() {
+    private final Callback.Handler UnmapViewOfFile = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.UnmapViewOfFile";
         }
+        @Override
         public void onCall() {
             int lpBaseAddress = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = WinFileMapping.unmap(lpBaseAddress)?WinAPI.TRUE:WinAPI.FALSE;
@@ -2815,12 +3108,14 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // LPVOID WINAPI VirtualAlloc(LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect)
-    private Callback.Handler VirtualAlloc = new HandlerBase() {
+    private final Callback.Handler VirtualAlloc = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.VirtualAlloc";
         }
+        @Override
         public void onCall() {
-            long address = CPU.CPU_Pop32() & 0xFFFFFFFFl;
+            long address = CPU.CPU_Pop32() & 0xFFFFFFFFL;
             int size = CPU.CPU_Pop32();
             int flags = CPU.CPU_Pop32();
             int protect = CPU.CPU_Pop32();
@@ -2836,7 +3131,7 @@ public class Kernel32 extends BuiltinModule {
                     address &= ~0xFFF;
                     if (address == 0)
                         address = (int)WinProcess.ADDRESS_EXTRA_START;
-                    long result = WinSystem.getCurrentProcess().addressSpace.getNextAddress(address & 0xFFFFFFFFl, size, true);
+                    long result = WinSystem.getCurrentProcess().addressSpace.getNextAddress(address & 0xFFFFFFFFL, size, true);
                     if (result == 0) {
                         CPU_Regs.reg_eax.dword = 0;
                         return;
@@ -2865,10 +3160,12 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // BOOL WINAPI VirtualFree(LPVOID lpAddress, SIZE_T dwSize, DWORD dwFreeType)
-    private Callback.Handler VirtualFree = new HandlerBase() {
+    private final Callback.Handler VirtualFree = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.VirtualFree";
         }
+        @Override
         public void onCall() {
             int address = CPU.CPU_Pop32();
             int dwSize = CPU.CPU_Pop32();
@@ -2891,38 +3188,46 @@ public class Kernel32 extends BuiltinModule {
     };
 
     // SIZE_T WINAPI VirtualQuery(LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength)
-    private Callback.Handler VirtualQuery = new HandlerBase() {
+    private final Callback.Handler VirtualQuery = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.VirtualQuery";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI WriteConsole(HANDLE hConsoleOutput, const VOID *lpBuffer, DWORD nNumberOfCharsToWrite, LPDWORD lpNumberOfCharsWritten, LPVOID lpReserved)
-    private Callback.Handler WriteConsoleA = new HandlerBase() {
+    private final Callback.Handler WriteConsoleA = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.WriteConsoleA";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
-    private Callback.Handler WriteConsoleW = new HandlerBase() {
+    private final Callback.Handler WriteConsoleW = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.WriteConsoleW";
         }
+        @Override
         public void onCall() {
             notImplemented();
         }
     };
 
     // BOOL WINAPI WriteFile(HANDLE hFile, LPCVOID lpBuffer, DWORD nNumberOfBytesToWrite, LPDWORD lpNumberOfBytesWritten, LPOVERLAPPED lpOverlapped)
-    static private Callback.Handler WriteFile = new HandlerBase() {
+    static private final Callback.Handler WriteFile = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.WriteFile";
         }
+        @Override
         public void onCall() {
             int hFile = CPU.CPU_Pop32();
             int lpBuffer = CPU.CPU_Pop32();
@@ -2953,7 +3258,7 @@ public class Kernel32 extends BuiltinModule {
         }
     };
 
-    static private boolean[] c1252 = new boolean[] {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
+    static private final boolean[] c1252 = new boolean[] {true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
                                                     true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
                                                     true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
                                                     true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true,
@@ -2974,10 +3279,12 @@ public class Kernel32 extends BuiltinModule {
                                                     true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true};
 
     // int WideCharToMultiByte(UINT CodePage, DWORD dwFlags, LPCWSTR lpWideCharStr, int cchWideChar, LPSTR lpMultiByteStr, int cbMultiByte, LPCSTR lpDefaultChar, LPBOOL lpUsedDefaultChar)
-    private Callback.Handler WideCharToMultiByte = new HandlerBase() {
+    private final Callback.Handler WideCharToMultiByte = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "Kernel32.WideCharToMultiByte";
         }
+        @Override
         public void onCall() {
             int CodePage = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();

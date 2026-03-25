@@ -1,6 +1,8 @@
 package jdos.cpu.core_dynamic;
 
-import jdos.cpu.CPU;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Core_dynamic;
 import jdos.cpu.Paging;
@@ -8,7 +10,11 @@ import jdos.hardware.Memory;
 import jdos.hardware.RAM;
 import jdos.util.Ptr;
 
+
 final public class CodePageHandlerDynRec extends Paging.PageHandler {
+
+    private static final Logger logger = System.getLogger(CodePageHandlerDynRec.class.getName());
+
     static public int activeCount = 0;
     static public int usedCount = 0;
 
@@ -37,7 +43,7 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
     // This will allow the current running instruction to finish, but when it moves
     // to the next one it will throw a null pointer exception which will then be
     // caught.
-    private void invalidateRunningBlock() {
+    private static void invalidateRunningBlock() {
         Op op = Core_dynamic.currentBlock.code;
         while (op!=null) {
             Op next = op.next;
@@ -71,7 +77,7 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
 				if (start<=block.page.end && end>=block.page.start) {
 					if (block == Core_dynamic.currentBlock)
                         is_current_block=true;
-					block.Clear();		// clear the block, decrements the write_map accordingly
+					block.clear();		// clear the block, decrements the write_map accordingly
 				}
 				block=nextblock;
 			}
@@ -84,7 +90,8 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
 	}
 
 	// the following functions will clean all cache blocks that are invalid now due to the write
-	public void writeb(/*PhysPt*/int address,/*Bitu*/int val){
+	@Override
+    public void writeb(/*PhysPt*/int address,/*Bitu*/int val){
 		int addr = (address & 4095);
 		if (RAM.readb(hostmem + addr)==(val & 0xFF)) return;
 		RAM.writeb(hostmem + addr, val);
@@ -100,7 +107,8 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
 		invalidation_map.p[addr]++;
 		InvalidateRange(addr,addr);
 	}
-	public void writew(/*PhysPt*/int address,/*Bitu*/int val){
+	@Override
+    public void writew(/*PhysPt*/int address,/*Bitu*/int val){
 		int addr = (address & 4095);
 		if (RAM.readw(hostmem + addr)==(val & 0xFFFF)) return;
 		RAM.writew(hostmem + addr, val);
@@ -116,7 +124,8 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
         invalidation_map.writew(addr, invalidation_map.readw(addr)+0x101);
 		InvalidateRange(addr,addr+1);
 	}
-	public void writed(/*PhysPt*/int address,/*Bitu*/int val){
+	@Override
+    public void writed(/*PhysPt*/int address,/*Bitu*/int val){
 		int addr = (address & 4095);
 		if (RAM.readd(hostmem + addr)==(val & 0xFFFFFFFF)) return;
 		RAM.writed(hostmem + addr, val);
@@ -144,7 +153,7 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
         activeCount++;
         usedCount++;
         if ((usedCount % 1000)==0) {
-            System.out.println("Dynamic code cache: "+activeCount+"/"+usedCount);
+            logger.log(Level.DEBUG,"Dynamic code cache: "+activeCount+"/"+usedCount);
         }
 	}
 	// there's a block whose code started in a different page
@@ -220,7 +229,7 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
 			CacheBlockDynRec block=hash_map[index];
 			while (block!=null) {
 				CacheBlockDynRec nextblock=block.hash.next;
-				block.Clear();
+				block.clear();
 				block=nextblock;
 			}
 		}
@@ -237,24 +246,26 @@ final public class CodePageHandlerDynRec extends Paging.PageHandler {
 		return null;	// none found
 	}
 
-	public /*HostPt*/int GetHostReadPt(/*Bitu*/int phys_page) {
+	@Override
+    public /*HostPt*/int GetHostReadPt(/*Bitu*/int phys_page) {
 		hostmem=old_pagehandler.GetHostReadPt(phys_page);
 		return hostmem;
 	}
 
-	public /*HostPt*/int GetHostWritePt(/*Bitu*/int phys_page) {
+	@Override
+    public /*HostPt*/int GetHostWritePt(/*Bitu*/int phys_page) {
 		return GetHostReadPt( phys_page );
 	}
 
 	// the write map, there are write_map[i] cache blocks that cover the byte at address i
-	public /*Bit8u*/Ptr write_map=new Ptr(4096);
+	public final /*Bit8u*/Ptr write_map=new Ptr(4096);
 	public /*Bit8u*/ Ptr invalidation_map;
 	CodePageHandlerDynRec next, prev;	// page linking
 
 	private Paging.PageHandler old_pagehandler;
 
 	// hash map to quickly find the cache blocks in this page
-	private CacheBlockDynRec[] hash_map = new CacheBlockDynRec[1+ Core_dynamic.DYN_PAGE_HASH];
+	private final CacheBlockDynRec[] hash_map = new CacheBlockDynRec[1+ Core_dynamic.DYN_PAGE_HASH];
 
 	private /*Bitu*/int active_blocks;		// the number of cache blocks in this page
 	private /*Bitu*/int active_count;		// delaying parameter to not immediately release a page

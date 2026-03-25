@@ -1,8 +1,14 @@
 package jdos.host.router;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.host.UserEthernet;
 
 public class BootP extends EtherUtil {
+
+    private static final Logger logger = System.getLogger(BootP.class.getName());
+
     public void parse(byte[] buffer, int offset, int len) {
         int originalOffset = offset;
         op = buffer[offset] & 0xFF;
@@ -137,8 +143,7 @@ public class BootP extends EtherUtil {
         if (msg == DHCPREQUEST && address == 0 && ciaddr != 0) {
             address = ciaddr;
         }
-        System.out.println();
-        System.out.println("    Transaction ID: 0x"+Integer.toHexString(xid));
+        logger.log(Level.DEBUG,"    Transaction ID: 0x"+Integer.toHexString(xid));
         if (msg == 0)
             msg = DHCPREQUEST; // /* Force reply for old BOOTP clients */
         if (msg != DHCPDISCOVER && msg != DHCPREQUEST)
@@ -164,46 +169,46 @@ public class BootP extends EtherUtil {
         bootp_response.vend[3]=99;
         int index=4;
         if (address != -1) {
-            System.out.println("  DHCP Response "+((msg == DHCPDISCOVER)?"OFFER":"ACK"));
-            System.out.println("    Transaction ID: 0x"+Integer.toHexString(bootp_response.xid));
+            logger.log(Level.DEBUG,"  DHCP Response "+((msg == DHCPDISCOVER)?"OFFER":"ACK"));
+            logger.log(Level.DEBUG,"    Transaction ID: 0x"+Integer.toHexString(bootp_response.xid));
             bootp_response.vend[index++] = RFC2132_MSG_TYPE;
             bootp_response.vend[index++] = 1;
             bootp_response.vend[index++] = (byte)((msg == DHCPDISCOVER)?DHCPOFFER:DHCPACK);
 
-            System.out.print("    Client Address: ");printAddress(address);System.out.println();
+            System.out.print("    Client Address: ");printAddress(address);logger.log(Level.DEBUG, "");
 
-            System.out.print("    Server ID: ");printAddress(SERVER_ADDRESS);System.out.println();
+            System.out.print("    Server ID: ");printAddress(SERVER_ADDRESS);logger.log(Level.DEBUG, "");
             bootp_response.vend[index++] = RFC2132_SRV_ID;
             bootp_response.vend[index++] = 4;
             writeDWord(bootp_response.vend, index, SERVER_ADDRESS);
             index+=4;
 
-            System.out.print("    Netmask: ");printAddress(SERVER_NETMASK);System.out.println();
+            System.out.print("    Netmask: ");printAddress(SERVER_NETMASK);logger.log(Level.DEBUG, "");
             bootp_response.vend[index++] = RFC1533_NETMASK;
             bootp_response.vend[index++] = 4;
             writeDWord(bootp_response.vend, index, SERVER_NETMASK);
             index+=4;
 
-            System.out.print("    Gateway: ");printAddress(SERVER_ADDRESS);System.out.println();
+            System.out.print("    Gateway: ");printAddress(SERVER_ADDRESS);logger.log(Level.DEBUG, "");
             bootp_response.vend[index++] = RFC1533_GATEWAY;
             bootp_response.vend[index++] = 4;
             writeDWord(bootp_response.vend, index, SERVER_ADDRESS);
             index+=4;
 
-            System.out.print("    DNS: ");printAddress(SERVER_ADDRESS);System.out.println();
+            System.out.print("    DNS: ");printAddress(SERVER_ADDRESS);logger.log(Level.DEBUG, "");
             bootp_response.vend[index++] = RFC1533_DNS;
             bootp_response.vend[index++] = 4;
             writeDWord(bootp_response.vend, index, SERVER_ADDRESS);
             index+=4;
 
-            System.out.println("    Lease Time : 1 day");
+            logger.log(Level.DEBUG,"    Lease Time : 1 day");
             bootp_response.vend[index++] = RFC2132_LEASE_TIME;
             bootp_response.vend[index++] = 4;
             writeDWord(bootp_response.vend, index, 3600*24);
             index+=4;
         } else {
-            System.out.println("  DHCP Response Nak: requested address not available");
-            System.out.println("    Transaction ID: 0x"+Integer.toHexString(bootp_response.xid));
+            logger.log(Level.DEBUG,"  DHCP Response Nak: requested address not available");
+            logger.log(Level.DEBUG,"    Transaction ID: 0x"+Integer.toHexString(bootp_response.xid));
             bootp_response.vend[index++] = RFC2132_MSG_TYPE;
             bootp_response.vend[index++] = 1;
             bootp_response.vend[index++] = DHCPNAK;
@@ -229,8 +234,8 @@ public class BootP extends EtherUtil {
     int yiaddr; // your
     int siaddr; // server
     int giaddr; // gateway
-    byte[] hwaddr = new byte[16];
-    byte[] sname = new byte[64];
-    byte[] file = new byte[128];
+    final byte[] hwaddr = new byte[16];
+    final byte[] sname = new byte[64];
+    final byte[] file = new byte[128];
     byte[] vend = new byte[312];
 }

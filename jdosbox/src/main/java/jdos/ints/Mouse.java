@@ -7,16 +7,19 @@ import jdos.cpu.Callback;
 import jdos.dos.Dos_tables;
 import jdos.gui.Main;
 import jdos.hardware.*;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Section;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.types.MachineType;
 import jdos.util.ShortRef;
 
 import java.io.*;
 
 public class Mouse {
+
+    private static final Logger logger = System.getLogger(Mouse.class.getName());
+    private static final Logger LOG_MOUSE = System.getLogger("LOG_MOUSE");
+
     static private /*Bitu*/int call_int33,call_int74,int74_ret_callback,call_mouse_bd;
     static private /*Bit16u*/int ps2cbseg,ps2cbofs;
     static private boolean useps2callback,ps2callbackinit;
@@ -62,8 +65,8 @@ public class Mouse {
 		0x0600, 0x0300, 0x0300, 0x0000
     };
 
-    static private /*Bit16u*/int[] userdefScreenMask = new int[CURSORY];
-    static private /*Bit16u*/int[] userdefCursorMask = new int[CURSORY];
+    static private final /*Bit16u*/int[] userdefScreenMask = new int[CURSORY];
+    static private final /*Bit16u*/int[] userdefCursorMask = new int[CURSORY];
 
     static private void write(DataOutputStream dos, int i) throws IOException {
         dos.writeInt(i);
@@ -75,19 +78,19 @@ public class Mouse {
         dos.writeShort(s);
     }
     static private void write(DataOutputStream dos, int[] a) throws IOException {
-        for (int i=0;i<a.length;i++) dos.writeInt(a[i]);
+        for (int j : a) dos.writeInt(j);
     }
 
     static public class _mouse {
-        static private int[][] maskholder = new int[128][];
+        static private final int[][] maskholder = new int[128][];
 
         public _mouse() {
             for (int i=0;i<event_queue.length;i++)
                 event_queue[i] = new button_event();
         }
         private void write16u(DataOutputStream os, int[] d) throws IOException {
-            for (int i=0;i<d.length;i++) {
-                os.writeShort(d[i] & 0xFFFF);
+            for (int j : d) {
+                os.writeShort(j & 0xFFFF);
             }
         }
         private void write16u(DataOutputStream os, int d) throws IOException {
@@ -103,8 +106,7 @@ public class Mouse {
             os.write(d & 0xFF);
         }
         private void write8u(DataOutputStream os, short[] d) throws IOException {
-            for (int i=0;i<d.length;i++)
-                os.write(d[i] & 0xFF);
+            for (short value : d) os.write(value & 0xFF);
         }
         private void writeBool(DataOutputStream os, boolean b) throws IOException {
             os.writeBoolean(b);
@@ -117,7 +119,7 @@ public class Mouse {
                     return;
                 }
             }
-            Log.exit("Failed to save mouse state");
+            throw new IllegalStateException("Failed to save mouse state");
         }
 
         private void read16u(DataInputStream is, int[] d) throws IOException {
@@ -172,9 +174,9 @@ public class Mouse {
                 write(os, mickey_y);
                 write(os, x);
                 write(os, y);
-                for (int i=0;i<event_queue.length;i++) {
-                    write8u(os, event_queue[i].type);
-                    write8u(os, event_queue[i].buttons);
+                for (button_event buttonEvent : event_queue) {
+                    write8u(os, buttonEvent.type);
+                    write8u(os, buttonEvent.buttons);
                 }
                 write8u(os, events);
                 write16u(os, sub_seg);
@@ -218,7 +220,7 @@ public class Mouse {
                 write16s(os, gran_y);
                 return bos.toByteArray();
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
             return new byte[0];
         }
@@ -245,9 +247,9 @@ public class Mouse {
                 mickey_y = readFloat(is);
                 x = readFloat(is);
                 x = readFloat(is);
-                for (int i=0;i<event_queue.length;i++) {
-                    event_queue[i].type = read8u(is);
-                    event_queue[i].buttons = read8u(is);
+                for (button_event buttonEvent : event_queue) {
+                    buttonEvent.type = read8u(is);
+                    buttonEvent.buttons = read8u(is);
                 }
                 events = read8u(is);
                 sub_seg = read16u(is);
@@ -290,32 +292,32 @@ public class Mouse {
                 gran_x = read16s(is);
                 gran_y = read16s(is);
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
         }
         public static int sizeof() {
             return 484;// same as dosbox, java need 477
         }
         /*Bit8u*/short buttons;
-        /*Bit16u*/int[] times_pressed = new int[MOUSE_BUTTONS];
-        /*Bit16u*/int[] times_released = new int[MOUSE_BUTTONS];
-        /*Bit16u*/int[] last_released_x = new int[MOUSE_BUTTONS];
-        /*Bit16u*/int[] last_released_y = new int[MOUSE_BUTTONS];
-        /*Bit16u*/int[] last_pressed_x = new int[MOUSE_BUTTONS];
-        /*Bit16u*/int[] last_pressed_y = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] times_pressed = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] times_released = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] last_released_x = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] last_released_y = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] last_pressed_x = new int[MOUSE_BUTTONS];
+        /*Bit16u*/final int[] last_pressed_y = new int[MOUSE_BUTTONS];
         /*Bit16u*/int hidden;
         float add_x,add_y;
         public /*Bit16s*/short min_x,max_x,min_y,max_y;
         float mickey_x,mickey_y;
         public float x,y;
-        button_event[] event_queue = new button_event[QUEUE_SIZE];
+        final button_event[] event_queue = new button_event[QUEUE_SIZE];
         /*Bit8u*/short events;//Increase if QUEUE_SIZE >255 (currently 32)
         /*Bit16u*/int sub_seg,sub_ofs;
         /*Bit16u*/int sub_mask;
 
         boolean	background;
         /*Bit16s*/short backposx, backposy;
-        /*Bit8u*/short[] backData = new short[CURSORX*CURSORY];
+        /*Bit8u*/final short[] backData = new short[CURSORX*CURSORY];
         /*Bit16u*/int[] screenMask;
         /*Bit16u*/int[] cursorMask;
         /*Bit16s*/short	clipx,clipy;
@@ -331,8 +333,8 @@ public class Mouse {
         /*Bit16u*/int	dspeed_val;
         float	senv_x;
         float	senv_y;
-        /*Bit16u*/int[]  updateRegion_x=new int[2];
-        /*Bit16u*/int[] updateRegion_y=new int[2];
+        /*Bit16u*/final int[]  updateRegion_x=new int[2];
+        /*Bit16u*/final int[] updateRegion_y=new int[2];
         /*Bit16u*/int  doubleSpeedThreshold;
         /*Bit16u*/int  language;
         /*Bit16u*/int  cursorType;
@@ -401,10 +403,12 @@ public class Mouse {
         }
     }
 
-    static private Callback.Handler PS2_Handler = new Callback.Handler() {
+    static private final Callback.Handler PS2_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Mouse.PS2_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             CPU.CPU_Pop16();CPU.CPU_Pop16();CPU.CPU_Pop16();CPU.CPU_Pop16();// remove the 4 words
             return Callback.CBRET_NONE;
@@ -424,7 +428,8 @@ public class Mouse {
     static private final int MOUSE_MIDDLE_RELEASED = 64;
     static private final float MOUSE_DELAY = 5.0f;
 
-    static private Pic.PIC_EventHandler MOUSE_Limit_Events = new Pic.PIC_EventHandler() {
+    static private final Pic.PIC_EventHandler MOUSE_Limit_Events = new Pic.PIC_EventHandler() {
+        @Override
         public void call(/*Bitu*/int val) {
             mouse.timer_in_progress = false;
             if (mouse.events!=0) {
@@ -501,7 +506,7 @@ public class Mouse {
     // Mouse cursor - graphic mode
     // ***************************************************************************
 
-    static /*Bit8u*/short[] gfxReg3CE=new short[9];
+    static final /*Bit8u*/short[] gfxReg3CE=new short[9];
     static /*Bit8u*/short index3C4,gfxReg3C5;
     private static void SaveVgaRegisters() {
         if (Dosbox.IS_VGA_ARCH()) {
@@ -583,7 +588,7 @@ public class Mouse {
                     Int10_put_pixel.INT10_PutPixel(x,y,mouse.page,mouse.backData[dataPos++]);
                 }
                 dataPos += addx2.value;
-            };
+            }
             mouse.background = false;
         }
         RestoreVgaRegisters();
@@ -655,7 +660,7 @@ public class Mouse {
         for (y=y1.value; y<=y2.value; y++) {
             /*Bit16u*/int scMask = mouse.screenMask[addy.value+y-y1.value];
             /*Bit16u*/int cuMask = mouse.cursorMask[addy.value+y-y1.value];
-            if (addx1.value>0) { scMask<<=addx1.value; cuMask<<=addx1.value; dataPos += addx1.value; };
+            if (addx1.value>0) { scMask<<=addx1.value; cuMask<<=addx1.value; dataPos += addx1.value; }
             for (x=x1.value; x<=x2.value; x++) {
                 /*Bit8u*/short pixel = 0;
                 // ScreenMask
@@ -869,7 +874,7 @@ public class Mouse {
         mouse.inhibit_draw=false;
         /* Get the correct resolution from the current video mode */
         /*Bit8u*/int mode=Memory.mem_readb(Bios.BIOS_VIDEO_MODE);
-        if(mode == mouse.mode) {if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MOUSE, LogSeverities.LOG_NORMAL,"New video is the same as the old"); /*return;*/}
+        if(mode == mouse.mode) {LOG_MOUSE.log(Level.DEBUG, "New video is the same as the old"); /*return;*/}
         mouse.gran_x = mouse.gran_y = (short)0xffff;
         switch (mode) {
         case 0x00:
@@ -905,7 +910,7 @@ public class Mouse {
             mouse.max_y=479;
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_ERROR,"Unhandled videomode "+Integer.toString(mode, 16)+" on reset");
+            LOG_MOUSE.log(Level.ERROR, "Unhandled videomode "+Integer.toString(mode, 16)+" on reset");
             mouse.inhibit_draw=true;
             return;
         }
@@ -963,12 +968,14 @@ public class Mouse {
         mouse.in_UIR = false;
     }
 
-    static private Callback.Handler INT33_Handler = new Callback.Handler() {
+    static private final Callback.Handler INT33_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Mouse.INT33_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
-        //	Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_NORMAL,"MOUSE: %04X %X %X %d %d",reg_ax,reg_bx,reg_cx,POS_X,POS_Y);
+        //	LOG_MOUSE.log(Level.DEBUG, "MOUSE: %04X %X %X %d %d",reg_ax,reg_bx,reg_cx,POS_X,POS_Y);
             switch (CPU_Regs.reg_eax.word()) {
             case 0x00:	/* Reset Driver and Read Status */
                 Mouse_ResetHardware(); /* fallthrough */
@@ -1000,12 +1007,12 @@ public class Mouse {
                 /* If position isn't different from current position
                  * don't change it then. (as position is rounded so numbers get
                  * lost when the rounded number is set) (arena/simulation Wolf) */
-                if ((/*Bit16s*/short)CPU_Regs.reg_ecx.word() >= mouse.max_x) mouse.x = (float)(mouse.max_x);
-                else if (mouse.min_x >= CPU_Regs.reg_ecx.word()) mouse.x = (float)(mouse.min_x);
+                if ((/*Bit16s*/short)CPU_Regs.reg_ecx.word() >= mouse.max_x) mouse.x = mouse.max_x;
+                else if (mouse.min_x >= CPU_Regs.reg_ecx.word()) mouse.x = mouse.min_x;
                 else if (CPU_Regs.reg_ecx.word() != POS_X()) mouse.x = (float)(CPU_Regs.reg_ecx.word());
 
-                if ((/*Bit16s*/short)CPU_Regs.reg_edx.word() >= mouse.max_y) mouse.y = (float)(mouse.max_y);
-                else if (mouse.min_y >= (/*Bit16s*/short)CPU_Regs.reg_edx.word()) mouse.y = (float)(mouse.min_y);
+                if ((/*Bit16s*/short)CPU_Regs.reg_edx.word() >= mouse.max_y) mouse.y = mouse.max_y;
+                else if (mouse.min_y >= (/*Bit16s*/short)CPU_Regs.reg_edx.word()) mouse.y = mouse.min_y;
                 else if ((/*Bit16s*/short)CPU_Regs.reg_edx.word() != POS_Y()) mouse.y = (float)(CPU_Regs.reg_edx.word());
                 DrawCursor();
                 break;
@@ -1045,7 +1052,7 @@ public class Mouse {
                     if(mouse.x < mouse.min_x) mouse.x = mouse.min_x;
                     /* Or alternatively this:
                     mouse.x = (mouse.max_x - mouse.min_x + 1)/2;*/
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_NORMAL,"Define Hortizontal range min:"+min+" max:"+max);
+                    LOG_MOUSE.log(Level.DEBUG, "Define Hortizontal range min:"+min+" max:"+max);
                 }
                 break;
             case 0x08:	/* Define vertical cursor range */
@@ -1062,7 +1069,7 @@ public class Mouse {
                     if(mouse.y < mouse.min_y) mouse.y = mouse.min_y;
                     /* Or alternatively this:
                     mouse.y = (mouse.max_y - mouse.min_y + 1)/2;*/
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_NORMAL,"Define Vertical range min:"+min+" max:"+max);
+                    LOG_MOUSE.log(Level.DEBUG, "Define Vertical range min:"+min+" max:"+max);
                 }
                 break;
             case 0x09:	/* Define GFX Cursor */
@@ -1091,7 +1098,7 @@ public class Mouse {
                 break;
             case 0x0c:	/* Define interrupt subroutine parameters */
                 mouse.sub_mask=CPU_Regs.reg_ecx.word();
-                mouse.sub_seg=(int)CPU_Regs.reg_esVal.dword;
+                mouse.sub_seg= CPU_Regs.reg_esVal.dword;
                 mouse.sub_ofs=CPU_Regs.reg_edx.word();
                 Main.Mouse_AutoLock(true); //Some games don't seem to reset the mouse before using
                 break;
@@ -1118,7 +1125,7 @@ public class Mouse {
                     /*Bit16u*/int oldMask= mouse.sub_mask;
                     // Set new values
                     mouse.sub_mask= CPU_Regs.reg_ecx.word();
-                    mouse.sub_seg = (int)CPU_Regs.reg_esVal.dword;
+                    mouse.sub_seg = CPU_Regs.reg_esVal.dword;
                     mouse.sub_ofs = CPU_Regs.reg_edx.word();
                     // Return old values
                     CPU_Regs.reg_ecx.word(oldMask);
@@ -1131,7 +1138,7 @@ public class Mouse {
                 break;
             case 0x16: /* Save driver state */
                 {
-                    Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_WARN,"Saving driver state...");
+                    LOG_MOUSE.log(Level.WARNING, "Saving driver state...");
                     /*PhysPt*/int dest = CPU_Regs.reg_esPhys.dword+CPU_Regs.reg_edx.word();
                     byte[] data = mouse.save();
                     Memory.MEM_BlockWrite(dest, data, data.length);
@@ -1139,7 +1146,7 @@ public class Mouse {
                 break;
             case 0x17: /* load driver state */
                 {
-                    Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_WARN,"Loading driver state...");
+                    LOG_MOUSE.log(Level.WARNING, "Loading driver state...");
                     /*PhysPt*/int src = CPU_Regs.reg_esPhys.dword+CPU_Regs.reg_edx.word();
                     byte[] data = new byte[_mouse.sizeof()];
                     Memory.MEM_BlockRead(src, data, data.length);
@@ -1150,14 +1157,14 @@ public class Mouse {
                 // ToDo : double mouse speed value
                 Mouse_SetSensitivity(CPU_Regs.reg_ebx.word(),CPU_Regs.reg_ecx.word(),CPU_Regs.reg_edx.word());
 
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_WARN,"Set sensitivity used with "+CPU_Regs.reg_ebx.word()+" "+CPU_Regs.reg_ecx.word()+" ("+CPU_Regs.reg_edx.word()+")");
+                LOG_MOUSE.log(Level.WARNING, "Set sensitivity used with "+CPU_Regs.reg_ebx.word()+" "+CPU_Regs.reg_ecx.word()+" ("+CPU_Regs.reg_edx.word()+")");
                 break;
             case 0x1b:	/* Get mouse sensitivity */
                 CPU_Regs.reg_ebx.word(mouse.senv_x_val);
                 CPU_Regs.reg_ecx.word(mouse.senv_y_val);
                 CPU_Regs.reg_edx.word(mouse.dspeed_val);
 
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_WARN,"Get sensitivity "+CPU_Regs.reg_ebx.word()+" "+CPU_Regs.reg_ecx.word());
+                LOG_MOUSE.log(Level.WARNING, "Get sensitivity "+CPU_Regs.reg_ebx.word()+" "+CPU_Regs.reg_ecx.word());
                 break;
             case 0x1c:	/* Set interrupt rate */
                 /* Can't really set a rate this is host determined */
@@ -1207,40 +1214,48 @@ public class Mouse {
                 break;
             case 0x26: /* Get Maximum virtual coordinates */
                 CPU_Regs.reg_ebx.word((mouse.enabled ? 0x0000 : 0xffff));
-                CPU_Regs.reg_ecx.word((/*Bit16u*/int)mouse.max_x);
-                CPU_Regs.reg_edx.word((/*Bit16u*/int)mouse.max_y);
+                /*Bit16u*/
+                CPU_Regs.reg_ecx.word(mouse.max_x);
+                /*Bit16u*/
+                CPU_Regs.reg_edx.word(mouse.max_y);
                 break;
             case 0x31: /* Get Current Minimum/Maximum virtual coordinates */
-                CPU_Regs.reg_eax.word((/*Bit16u*/int)mouse.min_x);
-                CPU_Regs.reg_ebx.word((/*Bit16u*/int)mouse.min_y);
-                CPU_Regs.reg_ecx.word((/*Bit16u*/int)mouse.max_x);
-                CPU_Regs.reg_edx.word((/*Bit16u*/int)mouse.max_y);
+                /*Bit16u*/
+                CPU_Regs.reg_eax.word(mouse.min_x);
+                /*Bit16u*/
+                CPU_Regs.reg_ebx.word(mouse.min_y);
+                /*Bit16u*/
+                CPU_Regs.reg_ecx.word(mouse.max_x);
+                /*Bit16u*/
+                CPU_Regs.reg_edx.word(mouse.max_y);
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_ERROR,"Mouse Function "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" not implemented!");
+                LOG_MOUSE.log(Level.ERROR, "Mouse Function "+Integer.toString(CPU_Regs.reg_eax.word(), 16)+" not implemented!");
                 break;
             }
             return Callback.CBRET_NONE;
         }
     };
 
-    static private Callback.Handler MOUSE_BD_Handler = new Callback.Handler() {
+    static private final Callback.Handler MOUSE_BD_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Mouse.MOUSE_BD_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             // the stack contains offsets to register values
-            /*Bit16u*/int raxpt=Memory.real_readw((int)CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x0a);
-            /*Bit16u*/int rbxpt=Memory.real_readw((int)CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x08);
-            /*Bit16u*/int rcxpt=Memory.real_readw((int)CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x06);
-            /*Bit16u*/int rdxpt=Memory.real_readw((int)CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x04);
+            /*Bit16u*/int raxpt=Memory.real_readw(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x0a);
+            /*Bit16u*/int rbxpt=Memory.real_readw(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x08);
+            /*Bit16u*/int rcxpt=Memory.real_readw(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x06);
+            /*Bit16u*/int rdxpt=Memory.real_readw(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()+0x04);
 
             // read out the actual values, registers ARE overwritten
-            /*Bit16u*/int rax=Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,raxpt);
+            /*Bit16u*/int rax=Memory.real_readw(CPU_Regs.reg_dsVal.dword,raxpt);
             CPU_Regs.reg_eax.word(rax);
-            CPU_Regs.reg_ebx.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rbxpt));
-            CPU_Regs.reg_ecx.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rcxpt));
-            CPU_Regs.reg_edx.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rdxpt));
+            CPU_Regs.reg_ebx.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rbxpt));
+            CPU_Regs.reg_ecx.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rcxpt));
+            CPU_Regs.reg_edx.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rdxpt));
         //	LOG_MSG("MOUSE BD: %04X %X %X %X %d %d",CPU_Regs.reg_eax.word(),CPU_Regs.reg_ebx.word(),CPU_Regs.reg_ecx.word(),CPU_Regs.reg_edx.word(),POS_X,POS_Y);
 
             // some functions are treated in a special way (additional registers)
@@ -1248,18 +1263,18 @@ public class Mouse {
                 case 0x09:	/* Define GFX Cursor */
                 case 0x16:	/* Save driver state */
                 case 0x17:	/* load driver state */
-                    CPU_Regs.SegSet16ES((int)CPU_Regs.reg_dsVal.dword);
+                    CPU_Regs.SegSet16ES(CPU_Regs.reg_dsVal.dword);
                     break;
                 case 0x0c:	/* Define interrupt subroutine parameters */
                 case 0x14:	/* Exchange event-handler */
                     if (CPU_Regs.reg_ebx.word()!=0) CPU_Regs.SegSet16ES(CPU_Regs.reg_ebx.word());
-                    else CPU_Regs.SegSet16ES((int)CPU_Regs.reg_dsVal.dword);
+                    else CPU_Regs.SegSet16ES(CPU_Regs.reg_dsVal.dword);
                     break;
                 case 0x10:	/* Define screen region for updating */
-                    CPU_Regs.reg_ecx.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rdxpt));
-                    CPU_Regs.reg_edx.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rdxpt+2));
-                    CPU_Regs.reg_esi.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rdxpt+4));
-                    CPU_Regs.reg_edi.word(Memory.real_readw((int)CPU_Regs.reg_dsVal.dword,rdxpt+6));
+                    CPU_Regs.reg_ecx.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rdxpt));
+                    CPU_Regs.reg_edx.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rdxpt+2));
+                    CPU_Regs.reg_esi.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rdxpt+4));
+                    CPU_Regs.reg_edi.word(Memory.real_readw(CPU_Regs.reg_dsVal.dword,rdxpt+6));
                     break;
                 default:
                     break;
@@ -1268,16 +1283,16 @@ public class Mouse {
             INT33_Handler.call();
 
             // save back the registers, too
-            Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,raxpt,CPU_Regs.reg_eax.word());
-            Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,rbxpt,CPU_Regs.reg_ebx.word());
-            Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,rcxpt,CPU_Regs.reg_ecx.word());
-            Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,rdxpt,CPU_Regs.reg_edx.word());
+            Memory.real_writew(CPU_Regs.reg_dsVal.dword,raxpt,CPU_Regs.reg_eax.word());
+            Memory.real_writew(CPU_Regs.reg_dsVal.dword,rbxpt,CPU_Regs.reg_ebx.word());
+            Memory.real_writew(CPU_Regs.reg_dsVal.dword,rcxpt,CPU_Regs.reg_ecx.word());
+            Memory.real_writew(CPU_Regs.reg_dsVal.dword,rdxpt,CPU_Regs.reg_edx.word());
             switch (rax) {
                 case 0x1f:	/* Disable Mousedriver */
-                    Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,rbxpt,(int)CPU_Regs.reg_esVal.dword);
+                    Memory.real_writew(CPU_Regs.reg_dsVal.dword,rbxpt, CPU_Regs.reg_esVal.dword);
                     break;
                 case 0x14: /* Exchange event-handler */
-                    Memory.real_writew((int)CPU_Regs.reg_dsVal.dword,rcxpt,(int)CPU_Regs.reg_esVal.dword);
+                    Memory.real_writew(CPU_Regs.reg_dsVal.dword,rcxpt, CPU_Regs.reg_esVal.dword);
                     break;
                 default:
                     break;
@@ -1288,10 +1303,12 @@ public class Mouse {
         }
     };
 
-    static private Callback.Handler INT74_Handler = new Callback.Handler() {
+    static private final Callback.Handler INT74_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Mouse.INT74_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             if (mouse.events>0) {
                 mouse.events--;
@@ -1307,7 +1324,7 @@ public class Mouse {
                     CPU.CPU_Push16(Memory.RealOff(Callback.CALLBACK_RealPointer(int74_ret_callback)));
                     CPU_Regs.SegSet16CS(mouse.sub_seg);
                     CPU_Regs.reg_ip(mouse.sub_ofs);
-                    if(mouse.in_UIR) Log.log(LogTypes.LOG_MOUSE,LogSeverities.LOG_ERROR,"Already in UIR!");
+                    if(mouse.in_UIR) LOG_MOUSE.log(Level.ERROR, "Already in UIR!");
                     mouse.in_UIR = true;
                 } else if (useps2callback) {
                     CPU.CPU_Push16(Memory.RealSeg(Callback.CALLBACK_RealPointer(int74_ret_callback)));
@@ -1325,10 +1342,12 @@ public class Mouse {
         }
     };
 
-    static private Callback.Handler MOUSE_UserInt_CB_Handler = new Callback.Handler() {
+    static private final Callback.Handler MOUSE_UserInt_CB_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Mouse.MOUSE_UserInt_CB_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             mouse.in_UIR = false;
             if (mouse.events!=0) {
@@ -1341,13 +1360,10 @@ public class Mouse {
         }
     };
 
-    public static Section.SectionFunction MOUSE_Destroy = new Section.SectionFunction() {
-        public void call(Section section) {
-            mouse = new _mouse();
-        }
-    };
+    public static final Section.SectionFunction MOUSE_Destroy = section -> mouse = new _mouse();
 
-    public static Section.SectionFunction MOUSE_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction MOUSE_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             // Callback for mouse interrupt 0x33
             call_int33=Callback.CALLBACK_Allocate();
@@ -1415,7 +1431,7 @@ public class Mouse {
             Mouse_Reset();
             Mouse_SetSensitivity(50,50,50);
 
-            section.AddDestroyFunction(MOUSE_Destroy,false);
+            section.addDestroyFunction(MOUSE_Destroy,false);
         }
     };
 }

@@ -4,13 +4,15 @@ import jdos.Dosbox;
 import jdos.hardware.IoHandler;
 import jdos.hardware.Memory;
 import jdos.hardware.VGA;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.types.MachineType;
 import jdos.types.SVGACards;
 
 public class Int10_char {
+
+    private static final Logger LOG_BIOS = System.getLogger("LOG_BIOS");
+
     static void CGA2_CopyRow(/*Bit8u*/short cleft,/*Bit8u*/short cright,/*Bit8u*/short rold,/*Bit8u*/short rnew,/*PhysPt*/int  base) {
         /*Bit8u*/int cheight = Memory.real_readb(Int10.BIOSMEM_SEG,Int10.BIOSMEM_CHAR_HEIGHT);
         /*PhysPt*/int  dest=base+((Int10_modes.CurMode.twidth*rnew)*(cheight/2)+cleft);
@@ -245,7 +247,7 @@ public class Int10_char {
                     }
                     // fall-through
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10, LogSeverities.LOG_ERROR,"Unhandled mode "+Int10_modes.CurMode.type+" for scroll");
+                    LOG_BIOS.log(Level.ERROR, "Unhandled mode "+Int10_modes.CurMode.type+" for scroll");
                 }
             }
         }
@@ -278,7 +280,7 @@ public class Int10_char {
                 }
                 // fall-through
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Unhandled mode "+Int10_modes.CurMode.type+" for scroll");
+                LOG_BIOS.log(Level.ERROR, "Unhandled mode "+Int10_modes.CurMode.type+" for scroll");
             }
             start++;
         }
@@ -286,7 +288,7 @@ public class Int10_char {
 
     public static void INT10_SetActivePage(/*Bit8u*/short page) {
         /*Bit16u*/int mem_address;
-        if (page>7) if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"INT10_SetActivePage page "+page);
+        if (page>7) LOG_BIOS.log(Level.ERROR, "INT10_SetActivePage page "+page);
 
         if (Dosbox.IS_EGAVGA_ARCH() && (Dosbox.svgaCard==SVGACards.SVGA_S3Trio)) page &= 7;
 
@@ -372,7 +374,7 @@ public class Int10_char {
     static public void INT10_SetCursorPos(/*Bit8u*/short row,/*Bit8u*/short col,/*Bit8u*/short page) {
         /*Bit16u*/int address;
 
-        if (page>7) if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"INT10_SetCursorPos page "+page);
+        if (page>7) LOG_BIOS.log(Level.ERROR, "INT10_SetCursorPos page "+page);
         // Bios cursor pos
         Memory.real_writeb(Int10.BIOSMEM_SEG,Int10.BIOSMEM_CURSOR_POS+page*2,col);
         Memory.real_writeb(Int10.BIOSMEM_SEG,Int10.BIOSMEM_CURSOR_POS+page*2+1,row);
@@ -447,7 +449,7 @@ public class Int10_char {
                     return chr;
                 }
             }
-            Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"ReadChar didn't find character");
+            LOG_BIOS.log(Level.ERROR, "ReadChar didn't find character");
             return 0;
         }
     }
@@ -499,7 +501,7 @@ public class Int10_char {
         if(!useattr) { //Set attribute(color) to a sensible value
 
             if(!warned_use){
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"writechar used without attribute in non-textmode "+String.valueOf((char)chr)+" "+Integer.toString(chr,16));
+                LOG_BIOS.log(Level.ERROR, "writechar used without attribute in non-textmode "+ (char) chr +" "+Integer.toString(chr,16));
                 warned_use = true;
             }
             switch(Int10_modes.CurMode.type) {

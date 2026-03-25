@@ -1,18 +1,20 @@
 package jdos.hardware;
 
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Config;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
-import jdos.util.ShortPtr;
+
 
 public class PCSpeaker extends Module_base {
-    private static final double PI = 3.14159265358979323846;
+
+    private static final Logger logger = System.getLogger(PCSpeaker.class.getName());
 
     private static final int SPKR_ENTRIES = 1024;
     private static final int SPKR_VOLUME = 5000;
-    private static final float SPKR_SPEED = (float)((SPKR_VOLUME*2)/0.070f);
+    private static final float SPKR_SPEED = (SPKR_VOLUME*2)/0.070f;
 
     private static final class SPKR_MODES {
         public static final int SPKR_OFF=0;
@@ -44,7 +46,7 @@ public class PCSpeaker extends Module_base {
         /*Bitu*/int last_ticks;
         float last_index;
         /*Bitu*/int min_tr;
-        DelayEntry[] entries = new DelayEntry[SPKR_ENTRIES];
+        final DelayEntry[] entries = new DelayEntry[SPKR_ENTRIES];
         /*Bitu*/int used;
     }
 
@@ -198,7 +200,7 @@ public class PCSpeaker extends Module_base {
             break;
         default:
             if (Config.C_DEBUG)
-                Log.log_msg("Unhandled speaker mode "+mode);
+                logger.log(Level.DEBUG, "Unhandled speaker mode "+mode);
             return;
         }
         spkr.pit_mode=mode;
@@ -234,7 +236,8 @@ public class PCSpeaker extends Module_base {
         }
     }
 
-    static private Mixer.MIXER_Handler PCSPEAKER_CallBack = new Mixer.MIXER_Handler() {
+    static private final Mixer.MIXER_Handler PCSPEAKER_CallBack = new Mixer.MIXER_Handler() {
+        @Override
         public void call(/*Bitu*/int len) {
             /*Bit16s*/short[] stream=new short[len];
             ForwardPIT(1);
@@ -311,7 +314,7 @@ public class PCSpeaker extends Module_base {
 
         }
     };
-    private Mixer.MixerObject MixerChan = new Mixer.MixerObject();
+    private final Mixer.MixerObject MixerChan = new Mixer.MixerObject();
     public PCSpeaker(Section configuration) {
         super(configuration);
         spkr.chan=null;
@@ -333,18 +336,20 @@ public class PCSpeaker extends Module_base {
     }
 
     static private PCSpeaker test;
-    private static Section.SectionFunction PCSPEAKER_ShutDown = new Section.SectionFunction() {
+    private static final Section.SectionFunction PCSPEAKER_ShutDown = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = null;
             spkr = null;
         }
     };
 
-    public static Section.SectionFunction PCSPEAKER_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction PCSPEAKER_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             spkr = new Spkr();
             test = new PCSpeaker(section);
-	        section.AddDestroyFunction(PCSPEAKER_ShutDown,true);
+	        section.addDestroyFunction(PCSPEAKER_ShutDown,true);
         }
     };
 }

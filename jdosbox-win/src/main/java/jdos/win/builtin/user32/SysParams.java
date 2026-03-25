@@ -52,80 +52,61 @@ public class SysParams extends WinAPI {
     // INT WINAPI GetSystemMetrics( INT index )
     static public int GetSystemMetrics(int index) {
         /* some metrics are dynamic */
-        switch (index)
-        {
-        case SM_CXSCREEN:
-            return StaticData.screen.getWidth();
-        case SM_CYSCREEN:
-            return StaticData.screen.getHeight();
+        return switch (index) {
+            case SM_CXSCREEN -> StaticData.screen.getWidth();
+            case SM_CYSCREEN -> StaticData.screen.getHeight();
 //        case SM_CXVSCROLL:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iScrollWidth;
-        case SM_CYHSCROLL:
-            return GetSystemMetrics(SM_CXVSCROLL);
+            case SM_CYHSCROLL -> GetSystemMetrics(SM_CXVSCROLL);
 //        case SM_CYCAPTION:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iCaptionHeight + 1;
-        case SM_CXBORDER:
-        case SM_CYBORDER:
-            /* SM_C{X,Y}BORDER always returns 1 regardless of 'BorderWidth' value in registry */
-            return 1;
-        case SM_CXDLGFRAME:
-        case SM_CYDLGFRAME:
-            return 3;
+            case SM_CXBORDER, SM_CYBORDER ->
+                /* SM_C{X,Y}BORDER always returns 1 regardless of 'BorderWidth' value in registry */
+                    1;
+            case SM_CXDLGFRAME, SM_CYDLGFRAME -> 3;
 //        case SM_CYVTHUMB:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iScrollHeight;
-        case SM_CXHTHUMB:
-            return GetSystemMetrics(SM_CYVTHUMB);
-        case SM_CXICON:
-            //if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
-            //return icon_size.cx;
-            return 32;
-        case SM_CYICON:
-            //if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
-            //return icon_size.cy;
-            return 32;
-        case SM_CXCURSOR:
-        case SM_CYCURSOR:
-            return 32;
-        case SM_CYMENU:
-            return GetSystemMetrics(SM_CYMENUSIZE) + 1;
-        case SM_CXFULLSCREEN:
-            /* see the remark for SM_CXMAXIMIZED, at least this formulation is
-             * correct */
-            return GetSystemMetrics( SM_CXMAXIMIZED) - 2 * GetSystemMetrics( SM_CXFRAME);
-        case SM_CYFULLSCREEN:
-            /* see the remark for SM_CYMAXIMIZED, at least this formulation is
-             * correct */
-            return GetSystemMetrics( SM_CYMAXIMIZED) - GetSystemMetrics( SM_CYMIN);
-        case SM_CYKANJIWINDOW:
-            return 0;
-        case SM_MOUSEPRESENT:
-            return 1;
+            case SM_CXHTHUMB -> GetSystemMetrics(SM_CYVTHUMB);
+            case SM_CXICON ->
+                //if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
+                //return icon_size.cx;
+                    32;
+            case SM_CYICON ->
+                //if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
+                //return icon_size.cy;
+                    32;
+            case SM_CXCURSOR, SM_CYCURSOR -> 32;
+            case SM_CYMENU -> GetSystemMetrics(SM_CYMENUSIZE) + 1;
+            case SM_CXFULLSCREEN ->
+                /* see the remark for SM_CXMAXIMIZED, at least this formulation is
+                 * correct */
+                    GetSystemMetrics(SM_CXMAXIMIZED) - 2 * GetSystemMetrics(SM_CXFRAME);
+            case SM_CYFULLSCREEN ->
+                /* see the remark for SM_CYMAXIMIZED, at least this formulation is
+                 * correct */
+                    GetSystemMetrics(SM_CYMAXIMIZED) - GetSystemMetrics(SM_CYMIN);
+            case SM_CYKANJIWINDOW -> 0;
+            case SM_MOUSEPRESENT -> 1;
 //        case SM_CYVSCROLL:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iScrollHeight;
 //        case SM_CXHSCROLL:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iScrollHeight;
-        case SM_DEBUG:
-            return 0;
+            case SM_DEBUG -> 0;
 //        case SM_SWAPBUTTON:
 //            get_bool_param( SPI_SETMOUSEBUTTONSWAP_IDX, SPI_SETMOUSEBUTTONSWAP_REGKEY,
 //                            SPI_SETMOUSEBUTTONSWAP_VALNAME, &swap_buttons, (BOOL*)&ret );
 //            return ret;
-        case SM_RESERVED1:
-        case SM_RESERVED2:
-        case SM_RESERVED3:
-        case SM_RESERVED4:
-            return 0;
+            case SM_RESERVED1, SM_RESERVED2, SM_RESERVED3, SM_RESERVED4 -> 0;
 //        case SM_CXMIN:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return 3 * nonclient_metrics.iCaptionWidth + GetSystemMetrics( SM_CYSIZE) +
 //                4 * CaptionFontAvCharWidth + 2 * GetSystemMetrics( SM_CXFRAME) + 4;
-        case SM_CYMIN:
-            return GetSystemMetrics( SM_CYCAPTION) + 2 * GetSystemMetrics( SM_CYFRAME);
+            case SM_CYMIN -> GetSystemMetrics(SM_CYCAPTION) + 2 * GetSystemMetrics(SM_CYFRAME);
 //        case SM_CXSIZE:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iCaptionWidth;
@@ -138,10 +119,8 @@ public class SysParams extends WinAPI {
 //        case SM_CYFRAME:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return GetSystemMetrics(SM_CYDLGFRAME) + nonclient_metrics.iBorderWidth;
-        case SM_CXMINTRACK:
-            return GetSystemMetrics(SM_CXMIN);
-        case SM_CYMINTRACK:
-            return GetSystemMetrics(SM_CYMIN);
+            case SM_CXMINTRACK -> GetSystemMetrics(SM_CXMIN);
+            case SM_CYMINTRACK -> GetSystemMetrics(SM_CYMIN);
 //        case SM_CXDOUBLECLK:
 //            get_uint_param( SPI_SETDOUBLECLKWIDTH_IDX, SPI_SETDOUBLECLKWIDTH_REGKEY1,
 //                            SPI_SETDOUBLECLKWIDTH_VALNAME, &double_click_width, &ret );
@@ -159,33 +138,25 @@ public class SysParams extends WinAPI {
 //        case SM_MENUDROPALIGNMENT:
 //            SystemParametersInfoW( SPI_GETMENUDROPALIGNMENT, 0, &ret, 0 );
 //            return ret;
-        case SM_PENWINDOWS:
-            return 0;
+            case SM_PENWINDOWS -> 0;
 //        case SM_DBCSENABLED:
 //        {
 //            CPINFO cpinfo;
 //            GetCPInfo( CP_ACP, &cpinfo );
 //            return (cpinfo.MaxCharSize > 1);
 //        }
-        case SM_CMOUSEBUTTONS:
-            return 3;
-        case SM_SECURE:
-            return 0;
-        case SM_CXEDGE:
-            return GetSystemMetrics(SM_CXBORDER) + 1;
-        case SM_CYEDGE:
-            return GetSystemMetrics(SM_CYBORDER) + 1;
+            case SM_CMOUSEBUTTONS -> 3;
+            case SM_SECURE -> 0;
+            case SM_CXEDGE -> GetSystemMetrics(SM_CXBORDER) + 1;
+            case SM_CYEDGE -> GetSystemMetrics(SM_CYBORDER) + 1;
 //        case SM_CXMINSPACING:
 //            if( spi_loaded[SPI_MINIMIZEDMETRICS_IDX]) load_minimized_metrics();
 //            return GetSystemMetrics(SM_CXMINIMIZED) + minimized_metrics.iHorzGap;
 //        case SM_CYMINSPACING:
 //            if( spi_loaded[SPI_MINIMIZEDMETRICS_IDX]) load_minimized_metrics();
 //            return GetSystemMetrics(SM_CYMINIMIZED) + minimized_metrics.iVertGap;
-        case SM_CXSMICON:
-        case SM_CYSMICON:
-            return 16;
-        case SM_CYSMCAPTION:
-            return GetSystemMetrics(SM_CYSMSIZE) + 1;
+            case SM_CXSMICON, SM_CYSMICON -> 16;
+            case SM_CYSMCAPTION -> GetSystemMetrics(SM_CYSMSIZE) + 1;
 //        case SM_CXSMSIZE:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iSmCaptionWidth;
@@ -207,23 +178,17 @@ public class SysParams extends WinAPI {
 //        case SM_CYMINIMIZED:
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return nonclient_metrics.iCaptionHeight + 6;
-        case SM_CXMAXTRACK:
-            return GetSystemMetrics(SM_CXVIRTUALSCREEN) + 4 + 2 * GetSystemMetrics(SM_CXFRAME);
-        case SM_CYMAXTRACK:
-            return GetSystemMetrics(SM_CYVIRTUALSCREEN) + 4 + 2 * GetSystemMetrics(SM_CYFRAME);
-        case SM_CXMAXIMIZED:
-            /* FIXME: subtract the width of any vertical application toolbars*/
-            return GetSystemMetrics(SM_CXSCREEN) + 2 * GetSystemMetrics(SM_CXFRAME);
-        case SM_CYMAXIMIZED:
-            /* FIXME: subtract the width of any horizontal application toolbars*/
-            return GetSystemMetrics(SM_CYSCREEN) + 2 * GetSystemMetrics(SM_CYCAPTION);
-        case SM_NETWORK:
-            return 3;  /* FIXME */
-        case SM_CLEANBOOT:
-            return 0; /* 0 = ok, 1 = failsafe, 2 = failsafe + network */
-        case SM_CXDRAG:
-        case SM_CYDRAG:
-            return 4;
+            case SM_CXMAXTRACK -> GetSystemMetrics(SM_CXVIRTUALSCREEN) + 4 + 2 * GetSystemMetrics(SM_CXFRAME);
+            case SM_CYMAXTRACK -> GetSystemMetrics(SM_CYVIRTUALSCREEN) + 4 + 2 * GetSystemMetrics(SM_CYFRAME);
+            case SM_CXMAXIMIZED ->
+                /* FIXME: subtract the width of any vertical application toolbars*/
+                    GetSystemMetrics(SM_CXSCREEN) + 2 * GetSystemMetrics(SM_CXFRAME);
+            case SM_CYMAXIMIZED ->
+                /* FIXME: subtract the width of any horizontal application toolbars*/
+                    GetSystemMetrics(SM_CYSCREEN) + 2 * GetSystemMetrics(SM_CYCAPTION);
+            case SM_NETWORK -> 3;  /* FIXME */
+            case SM_CLEANBOOT -> 0; /* 0 = ok, 1 = failsafe, 2 = failsafe + network */
+            case SM_CXDRAG, SM_CYDRAG -> 4;
 //        case SM_SHOWSOUNDS:
 //            SystemParametersInfoW( SPI_GETSHOWSOUNDS, 0, &ret, 0 );
 //            return ret;
@@ -232,12 +197,9 @@ public class SysParams extends WinAPI {
 //            if (!spi_loaded[SPI_NONCLIENTMETRICS_IDX]) load_nonclient_metrics();
 //            return tmMenuFont.tmHeight <= 0 ? 13 :
 //            ((tmMenuFont.tmHeight + tmMenuFont.tmExternalLeading + 1) / 2) * 2 - 1;
-        case SM_SLOWMACHINE:
-            return 0;  /* Never true */
-        case SM_MIDEASTENABLED:
-            return 0;  /* FIXME */
-        case SM_MOUSEWHEELPRESENT:
-            return 1;
+            case SM_SLOWMACHINE -> 0;  /* Never true */
+            case SM_MIDEASTENABLED -> 0;  /* FIXME */
+            case SM_MOUSEWHEELPRESENT -> 1;
 //        case SM_XVIRTUALSCREEN:
 //        {
 //            struct monitor_info info;
@@ -262,23 +224,14 @@ public class SysParams extends WinAPI {
 //            get_monitors_info( &info );
 //            return info.virtual_rect.bottom - info.virtual_rect.top;
 //        }
-        case SM_CMONITORS:
-            return 1;
-        case SM_SAMEDISPLAYFORMAT:
-            return 1;
-        case SM_IMMENABLED:
-            return 0;  /* FIXME */
-        case SM_CXFOCUSBORDER:
-        case SM_CYFOCUSBORDER:
-            return 1;
-        case SM_TABLETPC:
-        case SM_MEDIACENTER:
-            return 0;
-        case SM_CMETRICS:
-            return SM_CMETRICS;
-        default:
-            return 0;
-        }
+            case SM_CMONITORS -> 1;
+            case SM_SAMEDISPLAYFORMAT -> 1;
+            case SM_IMMENABLED -> 0;  /* FIXME */
+            case SM_CXFOCUSBORDER, SM_CYFOCUSBORDER -> 1;
+            case SM_TABLETPC, SM_MEDIACENTER -> 0;
+            case SM_CMETRICS -> SM_CMETRICS;
+            default -> 0;
+        };
     }
 
     // BOOL WINAPI SystemParametersInfo(UINT uiAction, UINT uiParam, PVOID pvParam, UINT fWinIni)
@@ -288,7 +241,7 @@ public class SysParams extends WinAPI {
                 writed(pvParam, FALSE);
                 break;
             case 0x0030: // SPI_GETWORKAREA
-                WinRect.write(pvParam, 0, 0, StaticData.screen.getWidth(), StaticData.screen.getHeight()); // :TODO: if we ever show a taskbar this will have to be adjusted
+                WinRect.write(pvParam, 0, 0, StaticData.screen.getWidth(), StaticData.screen.getHeight()); // TODO if we ever show a taskbar this will have to be adjusted
                 break;
             case 0x0053: // SPI_GETLOWPOWERACTIVE
                 writed(pvParam, FALSE);
@@ -304,8 +257,8 @@ public class SysParams extends WinAPI {
             this.name = name;
             this.color = color;
         }
-        public String name;
-        public int color;
+        public final String name;
+        public final int color;
     }
 
     static public final DefColor[] DefSysColors = new DefColor[] {

@@ -4,12 +4,17 @@ import jdos.Dosbox;
 import jdos.gui.Main;
 
 import java.io.*;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 
 public class FileIOFactory {
+
+    private static final Logger logger = System.getLogger(FileIOFactory.class.getName());
+
     static public final int MODE_READ = 0x01;
     static public final int MODE_WRITE = 0x02;
     static public final int MODE_TRUNCATE = 0x04;
@@ -20,26 +25,29 @@ public class FileIOFactory {
             super(file, mode);
             this.file = file;
         }
+        @Override
         public long lastModified() {
             return file.lastModified();
         }
     }
 
     static private class RamIO implements FileIO {
-        private byte[] data;
+        private final byte[] data;
         private int pos=0;
-        private int mode;
+        private final int mode;
 
         public RamIO(byte[] data, int mode) {
             this.data = data;
             this.mode = mode;
         }
+        @Override
         public int read() throws IOException {
             if (pos>=data.length)
                 return -1;
             return data[pos++];
         }
 
+        @Override
         public int read(byte[] b, int off, int len) throws IOException {
             if (b == null)
                 throw new NullPointerException();
@@ -55,10 +63,12 @@ public class FileIOFactory {
             return len;
         }
 
+        @Override
         public int read(byte[] b) throws IOException {
             return read(b, 0, b.length);
         }
 
+        @Override
         public int skipBytes(int n) throws IOException {
             if (pos>=data.length)
                 return 0;
@@ -68,6 +78,7 @@ public class FileIOFactory {
             return n;
         }
 
+        @Override
         public void write(int b) throws IOException {
             if ((mode & MODE_WRITE)==0)
                 throw new IOException("Read Only");
@@ -76,10 +87,12 @@ public class FileIOFactory {
             data[pos++] = (byte)(b & 0xFF);
         }
 
+        @Override
         public void write(byte[] b) throws IOException {
             write(b, 0, b.length);
         }
 
+        @Override
         public void write(byte[] b, int off, int len) throws IOException {
             if ((mode & MODE_WRITE)==0)
                 throw new IOException("Read Only");
@@ -89,6 +102,7 @@ public class FileIOFactory {
             pos+=len;
         }
 
+        @Override
         public void seek(long p) throws IOException {
             if (p>data.length)
                 throw new IOException("EOF");
@@ -97,35 +111,40 @@ public class FileIOFactory {
             pos=(int)p;
         }
 
+        @Override
         public long length() throws IOException {
             return data.length;
         }
 
+        @Override
         public void setLength(long newLength) throws IOException {
             throw new IOException("Not Supported");
         }
         
+        @Override
         public void close() throws IOException {
         }
 
+        @Override
         public long getFilePointer() throws IOException {
             return pos;
         }
 
+        @Override
         public long lastModified() {
             return 0;
         }
     }
     
     static private class JarIO implements FileIO {
-        private String path;
+        private final String path;
         private int pos=0;
         private int real_pos=0;
-        private int mode;
+        private final int mode;
         private int len;
         private InputStream is;
-        final private int cacheShift = 13;
-        final private int cacheMask = 0x1FFF;
+        static final private int cacheShift = 13;
+        static final private int cacheMask = 0x1FFF;
         final private int cachePageSize = 1 << cacheShift; // 8192
         // Necessary for the thrashing that happens when a zip (i.e. wad file, is inside the zipped jar)
         final private LRUCache cache = new LRUCache(32); // 256k
@@ -181,15 +200,15 @@ public class FileIOFactory {
             if (writeData != null && writeData[offset>>cacheShift]!=null) {
                 return writeData[offset>>cacheShift];
             }
-            Integer i = new Integer(offset);
-            byte[] b = (byte[])cache.get(i);
+            byte[] b = (byte[])cache.get(offset);
             if (b == null) {
                 b = fill(offset);
-                cache.put(i, b);
+                cache.put(offset, b);
             }
             return b;
         }
 
+        @Override
         public int read() throws IOException {
             if (pos>=len)
                 return -1;
@@ -200,6 +219,7 @@ public class FileIOFactory {
             return (b[index] & 0xFF);
         }
 
+        @Override
         public int read(byte[] b, int off, int len) throws IOException {
             if (b == null)
                 throw new NullPointerException();
@@ -227,10 +247,12 @@ public class FileIOFactory {
             return result;
         }
 
+        @Override
         public int read(byte[] b) throws IOException {
             return read(b, 0, b.length);
         }
 
+        @Override
         public int skipBytes(int n) throws IOException {
             if (pos>=len)
                 return 0;
@@ -240,6 +262,7 @@ public class FileIOFactory {
             return n;
         }
 
+        @Override
         public void write(int b) throws IOException {
             if ((mode & MODE_WRITE)==0)
                 throw new IOException("Read Only");
@@ -258,10 +281,12 @@ public class FileIOFactory {
             data[index] = (byte)b;
         }
 
+        @Override
         public void write(byte[] b) throws IOException {
             write(b, 0, b.length);
         }
 
+        @Override
         public void write(byte[] b, int off, int len) throws IOException {
             if ((mode & MODE_WRITE)==0)
                 throw new IOException("Read Only");
@@ -297,6 +322,7 @@ public class FileIOFactory {
             }
         }
 
+        @Override
         public void seek(long p) throws IOException {
             if (p == pos) {
                 return;
@@ -308,22 +334,27 @@ public class FileIOFactory {
             pos = (int)p;
         }
 
+        @Override
         public long length() throws IOException {
             return len;
         }
 
+        @Override
         public void setLength(long newLength) throws IOException {
             throw new IOException("Not Supported");
         }
 
+        @Override
         public void close() throws IOException {
             is.close();
         }
 
+        @Override
         public long getFilePointer() throws IOException {
             return pos;
         }
 
+        @Override
         public long lastModified() {
             return 0;
         }
@@ -428,10 +459,8 @@ public class FileIOFactory {
                 if (b == null)
                     b = os.toByteArray();
                 return new RamIO(b, mode);
-            } catch (OutOfMemoryError e) {
-                e.printStackTrace();
-            } catch (Exception e) {
-                e.printStackTrace();
+            } catch (OutOfMemoryError | Exception e) {
+                logger.log(Level.ERROR, e.getMessage(), e);
             } finally {
                 Main.showProgress(null, 0);
             }
@@ -447,10 +476,10 @@ public class FileIOFactory {
             return new JarIO(path, mode);
         } else if (path.toLowerCase().startsWith("jar_tmp://")) {
             path = path.substring(10);
-            System.out.println("Opening "+path);
+            logger.log(Level.DEBUG,"Opening "+path);
             InputStream is = Dosbox.class.getResourceAsStream(path);
             if (is == null) {
-                System.out.println("File not found: "+path);
+                logger.log(Level.DEBUG,"File not found: "+path);
                 return null;
             }
             try {
@@ -473,12 +502,12 @@ public class FileIOFactory {
                     }
                 } while (read>0);
                 tmpFile.deleteOnExit();
-                System.out.println("Copied "+count+" bytes to "+tmpFile.getAbsolutePath());
+                logger.log(Level.DEBUG,"Copied "+count+" bytes to "+tmpFile.getAbsolutePath());
                 try {is.close();} catch (Exception e) {}
                 try {out.close();} catch (Exception e) {}
                 return new RandomIO(tmpFile, "rw");
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
             return null;
         } else {

@@ -1,10 +1,16 @@
 package jdos.hardware;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.gui.Render;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 
 public class Hardware extends Module_base {
+
+    private static final Logger logger = System.getLogger(Hardware.class.getName());
+
     // OPL_Mode
 	static public final int OPL_none = 0;
     static public final int OPL_cms = 1;
@@ -21,20 +27,17 @@ public class Hardware extends Module_base {
     static public final int CAPTURE_FLAG_DBLW = 0x1;
     static public final int CAPTURE_FLAG_DBLH = 0x2;
 
-    static public int CaptureState = 0;
+    static public final int CaptureState = 0;
 
     static public void CAPTURE_AddImage(/*Bitu*/int width, /*Bitu*/int height, /*Bitu*/int bpp, /*Bitu*/int pitch, /*Bitu*/int flags, float fps, int[] data, Render.RenderPal_t.RGB[] pal) {
     }
-    static public void CAPTURE_AddWave(/*Bit32u*/long freq, /*Bit32u*/long len, short[] data) {
 
+    static public void CAPTURE_AddWave(/*Bit32u*/long freq, /*Bit32u*/long len, short[] data) {
     }
+
     public Hardware(Section configuration) {
         super(configuration);
     }
     
-    public static Section.SectionFunction HARDWARE_Init = new Section.SectionFunction() {
-        public void call(Section section) {
-            System.out.println("HARDWARE_Init not finished yet: NO SCREEN SHOTS");
-        }
-    };
+    public static final Section.SectionFunction HARDWARE_Init = section -> logger.log(Level.DEBUG,"HARDWARE_Init not finished yet: NO SCREEN SHOTS");
 }

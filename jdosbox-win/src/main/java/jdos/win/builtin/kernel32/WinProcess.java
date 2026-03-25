@@ -16,12 +16,13 @@ import jdos.win.system.*;
 import jdos.win.utils.Error;
 import jdos.win.utils.*;
 
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
 
 public class WinProcess extends WaitObject {
-    static public WinProcess create(String path, String commandLine, Vector paths, String workingDirectory) {
+    static public WinProcess create(String path, String commandLine, List<Path> paths, String workingDirectory) {
         WinProcess currentProcess = WinSystem.getCurrentProcess();
         WinProcess process = new WinProcess(nextObjectId(), WinSystem.memory, workingDirectory);
         process.switchPageDirectory();
@@ -44,28 +45,21 @@ public class WinProcess extends WaitObject {
     }
 
     // BOOL WINAPI CloseHandle(HANDLE hObject)
-    static public int CloseHandle(int hObject) {
+    static public int closeHandle(int hObject) {
         WinObject object = WinObject.getObject(hObject);
-        if (object == null) {
-            SetLastError(Error.ERROR_INVALID_HANDLE);
-            return FALSE;
-        }
-        if (object instanceof WinProcess) {
-            object.close();
-        } else if (object instanceof WinThread) {
-            object.close();
-        } else if (object instanceof WinFileMapping) {
-            object.close();
-        } else if (object instanceof WinFile) {
-            object.close();
-        } else if (object instanceof WinEvent) {
-            object.close();
-        } else if (object instanceof WinIcon) {
-            object.close();
-        } else if (object instanceof WinCursor) {
-            object.close();
-        } else {
-            Win.panic("CloseHandle not implemented for type: "+object);
+        switch (object) {
+            case null -> {
+                SetLastError(Error.ERROR_INVALID_HANDLE);
+                return FALSE;
+            }
+            case WinProcess winProcess -> object.close();
+            case WinThread winThread -> object.close();
+            case WinFileMapping winFileMapping -> object.close();
+            case WinFile winFile -> object.close();
+            case WinEvent winEvent -> object.close();
+            case WinIcon winIcon -> object.close();
+            case WinCursor winCursor -> object.close();
+            default -> Win.panic("CloseHandle not implemented for type: " + object);
         }
         return TRUE;
     }
@@ -154,8 +148,8 @@ public class WinProcess extends WaitObject {
             //    warn("WaitForInputIdle failed: Error "+WinThread.GetLastError());
             ret = 33;
             /* Close off the handles */
-            CloseHandle(readd(info+4));
-            CloseHandle(readd(info));
+            closeHandle(readd(info+4));
+            closeHandle(readd(info));
         } else if ((ret = WinThread.GetLastError()) >= 32) {
             log("Strange error set by CreateProcess: "+ret);
             return 11;
@@ -164,17 +158,17 @@ public class WinProcess extends WaitObject {
         return 33;
     }
 
-    public static final long ADDRESS_HEAP_START =           0x0BA00000l;
-    public static final long ADDRESS_HEAP_END =             0x0FFFF000l;
-    public static final long ADDRESS_KHEAP_START =          0x90000000l;
-    public static final long ADDRESS_KHEAP_END =            0xA0000000l;
-    public static final long ADDRESS_STACK_START =          0x00100000l;
-    public static final long ADDRESS_STACK_END =            0x01000000l;
-    public static final long ADDRESS_CALLBACK_START =       0xA4000000l;
-    public static final long ADDRESS_CALLBACK_END =         0xA4010000l;
-    public static final long ADDRESS_EXTRA_START =          0xB0000000l;
-    public static final long ADDRESS_VIDEO_START =          0xE0000000l;
-    public static final long ADDRESS_VIDEO_BITMAP_START =   0xE8000000l;
+    public static final long ADDRESS_HEAP_START =           0x0BA00000L;
+    public static final long ADDRESS_HEAP_END =             0x0FFFF000L;
+    public static final long ADDRESS_KHEAP_START =          0x90000000L;
+    public static final long ADDRESS_KHEAP_END =            0xA0000000L;
+    public static final long ADDRESS_STACK_START =          0x00100000L;
+    public static final long ADDRESS_STACK_END =            0x01000000L;
+    public static final long ADDRESS_CALLBACK_START =       0xA4000000L;
+    public static final long ADDRESS_CALLBACK_END =         0xA4010000L;
+    public static final long ADDRESS_EXTRA_START =          0xB0000000L;
+    public static final long ADDRESS_VIDEO_START =          0xE0000000L;
+    public static final long ADDRESS_VIDEO_BITMAP_START =   0xE8000000L;
 
     private WinHeap winHeap;
     public KernelHeap heap;
@@ -184,26 +178,26 @@ public class WinProcess extends WaitObject {
     private int commandLineW = 0;
     private int envHandle = 0;
     private int envHandleW = 0;
-    public Hashtable env = new Hashtable();
+    public final Map<String, String> env = new HashMap<>();
     public Loader loader;
-    public Vector threads = new Vector();
+    public final List<WinThread> threads = new ArrayList<>();
     private int[] temp = new int[10];
     public int nextTempIndex = 0;
 
     public String currentWorkingDirectory;
-    public Vector<Path> paths;
+    public List<Path> paths;
     public boolean console = true;
     public NativeModule mainModule;
-    public int page_directory;
-    public KernelMemory kernelMemory;
-    public Heap addressSpace = new Heap(0x00100000l, 0xFFF00000l);
-    public Vector<VirtualMemory> virtualMemory = new Vector<VirtualMemory>();
-    public Hashtable<String, WinClass> classNames = new Hashtable<String, WinClass>();
-    public WinEvent readyForInput = WinEvent.create(null, true, false);
+    public final int page_directory;
+    public final KernelMemory kernelMemory;
+    public final Heap addressSpace = new Heap(0x00100000L, 0xFFF00000L);
+    public final List<VirtualMemory> virtualMemory = new ArrayList<>();
+    public final Map<String, WinClass> classNames = new HashMap<>();
+    public final WinEvent readyForInput = WinEvent.create(null, true, false);
     public int tlsSize = 0;
-    public Vector<Integer> freeTLS = new Vector<Integer>();
+    public final List<Integer> freeTLS = new ArrayList<>();
     public int mmTimerThreadEIP;
-    public Vector playSound = new Vector();
+    public final List<Runnable> playSound = new ArrayList<>();
 
     public WinProcess(int handle, KernelMemory memory, String workingDirectory) {
         super(handle);
@@ -213,9 +207,8 @@ public class WinProcess extends WaitObject {
     }
 
     public VirtualMemory getVirtualMemory(long address) {
-        for (int i=0;i<virtualMemory.size();i++) {
-            VirtualMemory memory = virtualMemory.get(i);
-            if (memory.address <= address && address < memory.address+memory.size)
+        for (VirtualMemory memory : virtualMemory) {
+            if (memory.address <= address && address < memory.address + memory.size)
                 return memory;
         }
         return null;
@@ -238,7 +231,7 @@ public class WinProcess extends WaitObject {
     }
 
     public WinThread getMainThread() {
-        return (WinThread)threads.elementAt(0);
+        return threads.getFirst();
     }
 
     public void switchPageDirectory() {
@@ -246,19 +239,18 @@ public class WinProcess extends WaitObject {
     }
 
     public FilePath getFile(String name) {
-        if (name.indexOf(":")<0)
+        if (!name.contains(":"))
             name = currentWorkingDirectory+name;
-        // :TODO: add support for relative paths
-        for (int i=0;i<paths.size();i++) {
-            Path path = paths.elementAt(i);
+        // TODO add support for relative paths
+        for (Path path : paths) {
             if (name.toLowerCase().startsWith(path.winPath.toLowerCase())) {
-                return new FilePath(path.nativePath+name.substring(path.winPath.length()));
+                return new FilePath(path.nativePath + name.substring(path.winPath.length()));
             }
         }
-        return new FilePath((paths.elementAt(0)).nativePath+name);
+        return new FilePath((paths.getFirst()).nativePath+name);
     }
 
-    public boolean load(String exe, String commandLine, Vector paths) {
+    public boolean load(String exe, String commandLine, List<Path> paths) {
         this.paths = paths;
         this.commandLine = commandLine;
         // by now we should be running in this process' memory space
@@ -299,7 +291,7 @@ public class WinProcess extends WaitObject {
         return 0;
     }
 
-    private static int MAGIC = 0xCDCDCDCD;
+    private static final int MAGIC = 0xCDCDCDCD;
     public int getTemp(int size) {
         size+=16;
         int index = nextTempIndex++;
@@ -344,8 +336,7 @@ public class WinProcess extends WaitObject {
         }
         release();
         loader.unload();
-        for (int i=0;i<threads.size();i++) {
-            WinThread thread = (WinThread)threads.elementAt(i);
+        for (WinThread thread : threads) {
             thread.exit(0);
         }
         winHeap.deallocate();
@@ -357,14 +348,12 @@ public class WinProcess extends WaitObject {
     }
 
     private String buildEnvString() {
-        StringBuffer result = new StringBuffer();
-        if (env.size() == 0) {
+        StringBuilder result = new StringBuilder();
+        if (env.isEmpty()) {
             result.append("\0");
         } else {
-            Enumeration e = env.keys();
-            while (e.hasMoreElements()) {
-                String key = (String)e.nextElement();
-                String value = (String)env.get(key);
+            for (String key : env.keySet()) {
+                String value = env.get(key);
                 result.append(key);
                 result.append("=");
                 result.append(value);

@@ -6,17 +6,23 @@ import jdos.hardware.Memory;
 import jdos.hardware.Timer;
 import jdos.hardware.serialport.Serialports;
 import jdos.ints.Bios;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.util.IntRef;
 import jdos.util.LongRef;
 import jdos.util.ShortRef;
 import jdos.util.StringRef;
 
 public class Dos extends Module_base {
+
+    private static final Logger logger = System.getLogger(Dos.class.getName());
+    private static final Logger LOG_FCB = System.getLogger("LOG_FCB");
+    private static final Logger LOG_DOSMISC = System.getLogger("LOG_DOSMISC");
+    private static final Logger LOG_MISC = System.getLogger("LOG_MISC");
+    private static final Logger LOG_EXEC = System.getLogger("LOG_EXEC");
+
     static final public int DOS_INFOBLOCK_SEG = 0x80;	// sysvars (list of lists)
     static final public int DOS_CONDRV_SEG = 0xa0;
     static final public int DOS_CONSTRING_SEG = 0xa8;
@@ -49,17 +55,17 @@ public class Dos extends Module_base {
     static final public int DOSERR_NO_MORE_FILES = 18;
     static final public int DOSERR_FILE_ALREADY_EXISTS = 80;
 
-    static public Dos_Block dos = new Dos_Block();
-    static public Dos_InfoBlock dos_infoblock = new Dos_InfoBlock();
+    static public final Dos_Block dos = new Dos_Block();
+    static public final Dos_InfoBlock dos_infoblock = new Dos_InfoBlock();
 
     static final private int DOS_COPYBUFSIZE = 0x10000;
-    static byte[] dos_copybuf = new byte[DOS_COPYBUFSIZE];
+    static final byte[] dos_copybuf = new byte[DOS_COPYBUFSIZE];
 
     public static void DOS_SetError(/*Bit16u*/int code) {
         dos.errorcode=code;
     }
 
-    static final byte DOS_DATE_months[] = {
+    static final byte[] DOS_DATE_months = {
         0, 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31
     };
 
@@ -100,7 +106,7 @@ public class Dos extends Module_base {
 
     static public /*Bit8u*/int RealHandle(/*Bit16u*/int handle) {
         Dos_PSP psp=new Dos_PSP(dos.psp());
-        return psp.GetFileHandle(handle);
+        return psp.getFileHandle(handle);
     }
     
     static private void modify_cycles(/*Bits*/int value) {
@@ -120,326 +126,124 @@ public class Dos extends Module_base {
             CPU_Regs.reg_ip(CPU_Regs.reg_ip()+2);
     }
 
-    static private Callback.Handler DOS_21Handler = new Callback.Handler() {
+    static private final Callback.Handler DOS_21Handler = new Callback.Handler() {
         long time_start = 0; //For emulating temporary time changes.
 
+        @Override
         public String getName() {
-            String result = "";
-            switch (CPU_Regs.reg_eax.high() & 0xFF) {
-                case 0x00:
-                    result = "Terminate Program";
-                    break;
-                case 0x01:
-                    result = "Read character from STDIN, with echo";
-                    break;
-                case 0x02:
-                    result = "Write character to STDOUT";
-                    break;
-                case 0x03:
-                    result = "Read character from STDAUX";
-                    break;
-                case 0x04:
-                    result = "Write Character to STDAUX";
-                    break;
-                case 0x05:
-                    result = "Write Character to PRINTER";
-                    break;
-                case 0x06:
-                    result = "Direct Console Output / Input";
-                    break;
-                case 0x07:
-                    result = "Character Input, without echo";
-                    break;
-                case 0x08:
-                    result = "Direct Character Input, without echo";
-                    break;
-                case 0x09:
-                    result = "Write string to STDOUT";
-                    break;
-                case 0x0a:
-                    result = "Buffered Input";
-                    break;
-                case 0x0b:
-                    result = "Get STDIN Status";
-                    break;
-                case 0x0c:
-                    result = "Flush Buffer and read STDIN call";
-                    break;
-                case 0x0d:
-                    result = "Disk Reset";
-                    break;
-                case 0x0e:
-                    result = "Select Default Drive";
-                    break;
-                case 0x0f:
-                    result = "Open File using FCB";
-                    break;
-                case 0x10:
-                    result = "Close File using FCB";
-                    break;
-                case 0x11:
-                    result = "Find First Matching File using FCB";
-                    break;
-                case 0x12:
-                    result = "Find Next Matching File using FCB";
-                    break;
-                case 0x13:
-                    result = "Delete File using FCB";
-                    break;
-                case 0x14:
-                    result = "Sequential read from FCB";
-                    break;
-                case 0x15:
-                    result = "Sequential write to FCB";
-                    break;
-                case 0x16:
-                    result = "Create or truncate file using FCB";
-                    break;
-                case 0x17:
-                    result = "Rename file using FCB";
-                    break;
-                case 0x1b:
-                    result = "Get allocation info for default drive";
-                    break;
-                case 0x1c:
-                    result = "Get allocation info for specific drive";
-                    break;
-                case 0x21:
-                    result = "Read random record from FCB";
-                    break;
-                case 0x22:
-                    result = "Write random record to FCB";
-                    break;
-                case 0x23:
-                    result = "Get file size for FCB";
-                    break;
-                case 0x24:
-                    result = "Set Random Record number for FCB";
-                    break;
-                case 0x27:
-                    result = "Random block read from FCB";
-                    break;
-                case 0x28:
-                    result = "Random Block write to FCB";
-                    break;
-                case 0x29:
-                    result = "Parse filename into FCB";
-                    break;
-                case 0x19:
-                    result = "Get current default drive";
-                    break;
-                case 0x1a:
-                    result = "Set Disk Transfer Area Address";
-                    break;
-                case 0x25:
-                    result = "Set Interrupt Vector";
-                    break;
-                case 0x26:
-                    result = "Create new PSP";
-                    break;
-                case 0x2a:
-                    result = "Get System Date";
-                    break;
-                case 0x2b:
-                    result = "Set System Date";
-                    break;
-                case 0x2c:
-                    result = "Get System Time";
-                    break;
-                case 0x2d:
-                    result = "Set System Time";
-                    break;
-                case 0x2e:
-                    result = "Set Verify flag";
-                    break;
-                case 0x2f:
-                    result = "Get Disk Transfer Area";
-                    break;
-                case 0x30:
-                    result = "Get DOS Version";
-                    break;
-                case 0x31:
-                    result = "Terminate and stay resident";
-                    break;
-                case 0x1f:
-                    result = "Get drive parameter block for default drive";
-                    break;
-                case 0x32:
-                    result = "Get drive parameter block for specific drive";
-                    break;
-                case 0x33:
-                    result = "Extended Break Checking";
-                    break;
-                case 0x34:
-                    result = "Get INDos Flag";
-                    break;
-                case 0x35:
-                    result = "Get interrupt vector";
-                    break;
-                case 0x36:
-                    result = "Get Free Disk Space";
-                    break;
-                case 0x37:
-                    result = "Get/Set Switch char Get/Set Availdev thing";
-                    break;
-                case 0x38:
-                    result = "Set Country Code";
-                    break;
-                case 0x39:
-                    result = "MKDIR Create directory";
-                    break;
-                case 0x3a:
-                    result = "RMDIR Remove directory";
-                    break;
-                case 0x3b:
-                    result = "CHDIR Set current directory";
-                    break;
-                case 0x3c:
-                    result = "CREATE Create of truncate file";
-                    break;
-                case 0x3d:
-                    result = "OPEN Open existing file";
-                    break;
-                case 0x3e:
-                    result = "CLOSE Close file";
-                    break;
-                case 0x3f:
-                    result = "READ Read from file or device";
-                    break;
-                case 0x40:
-                    result = "WRITE Write to file or device";
-                    break;
-                case 0x41:
-                    result = "UNLINK Delete file";
-                    break;
-                case 0x42:
-                    result = "LSEEK Set current file position";
-                    break;
-                case 0x43:
-                    result = "Get/Set file attributes";
-                    break;
-                case 0x44:
-                    result = "IOCTL Functions";
-                    break;
-                case 0x45:
-                    result = "DUP Duplicate file handle";
-                    break;
-                case 0x46:
-                    result = "DUP2,FORCEDUP Force duplicate file handle";
-                    break;
-                case 0x47:
-                    result = "CWD Get current directory";
-                    break;
-                case 0x48:
-                    result = "Allocate memory";
-                    break;
-                case 0x49:
-                    result = "Free memory";
-                    break;
-                case 0x4a:
-                    result = "Resize memory block";
-                    break;
-                case 0x4b:
-                    result = "EXEC Load and/or execute program";
-                    break;
-                case 0x4c:
-                    result = "EXIT Terminate with return code";
-                    break;
-                case 0x4d:
-                    result = "Get Return code";
-                    break;
-                case 0x4e:
-                    result = "FINDFIRST Find first matching file";
-                    break;
-                case 0x4f:
-                    result = "FINDNEXT Find next matching file";
-                    break;
-                case 0x50:
-                    result = "Set current PSP";
-                    break;
-                case 0x51:
-                    result = "Get current PSP";
-                    break;
-                case 0x52:
-                    result = "Get list of lists";
-                    break;
-                case 0x53:
-                    result = "Translate BIOS parameter block to drive parameter block";
-                    break;
-                case 0x54:
-                    result = "Get verify flag";
-                    break;
-                case 0x55:
-                    result = "Create Child PSP";
-                    break;
-                case 0x56:
-                    result = "RENAME Rename file";
-                    break;
-                case 0x57:
-                    result = "Get/Set File's Date and Time";
-                    break;
-                case 0x58:
-                    result = "Get/Set Memory allocation strategy";
-                    break;
-                case 0x59:
-                    result = "Get Extended error information";
-                    break;
-                case 0x5a:
-                    result = "Create temporary file";
-                    break;
-                case 0x5b:
-                    result = "Create new file";
-                    break;
-                case 0x5c:
-                    result = "FLOCK File region locking";
-                    break;
-                case 0x5d:
-                    result = "Network Functions";
-                    break;
-                case 0x5f:
-                    result = "Network redirection";
-                    break;
-                case 0x60:
-                    result = "Canonicalize filename or path";
-                    break;
-                case 0x62:
-                    result = "Get Current PSP Address";
-                    break;
-                case 0x63:
-                    result = "DOUBLE BYTE CHARACTER SET";
-                    break;
-                case 0x64:
-                    result = "Set device driver lookahead flag";
-                    break;
-                case 0x65:
-                    result = "Get extented country information and a lot of other useless shit";
-                    break;
-                case 0x66:
-                    result = "Get/Set global code page table";
-                    break;
-                case 0x67:
-                    result = "Set handle count";
-                    break;
-                case 0x68:
-                    result = "FFLUSH Commit file";
-                    break;
-                case 0x69:
-                    result = "Get/Set disk serial number";
-                    break;
-                case 0x6c:
-                    result = "Extended Open/Create";
-                    break;
-                case 0x71:
-                    result = "Unknown probably 4dos detection";
-                    break;
-            }
+            String result = switch (CPU_Regs.reg_eax.high() & 0xFF) {
+                case 0x00 -> "Terminate Program";
+                case 0x01 -> "Read character from STDIN, with echo";
+                case 0x02 -> "Write character to STDOUT";
+                case 0x03 -> "Read character from STDAUX";
+                case 0x04 -> "Write Character to STDAUX";
+                case 0x05 -> "Write Character to PRINTER";
+                case 0x06 -> "Direct Console Output / Input";
+                case 0x07 -> "Character Input, without echo";
+                case 0x08 -> "Direct Character Input, without echo";
+                case 0x09 -> "Write string to STDOUT";
+                case 0x0a -> "Buffered Input";
+                case 0x0b -> "Get STDIN Status";
+                case 0x0c -> "Flush Buffer and read STDIN call";
+                case 0x0d -> "Disk Reset";
+                case 0x0e -> "Select Default Drive";
+                case 0x0f -> "Open File using FCB";
+                case 0x10 -> "Close File using FCB";
+                case 0x11 -> "Find First Matching File using FCB";
+                case 0x12 -> "Find Next Matching File using FCB";
+                case 0x13 -> "Delete File using FCB";
+                case 0x14 -> "Sequential read from FCB";
+                case 0x15 -> "Sequential write to FCB";
+                case 0x16 -> "Create or truncate file using FCB";
+                case 0x17 -> "Rename file using FCB";
+                case 0x1b -> "Get allocation info for default drive";
+                case 0x1c -> "Get allocation info for specific drive";
+                case 0x21 -> "Read random record from FCB";
+                case 0x22 -> "Write random record to FCB";
+                case 0x23 -> "Get file size for FCB";
+                case 0x24 -> "Set Random Record number for FCB";
+                case 0x27 -> "Random block read from FCB";
+                case 0x28 -> "Random Block write to FCB";
+                case 0x29 -> "Parse filename into FCB";
+                case 0x19 -> "Get current default drive";
+                case 0x1a -> "Set Disk Transfer Area Address";
+                case 0x25 -> "Set Interrupt List<?>";
+                case 0x26 -> "Create new PSP";
+                case 0x2a -> "Get System Date";
+                case 0x2b -> "Set System Date";
+                case 0x2c -> "Get System Time";
+                case 0x2d -> "Set System Time";
+                case 0x2e -> "Set Verify flag";
+                case 0x2f -> "Get Disk Transfer Area";
+                case 0x30 -> "Get DOS Version";
+                case 0x31 -> "Terminate and stay resident";
+                case 0x1f -> "Get drive parameter block for default drive";
+                case 0x32 -> "Get drive parameter block for specific drive";
+                case 0x33 -> "Extended Break Checking";
+                case 0x34 -> "Get INDos Flag";
+                case 0x35 -> "Get interrupt List<?>";
+                case 0x36 -> "Get Free Disk Space";
+                case 0x37 -> "Get/Set Switch char Get/Set Availdev thing";
+                case 0x38 -> "Set Country Code";
+                case 0x39 -> "MKDIR Create directory";
+                case 0x3a -> "RMDIR Remove directory";
+                case 0x3b -> "CHDIR Set current directory";
+                case 0x3c -> "CREATE Create of truncate file";
+                case 0x3d -> "OPEN Open existing file";
+                case 0x3e -> "CLOSE Close file";
+                case 0x3f -> "READ Read from file or device";
+                case 0x40 -> "WRITE Write to file or device";
+                case 0x41 -> "UNLINK Delete file";
+                case 0x42 -> "LSEEK Set current file position";
+                case 0x43 -> "Get/Set file attributes";
+                case 0x44 -> "IOCTL Functions";
+                case 0x45 -> "DUP Duplicate file handle";
+                case 0x46 -> "DUP2,FORCEDUP Force duplicate file handle";
+                case 0x47 -> "CWD Get current directory";
+                case 0x48 -> "Allocate memory";
+                case 0x49 -> "Free memory";
+                case 0x4a -> "Resize memory block";
+                case 0x4b -> "EXEC Load and/or execute program";
+                case 0x4c -> "EXIT Terminate with return code";
+                case 0x4d -> "Get Return code";
+                case 0x4e -> "FINDFIRST Find first matching file";
+                case 0x4f -> "FINDNEXT Find next matching file";
+                case 0x50 -> "Set current PSP";
+                case 0x51 -> "Get current PSP";
+                case 0x52 -> "Get list of lists";
+                case 0x53 -> "Translate BIOS parameter block to drive parameter block";
+                case 0x54 -> "Get verify flag";
+                case 0x55 -> "Create Child PSP";
+                case 0x56 -> "RENAME Rename file";
+                case 0x57 -> "Get/Set File's Date and Time";
+                case 0x58 -> "Get/Set Memory allocation strategy";
+                case 0x59 -> "Get Extended error information";
+                case 0x5a -> "Create temporary file";
+                case 0x5b -> "Create new file";
+                case 0x5c -> "FLOCK File region locking";
+                case 0x5d -> "Network Functions";
+                case 0x5f -> "Network redirection";
+                case 0x60 -> "Canonicalize filename or path";
+                case 0x62 -> "Get Current PSP Address";
+                case 0x63 -> "DOUBLE BYTE CHARACTER SET";
+                case 0x64 -> "Set device driver lookahead flag";
+                case 0x65 -> "Get extented country information and a lot of other useless shit";
+                case 0x66 -> "Get/Set global code page table";
+                case 0x67 -> "Set handle count";
+                case 0x68 -> "FFLUSH Commit file";
+                case 0x69 -> "Get/Set disk serial number";
+                case 0x6c -> "Extended Open/Create";
+                case 0x71 -> "Unknown probably 4dos detection";
+                default -> "";
+            };
             return "Dos.DOS_21Handler " + result;
         }
 
+        @Override
         public /*Bitu*/int call() {
             if (((CPU_Regs.reg_eax.high() != 0x50) && (CPU_Regs.reg_eax.high() != 0x51) && (CPU_Regs.reg_eax.high() != 0x62) && (CPU_Regs.reg_eax.high() != 0x64)) && (CPU_Regs.reg_eax.high()<0x6c)) {
                 Dos_PSP psp = new Dos_PSP(dos.psp());
-                psp.SetStack(Memory.RealMake(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()-18));
+                psp.setStack(Memory.RealMake(CPU_Regs.reg_ssVal.dword,CPU_Regs.reg_esp.word()-18));
             }
 
             switch (CPU_Regs.reg_eax.high() & 0xFF) {
@@ -489,8 +293,7 @@ public class Dos extends Module_base {
                 }
                 break;
             case 0x05:		/* Write Character to PRINTER */
-                Log.exit("DOS:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
-                break;
+                throw new IllegalStateException("DOS:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
             case 0x06:		/* Direct Console Output / Input */
                 switch (CPU_Regs.reg_edx.low() & 0xFF) {
                 case 0xFF:	/* Input */
@@ -624,51 +427,51 @@ public class Dos extends Module_base {
                 CPU_Regs.reg_eax.low(Dos_files.DOS_DRIVES);
                 break;
             case 0x0f:		/* Open File using FCB */
-                if(Dos_files.DOS_FCBOpen((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())){
+                if(Dos_files.DOS_FCBOpen(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())){
                     CPU_Regs.reg_eax.low(0);
                 }else{
                     CPU_Regs.reg_eax.low(0xff);
                 }
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB, LogSeverities.LOG_NORMAL,"DOS:0x0f FCB-fileopen used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x0f FCB-fileopen used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x10:		/* Close File using FCB */
-                if(Dos_files.DOS_FCBClose((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())){
+                if(Dos_files.DOS_FCBClose(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())){
                     CPU_Regs.reg_eax.low(0);
                 }else{
                     CPU_Regs.reg_eax.low(0xff);
                 }
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x10 FCB-fileclose used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x10 FCB-fileclose used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x11:		/* Find First Matching File using FCB */
-                if(Dos_files.DOS_FCBFindFirst((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if(Dos_files.DOS_FCBFindFirst(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x11 FCB-FindFirst used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x11 FCB-FindFirst used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x12:		/* Find Next Matching File using FCB */
-                if(Dos_files.DOS_FCBFindNext((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if(Dos_files.DOS_FCBFindNext(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x12 FCB-FindNext used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x12 FCB-FindNext used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x13:		/* Delete File using FCB */
-                if (Dos_files.DOS_FCBDeleteFile((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if (Dos_files.DOS_FCBDeleteFile(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x16 FCB-Delete used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x16 FCB-Delete used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x14:		/* Sequential read from FCB */
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRead((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),0));
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x14 FCB-Read used, result:al="+CPU_Regs.reg_eax.low());
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRead(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),0));
+                LOG_FCB.log(Level.DEBUG, "DOS:0x14 FCB-Read used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x15:		/* Sequential write to FCB */
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBWrite((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),0));
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x15 FCB-Write used, result:al="+CPU_Regs.reg_eax.low());
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBWrite(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),0));
+                LOG_FCB.log(Level.DEBUG, "DOS:0x15 FCB-Write used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x16:		/* Create or truncate file using FCB */
-                if (Dos_files.DOS_FCBCreate((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if (Dos_files.DOS_FCBCreate(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x16 FCB-Create used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x16 FCB-Create used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x17:		/* Rename file using FCB */
-                if (Dos_files.DOS_FCBRenameFile((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if (Dos_files.DOS_FCBRenameFile(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
                 break;
             case 0x1b:		/* Get allocation info for default drive */
@@ -702,38 +505,38 @@ public class Dos extends Module_base {
             case 0x21:		/* Read random record from FCB */
             {
                 IntRef toRead = new IntRef(1);
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomRead((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toRead,true));
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x21 FCB-Random read used, result:al="+CPU_Regs.reg_eax.low());
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomRead(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toRead,true));
+                LOG_FCB.log(Level.DEBUG, "DOS:0x21 FCB-Random read used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             }
             case 0x22:		/* Write random record to FCB */
             {
                 IntRef toWrite = new IntRef(1);
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomWrite((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toWrite,true));
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x22 FCB-Random write used, result:al="+CPU_Regs.reg_eax.low());
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomWrite(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toWrite,true));
+                LOG_FCB.log(Level.DEBUG, "DOS:0x22 FCB-Random write used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             }
             case 0x23:		/* Get file size for FCB */
-                if (Dos_files.DOS_FCBGetFileSize((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
+                if (Dos_files.DOS_FCBGetFileSize(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word())) CPU_Regs.reg_eax.low(0x00);
                 else CPU_Regs.reg_eax.low(0xFF);
                 break;
             case 0x24:		/* Set Random Record number for FCB */
-                Dos_files.DOS_FCBSetRandomRecord((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
+                Dos_files.DOS_FCBSetRandomRecord(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word());
                 break;
             case 0x27:		/* Random block read from FCB */
             {
                 IntRef toRead = new IntRef(CPU_Regs.reg_ecx.word());
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomRead((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toRead,false));
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomRead(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toRead,false));
                 CPU_Regs.reg_ecx.word(toRead.value);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x27 FCB-Random(block) read used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x27 FCB-Random(block) read used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             }
             case 0x28:		/* Random Block write to FCB */
             {
                 IntRef toWrite = new IntRef(CPU_Regs.reg_ecx.word());
-                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomWrite((int)CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toWrite,false));
+                CPU_Regs.reg_eax.low(Dos_files.DOS_FCBRandomWrite(CPU_Regs.reg_dsVal.dword,CPU_Regs.reg_edx.word(),toWrite,false));
                 CPU_Regs.reg_ecx.word(toWrite.value);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:0x28 FCB-Random(block) write used, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:0x28 FCB-Random(block) write used, result:al="+CPU_Regs.reg_eax.low());
                 break;
             }
             case 0x29:		/* Parse filename into FCB */
@@ -741,22 +544,22 @@ public class Dos extends Module_base {
                     /*Bit8u*/ShortRef difference=new ShortRef();
                     String string;
                     string=Memory.MEM_StrCopy(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_esi.word(),1023); // 1024 toasts the stack
-                    CPU_Regs.reg_eax.low(Dos_files.FCB_Parsename((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word(),(short)CPU_Regs.reg_eax.low() ,string, difference));
+                    CPU_Regs.reg_eax.low(Dos_files.FCB_Parsename(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word(),(short)CPU_Regs.reg_eax.low() ,string, difference));
                     CPU_Regs.reg_esi.word(CPU_Regs.reg_esi.word()+difference.value);
                 }
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_FCB,LogSeverities.LOG_NORMAL,"DOS:29:FCB Parse Filename, result:al="+CPU_Regs.reg_eax.low());
+                LOG_FCB.log(Level.DEBUG, "DOS:29:FCB Parse Filename, result:al="+CPU_Regs.reg_eax.low());
                 break;
             case 0x19:		/* Get current default drive */
                 CPU_Regs.reg_eax.low(Dos_files.DOS_GetDefaultDrive());
                 break;
             case 0x1a:		/* Set Disk Transfer Area Address */
-                dos.dta((int)CPU_Regs.RealMakeSegDS(CPU_Regs.reg_edx.word()));
+                dos.dta(CPU_Regs.RealMakeSegDS(CPU_Regs.reg_edx.word()));
                 break;
-            case 0x25:		/* Set Interrupt Vector */
+            case 0x25:		/* Set Interrupt List<?> */
                 Memory.RealSetVec(CPU_Regs.reg_eax.low(),CPU_Regs.RealMakeSegDS(CPU_Regs.reg_edx.word()));
                 break;
             case 0x26:		/* Create new PSP */
-                Dos_execute.DOS_NewPSP(CPU_Regs.reg_edx.word(),new Dos_PSP(dos.psp()).GetSize());
+                Dos_execute.DOS_NewPSP(CPU_Regs.reg_edx.word(),new Dos_PSP(dos.psp()).getSize());
                 CPU_Regs.reg_eax.low(0xf0);	/* al destroyed */
                 break;
             case 0x2a:		/* Get System Date */
@@ -808,12 +611,12 @@ public class Dos extends Module_base {
                 overhead();
                 break;
             case 0x2d:		/* Set System Time */
-                Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:Set System Time not supported");
+                LOG_DOSMISC.log(Level.ERROR, "DOS:Set System Time not supported");
                 //Check input parameters nonetheless
                 if( CPU_Regs.reg_ecx.high() > 23 || CPU_Regs.reg_ecx.low() > 59 || CPU_Regs.reg_edx.high() > 59 || CPU_Regs.reg_edx.low() > 99 )
                     CPU_Regs.reg_eax.low(0xff);
                 else { //Allow time to be set to zero. Restore the orginal time for all other parameters. (QuickBasic)
-                    if (CPU_Regs.reg_ecx.word() == 0 && CPU_Regs.reg_edx.word() == 0) {time_start = (Memory.mem_readd(Bios.BIOS_TIMER) & 0xFFFFFFFFl);Log.log_msg("Warning: game messes with DOS time!");}
+                    if (CPU_Regs.reg_ecx.word() == 0 && CPU_Regs.reg_edx.word() == 0) {time_start = (Memory.mem_readd(Bios.BIOS_TIMER) & 0xFFFFFFFFL);logger.log(Level.DEBUG, "Warning: game messes with DOS time!");}
                     else time_start = 0;
                     CPU_Regs.reg_eax.low(0);
                 }
@@ -852,7 +655,7 @@ public class Dos extends Module_base {
                         CPU_Regs.reg_eax.low(0x00);
                         CPU_Regs.SegSet16DS(dos.tables.dpb);
                         CPU_Regs.reg_ebx.word(drive);//Faking only the first entry (that is the driveletter)
-                        Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"Get drive parameter block.");
+                        LOG_DOSMISC.log(Level.ERROR, "Get drive parameter block.");
                     } else {
                         CPU_Regs.reg_eax.low(0xff);
                     }
@@ -866,7 +669,7 @@ public class Dos extends Module_base {
                     case 3: /* Get cpsw */
                         /* Fallthrough */
                     case 4: /* Set cpsw */
-                        if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"Someone playing with cpsw "+Integer.toString(CPU_Regs.reg_eax.word(),16));
+                        LOG_DOSMISC.log(Level.ERROR, "Someone playing with cpsw "+Integer.toString(CPU_Regs.reg_eax.word(),16));
                         break;
                     case 5:CPU_Regs.reg_edx.low(3);break;//TODO should be z						/* Always boot from c: :) */
                     case 6:											/* Get true version number */
@@ -876,7 +679,7 @@ public class Dos extends Module_base {
                         CPU_Regs.reg_edx.high(0x10);								/* Dos in HMA */
                         break;
                     default:
-                        if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"Weird 0x33 call "+Integer.toString(CPU_Regs.reg_eax.low(), 16));
+                        LOG_DOSMISC.log(Level.ERROR, "Weird 0x33 call "+Integer.toString(CPU_Regs.reg_eax.low(), 16));
                         CPU_Regs.reg_eax.low(0xff);
 				        break;
                 }
@@ -885,9 +688,11 @@ public class Dos extends Module_base {
                 CPU_Regs.SegSet16ES(DOS_SDA_SEG);
                 CPU_Regs.reg_ebx.word(DOS_SDA_OFS + 0x01);
                 break;
-            case 0x35:		/* Get interrupt vector */
-                CPU_Regs.reg_ebx.word(Memory.real_readw(0,((/*Bit16u*/int)CPU_Regs.reg_eax.low())*4));
-                CPU_Regs.SegSet16ES(Memory.real_readw(0,((/*Bit16u*/int)CPU_Regs.reg_eax.low())*4+2));
+            case 0x35:		/* Get interrupt List<?> */
+                /*Bit16u*/
+                CPU_Regs.reg_ebx.word(Memory.real_readw(0, CPU_Regs.reg_eax.low() *4));
+                /*Bit16u*/
+                CPU_Regs.SegSet16ES(Memory.real_readw(0, CPU_Regs.reg_eax.low() *4+2));
                 break;
             case 0x36:		/* Get Free Disk Space */
                 {
@@ -923,7 +728,7 @@ public class Dos extends Module_base {
                 case 3:
                      CPU_Regs.reg_eax.low(0);break;
                 }
-                Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"DOS:0x37:Call for not supported switchchar");
+                LOG_MISC.log(Level.ERROR, "DOS:0x37:Call for not supported switchchar");
                 break;
             case 0x38:					/* Set Country Code */
                 if (CPU_Regs.reg_eax.low()==0) {		/* Get country specidic information */
@@ -933,7 +738,7 @@ public class Dos extends Module_base {
                     Callback.CALLBACK_SCF(false);
                     break;
                 } else {				/* Set country code */
-                    Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"DOS:Setting country code not supported");
+                    LOG_MISC.log(Level.ERROR, "DOS:Setting country code not supported");
                 }
                 Callback.CALLBACK_SCF(true);
                 break;
@@ -958,7 +763,7 @@ public class Dos extends Module_base {
                 } else {
                     CPU_Regs.reg_eax.word(dos.errorcode);
                     Callback.CALLBACK_SCF(true);
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_NORMAL,"Remove dir failed on "+name1+" with error "+Integer.toString(dos.errorcode));
+                    LOG_MISC.log(Level.DEBUG, "Remove dir failed on "+name1+" with error "+ dos.errorcode);
                 }
                 break;
             }
@@ -1051,7 +856,7 @@ public class Dos extends Module_base {
             }
             case 0x42:					/* LSEEK Set current file position */
                 {
-                    /*Bit32u*/LongRef pos=new LongRef((((long)CPU_Regs.reg_ecx.word()<<16) + CPU_Regs.reg_edx.word()) & 0xFFFFFFFFl);
+                    /*Bit32u*/LongRef pos=new LongRef((((long)CPU_Regs.reg_ecx.word()<<16) + CPU_Regs.reg_edx.word()) & 0xFFFFFFFFL);
                     if (Dos_files.DOS_SeekFile(CPU_Regs.reg_ebx.word(),pos,CPU_Regs.reg_eax.low())) {
                         CPU_Regs.reg_edx.word((/*Bit16u*/int)(pos.value >>> 16));
                         CPU_Regs.reg_eax.word((/*Bit16u*/int)(pos.value & 0xFFFF));
@@ -1080,7 +885,7 @@ public class Dos extends Module_base {
                         break;
                     }
                 case 0x01:				/* Set */
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"DOS:Set File Attributes for "+name1+" not supported");
+                    LOG_MISC.log(Level.ERROR, "DOS:Set File Attributes for "+name1+" not supported");
                     if (Dos_files.DOS_SetFileAttr(name1,CPU_Regs.reg_ecx.word())) {
                         CPU_Regs.reg_eax.word(0x202);	/* ax destroyed */
                         Callback.CALLBACK_SCF(false);
@@ -1090,7 +895,7 @@ public class Dos extends Module_base {
                     }
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_MISC,LogSeverities.LOG_ERROR,"DOS:0x43:Illegal subfunction "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                    LOG_MISC.log(Level.ERROR, "DOS:0x43:Illegal subfunction "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                     CPU_Regs.reg_eax.word(1);
                     Callback.CALLBACK_SCF(true);
                     break;
@@ -1130,7 +935,8 @@ public class Dos extends Module_base {
             {
                 StringRef name1 = new StringRef();
                 if (Dos_files.DOS_GetCurrentDir((short)CPU_Regs.reg_edx.low(),name1)) {
-                    Memory.MEM_BlockWrite(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_esi.word(),name1.value,(/*Bitu*/int)(name1.value.length()+1));
+                    /*Bitu*/
+                    Memory.MEM_BlockWrite(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_esi.word(),name1.value, name1.value.length()+1);
                     CPU_Regs.reg_eax.word(0x0100);
                     Callback.CALLBACK_SCF(false);
                 } else {
@@ -1153,7 +959,7 @@ public class Dos extends Module_base {
                     break;
                 }
             case 0x49:					/* Free memory */
-                if (Dos_memory.DOS_FreeMemory((int)CPU_Regs.reg_esVal.dword)) {
+                if (Dos_memory.DOS_FreeMemory(CPU_Regs.reg_esVal.dword)) {
                     Callback.CALLBACK_SCF(false);
                 } else {
                     CPU_Regs.reg_eax.word(dos.errorcode);
@@ -1163,8 +969,8 @@ public class Dos extends Module_base {
             case 0x4a:					/* Resize memory block */
                 {
                     /*Bit16u*/IntRef size=new IntRef(CPU_Regs.reg_ebx.word());
-                    if (Dos_memory.DOS_ResizeMemory((int)CPU_Regs.reg_esVal.dword,size)) {
-                        CPU_Regs.reg_eax.word((int)CPU_Regs.reg_esVal.dword);
+                    if (Dos_memory.DOS_ResizeMemory(CPU_Regs.reg_esVal.dword,size)) {
+                        CPU_Regs.reg_eax.word(CPU_Regs.reg_esVal.dword);
                         Callback.CALLBACK_SCF(false);
                     } else {
                         CPU_Regs.reg_eax.word(dos.errorcode);
@@ -1176,7 +982,7 @@ public class Dos extends Module_base {
             case 0x4b:					/* EXEC Load and/or execute program */
                 {
                     String name1 = Memory.MEM_StrCopy(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_edx.word(),256);
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_EXEC,LogSeverities.LOG_ERROR,"Execute "+name1+" "+CPU_Regs.reg_eax.low());
+                    LOG_EXEC.log(Level.ERROR, "Execute "+name1+" "+CPU_Regs.reg_eax.low());
                     if (!Dos_execute.DOS_Execute(name1,CPU_Regs.reg_esPhys.dword+CPU_Regs.reg_ebx.word(),(short)CPU_Regs.reg_eax.low())) {
                         CPU_Regs.reg_eax.word(dos.errorcode);
                         Callback.CALLBACK_SCF(true);
@@ -1223,13 +1029,12 @@ public class Dos extends Module_base {
                 /*RealPt*/int addr=dos_infoblock.GetPointer();
                 CPU_Regs.SegSet16ES(Memory.RealSeg(addr));
                 CPU_Regs.reg_ebx.word(Memory.RealOff(addr));
-                Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"Call is made for list of lists - let's hope for the best");
+                LOG_DOSMISC.log(Level.DEBUG, "Call is made for list of lists - let's hope for the best");
                 break; }
     //TODO Think hard how shit this is gonna be
     //And will any game ever use this :)
             case 0x53:					/* Translate BIOS parameter block to drive parameter block */
-                Log.exit("Unhandled Dos 21 call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
-                break;
+                throw new IllegalStateException("Unhandled Dos 21 call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
             case 0x54:					/* Get verify flag */
                 CPU_Regs.reg_eax.low(dos.verify?1:0);
                 break;
@@ -1262,10 +1067,10 @@ public class Dos extends Module_base {
                         Callback.CALLBACK_SCF(true);
                     }
                 } else if (CPU_Regs.reg_eax.low()==0x01) {
-                    Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:57:Set File Date Time Faked");
+                    LOG_DOSMISC.log(Level.ERROR, "DOS:57:Set File Date Time Faked");
                     Callback.CALLBACK_SCF(false);
                 } else {
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:57:Unsupported subtion "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                    LOG_DOSMISC.log(Level.ERROR, "DOS:57:Unsupported subtion "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                 }
                 break;
             case 0x58:					/* Get/Set Memory allocation strategy */
@@ -1292,7 +1097,7 @@ public class Dos extends Module_base {
                     }
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:58:Not Supported Set//Get memory allocation call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                    LOG_DOSMISC.log(Level.ERROR, "DOS:58:Not Supported Set//Get memory allocation call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                     CPU_Regs.reg_eax.word(1);
                     Callback.CALLBACK_SCF(true);
                 }
@@ -1313,7 +1118,8 @@ public class Dos extends Module_base {
                     StringRef name1 = new StringRef(Memory.MEM_StrCopy(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_edx.word(),256));
                     if (Dos_files.DOS_CreateTempFile(name1,handle)) {
                         CPU_Regs.reg_eax.word(handle.value);
-                        Memory.MEM_BlockWrite(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_edx.word(),name1.value,(/*Bitu*/int)(name1.value.length()+1));
+                        /*Bitu*/
+                        Memory.MEM_BlockWrite(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_edx.word(),name1.value, name1.value.length()+1);
                         Callback.CALLBACK_SCF(false);
                     } else {
                         CPU_Regs.reg_eax.word(dos.errorcode);
@@ -1352,7 +1158,7 @@ public class Dos extends Module_base {
                     CPU_Regs.reg_esi.word(DOS_SDA_OFS);
                     CPU_Regs.reg_ecx.word(0x80);  // swap if in dos
                     CPU_Regs.reg_edx.word(0x1a);  // swap always
-                    Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"Get SDA, Let's hope for the best!");
+                    LOG_DOSMISC.log(Level.ERROR, "Get SDA, Let's hope for the best!");
                 }
                 break;
             case 0x5f:					/* Network redirection */
@@ -1364,7 +1170,8 @@ public class Dos extends Module_base {
                 String name1 = Memory.MEM_StrCopy(CPU_Regs.reg_dsPhys.dword+CPU_Regs.reg_esi.word(),256);
                 StringRef name2 = new StringRef();
                 if (Dos_files.DOS_Canonicalize(name1,name2)) {
-                        Memory.MEM_BlockWrite(CPU_Regs.reg_esPhys.dword+CPU_Regs.reg_edi.word(),name2.value,(/*Bitu*/int)name2.value.length()+1);
+                    /*Bitu*/
+                    Memory.MEM_BlockWrite(CPU_Regs.reg_esPhys.dword+CPU_Regs.reg_edi.word(),name2.value, name2.value.length() +1);
                         Callback.CALLBACK_SCF(false);
                     } else {
                         CPU_Regs.reg_eax.word(dos.errorcode);
@@ -1384,11 +1191,11 @@ public class Dos extends Module_base {
                 } else CPU_Regs.reg_eax.low(0xff); //Doesn't officially touch carry flag
                 break;
             case 0x64:					/* Set device driver lookahead flag */
-                Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"set driver look ahead flag");
+                LOG_DOSMISC.log(Level.DEBUG, "set driver look ahead flag");
                 break;
             case 0x65:					/* Get extented country information and a lot of other useless shit*/
                 { /* Todo maybe fully support this for now we set it standard for USA */
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:65:Extended country information call "+Integer.toString(CPU_Regs.reg_eax.word(),16));
+                    LOG_DOSMISC.log(Level.ERROR, "DOS:65:Extended country information call "+Integer.toString(CPU_Regs.reg_eax.word(),16));
                     if((CPU_Regs.reg_eax.low() <=  0x07) && (CPU_Regs.reg_ecx.word() < 0x05)) {
                         DOS_SetError(DOSERR_FUNCTION_NUMBER_INVALID);
                         Callback.CALLBACK_SCF(true);
@@ -1405,7 +1212,7 @@ public class Dos extends Module_base {
                         if(CPU_Regs.reg_ecx.word() > 0x08 ) {
                             /*Bitu*/int amount = (CPU_Regs.reg_ecx.word()>=0x29)?0x22:(CPU_Regs.reg_ecx.word()-7);
                             Memory.MEM_BlockWrite(data + 0x07,dos.tables.country,amount);
-                            CPU_Regs.reg_ecx.word((CPU_Regs.reg_ecx.word()>=0x29)?0x29:CPU_Regs.reg_ecx.word());
+                            CPU_Regs.reg_ecx.word(Math.min(CPU_Regs.reg_ecx.word(), 0x29));
                         }
                         Callback.CALLBACK_SCF(false);
                         break;
@@ -1449,7 +1256,7 @@ public class Dos extends Module_base {
                         if(CPU_Regs.reg_eax.low() == 0x21) len = CPU_Regs.reg_ecx.word();
                         else len = Memory.mem_strlen(data); /* Is limited to 1024 */
 
-                        if(len > DOS_COPYBUFSIZE - 1) Log.exit("DOS:0x65 Buffer overflow");
+                        if(len > DOS_COPYBUFSIZE - 1) throw new IllegalStateException("DOS:0x65 Buffer overflow");
                         if(len>0) {
                             Memory.MEM_BlockRead(data,dos_copybuf,len);
                             System.arraycopy(new String(dos_copybuf, 0, len).toUpperCase().getBytes(), 0, dos_copybuf, 0, len);
@@ -1458,24 +1265,24 @@ public class Dos extends Module_base {
                         Callback.CALLBACK_SCF(false);
                         break;
                     default:
-                        Log.exit("DOS:0x65:Unhandled country information call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                        throw new IllegalStateException("DOS:0x65:Unhandled country information call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                     }
                     break;
                 }
             case 0x66:					/* Get/Set global code page table  */
                 if (CPU_Regs.reg_eax.low()==1) {
-                    Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"Getting global code page table");
+                    LOG_DOSMISC.log(Level.ERROR, "Getting global code page table");
                     CPU_Regs.reg_ebx.word(dos.loaded_codepage);CPU_Regs.reg_edx.word(dos.loaded_codepage);
                     Callback.CALLBACK_SCF(false);
                     break;
                 }
-                Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"DOS:Setting code page table is not supported");
+                LOG_DOSMISC.log(Level.DEBUG, "DOS:Setting code page table is not supported");
                 break;
             case 0x67:					/* Set handle count */
                 /* Weird call to increase amount of file handles needs to allocate memory if >20 */
                 {
                     Dos_PSP psp=new Dos_PSP(dos.psp());
-                    psp.SetNumFiles(CPU_Regs.reg_ebx.word());
+                    psp.setNumFiles(CPU_Regs.reg_ebx.word());
                     Callback.CALLBACK_SCF(false);
                     break;
                 }
@@ -1491,13 +1298,13 @@ public class Dos extends Module_base {
                 {
                     switch(CPU_Regs.reg_eax.low())		{
                     case 0x00:				/* Get */
-                        Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:Get Disk serial number");
+                        LOG_DOSMISC.log(Level.ERROR, "DOS:Get Disk serial number");
                         Callback.CALLBACK_SCF(true);
                         break;
                     case 0x01:
-                        Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:Set Disk serial number");
+                        LOG_DOSMISC.log(Level.ERROR, "DOS:Set Disk serial number");
                     default:
-                        Log.exit("DOS:Illegal Get Serial Number call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                        throw new IllegalStateException("DOS:Illegal Get Serial Number call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                     }
                     break;
                 }
@@ -1519,7 +1326,7 @@ public class Dos extends Module_base {
             case 0x71:					/* Unknown probably 4dos detection */
                 CPU_Regs.reg_eax.word(0x7100);
                 Callback.CALLBACK_SCF(true);
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"DOS:Windows long file name support call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                LOG_DOSMISC.log(Level.DEBUG, "DOS:Windows long file name support call "+Integer.toString(CPU_Regs.reg_eax.low(),16));
                 break;
 
             case 0xE0:
@@ -1532,7 +1339,7 @@ public class Dos extends Module_base {
             case 0xEF:                  /* Used in Ancient Art Of War CGA */
             case 0x5e:					/* More Network Functions */
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DOS:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(), 16)+" al="+Integer.toString(CPU_Regs.reg_eax.low(), 16)+". Set al to default of 0");
+                LOG_DOSMISC.log(Level.ERROR, "DOS:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(), 16)+" al="+Integer.toString(CPU_Regs.reg_eax.low(), 16)+". Set al to default of 0");
                 CPU_Regs.reg_eax.low(0x00); /* default value */
                 break;
             }
@@ -1540,10 +1347,12 @@ public class Dos extends Module_base {
         }
     };
 
-    static private Callback.Handler DOS_20Handler = new Callback.Handler() {
+    static private final Callback.Handler DOS_20Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Dos.DOS_20Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             CPU_Regs.reg_eax.high(0x00);
             DOS_21Handler.call();
@@ -1551,10 +1360,12 @@ public class Dos extends Module_base {
         }
     };
 
-    static private Callback.Handler DOS_27Handler = new Callback.Handler() {
+    static private final Callback.Handler DOS_27Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Dos.DOS_27Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             // Terminate & stay resident
             /*Bit16u*/IntRef para = new IntRef((CPU_Regs.reg_edx.word()/16)+(((CPU_Regs.reg_edx.word() % 16)>0)?1:0));
@@ -1564,10 +1375,12 @@ public class Dos extends Module_base {
         }
     };
 
-    static private Callback.Handler DOS_25Handler = new Callback.Handler() {
+    static private final Callback.Handler DOS_25Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Dos.DOS_25Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             int drive = CPU_Regs.reg_eax.low();
             if(drive>=Dos_files.Drives.length || Dos_files.Drives[CPU_Regs.reg_eax.low()]==null){
@@ -1576,7 +1389,7 @@ public class Dos extends Module_base {
             }else{
                 CPU_Regs.SETFLAGBIT(CPU_Regs.CF,false);
                 if((CPU_Regs.reg_ecx.word() != 1) ||(CPU_Regs.reg_edx.word() != 1))
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"int 25 called but not as diskdetection drive "+Integer.toString(CPU_Regs.reg_eax.low(),16));
+                    LOG_DOSMISC.log(Level.DEBUG, "int 25 called but not as diskdetection drive "+Integer.toString(CPU_Regs.reg_eax.low(),16));
 
                CPU_Regs.reg_eax.word(0);
             }
@@ -1584,12 +1397,14 @@ public class Dos extends Module_base {
         }
     };
 
-    static private Callback.Handler DOS_26Handler = new Callback.Handler() {
+    static private final Callback.Handler DOS_26Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Dos.DOS_26Handler";
         }
+        @Override
         public /*Bitu*/int call() {
-            Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"int 26 called: hope for the best!");
+            LOG_DOSMISC.log(Level.DEBUG, "int 26 called: hope for the best!");
             if(Dos_files.Drives[CPU_Regs.reg_eax.low()]==null){
                 CPU_Regs.reg_eax.word(0x8002);
                 CPU_Regs.SETFLAGBIT(CPU_Regs.CF,true);
@@ -1601,11 +1416,12 @@ public class Dos extends Module_base {
         }
     };
 
-    private Callback[] callback=new Callback[7];
+    private final Callback[] callback=new Callback[7];
 
     private static Dos test;
 
-    public static Section.SectionFunction DOS_ShutDown = new Section.SectionFunction() {
+    public static final Section.SectionFunction DOS_ShutDown = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test=null;
             for (/*Bit16u*/int i=0;i<Dos_files.DOS_DRIVES;i++) {
@@ -1666,11 +1482,12 @@ public class Dos extends Module_base {
         dos.version.minor=0;
     }
 
-    public static Section.SectionFunction DOS_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction DOS_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = new Dos(section);
             /* shutdown function */
-            section.AddDestroyFunction(DOS_ShutDown,false);
+            section.addDestroyFunction(DOS_ShutDown,false);
         }
     };
 }

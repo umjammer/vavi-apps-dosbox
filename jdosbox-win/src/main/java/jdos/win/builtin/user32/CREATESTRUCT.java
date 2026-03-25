@@ -34,16 +34,16 @@ public class CREATESTRUCT extends WinAPI {
         lpszClass = readd(address); address+=4;
         dwExStyle = readd(address); address+=4;
     }
-    public int lpCreateParams;
-    public int hInstance;
-    public int hMenu;
-    public int hwndParent;
-    public int cy;
-    public int cx;
-    public int y;
-    public int x;
-    public int style;
-    public int lpszName;
-    public int lpszClass;
-    public int dwExStyle;
+    public final int lpCreateParams;
+    public final int hInstance;
+    public final int hMenu;
+    public final int hwndParent;
+    public final int cy;
+    public final int cx;
+    public final int y;
+    public final int x;
+    public final int style;
+    public final int lpszName;
+    public final int lpszClass;
+    public final int dwExStyle;
 }

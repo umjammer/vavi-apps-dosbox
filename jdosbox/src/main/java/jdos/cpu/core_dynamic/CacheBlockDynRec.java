@@ -1,10 +1,10 @@
 package jdos.cpu.core_dynamic;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.Dosbox;
 import jdos.cpu.core_switch.SwitchBlock;
-import jdos.misc.Log;
-
-import java.util.Vector;
 
 public class CacheBlockDynRec {
     public CacheBlockDynRec() {
@@ -15,21 +15,19 @@ public class CacheBlockDynRec {
         this.inst = null;
     }
 
-	public void Clear() {
+	public void clear() {
         /*Bitu*/int ind;
-        if (code instanceof DecodeBlock && Dosbox.allPrivileges) {
-            DecodeBlock op = (DecodeBlock)code;
+        if (code instanceof DecodeBlock op && Dosbox.allPrivileges) {
             Compiler.removeFromQueue(op);
         }
         // check if this is not a cross page block
         if (hash.index!=0) {
             for (ind=0;ind<2;ind++) {
-                Vector fromlink=link[ind].from;
-                if (link[ind].from != null) {
-                    for (int i=0;i<link[ind].from.size();i++) {
-                        CacheBlockDynRec from = (CacheBlockDynRec)link[ind].from.elementAt(i);
+                List<CacheBlockDynRec> fromLink=link[ind].from;
+                if (fromLink != null) {
+                    for (CacheBlockDynRec from : fromLink) {
                         if (from.link[ind].to != this) {
-                            //Log.exit("Bad Dynamic cache");
+                            //throw new IllegalStateException("Bad Dynamic cache");
                         }
                         from.link[ind].to = null;
                     }
@@ -37,7 +35,7 @@ public class CacheBlockDynRec {
                 }
                 if (link[ind].to!=null && link[ind].to!=this) {
                     link[ind].to.link[ind].from.remove(this);
-                    if (link[ind].to.link[ind].from.size()==0) {
+                    if (link[ind].to.link[ind].from.isEmpty()) {
                         link[ind].to.link[ind].from = null;
                     }
                     link[ind].to = null;
@@ -48,7 +46,7 @@ public class CacheBlockDynRec {
         if (crossblock!=null) {
             // clear out the crossblock (in the page before) as well
             crossblock.crossblock=null;
-            crossblock.Clear();
+            crossblock.clear();
             crossblock=null;
         }
         if (page.handler!=null) {
@@ -60,21 +58,21 @@ public class CacheBlockDynRec {
     }
 	// link this cache block to another block, index specifies the code
 	// path (always zero for unconditional links, 0/1 for conditional ones
-	public void LinkTo(/*Bitu*/int index, CacheBlockDynRec toblock) {
-		if (toblock == null) throw new NullPointerException();
+	public void LinkTo(/*Bitu*/int index, CacheBlockDynRec toBlock) {
+		if (toBlock == null) throw new NullPointerException();
         if (link[index].to != null) {
-            Log.exit("Dynamic cache failure");
+            throw new IllegalStateException("Dynamic cache failure");
         }
-		link[index].to=toblock;
-        if (toblock.link[index].from == null)
-            toblock.link[index].from = new Vector();
-		toblock.link[index].from.add(this);				// remember who links me
+		link[index].to=toBlock;
+        if (toBlock.link[index].from == null)
+            toBlock.link[index].from = new ArrayList<>();
+		toBlock.link[index].from.add(this);				// remember who links me
 	}
-	public class Page {
+	public static class Page {
 		public int start,end;		// where in the page is the original code
 		public CodePageHandlerDynRec  handler;			// page containing this code
 	}
-    public Page page = new Page();
+    public final Page page = new Page();
 
 	static public class _Cache {
 		public CacheBlockDynRec next;
@@ -84,20 +82,20 @@ public class CacheBlockDynRec {
 		public /*Bit16u*/int maskstart;
 		public /*Bit16u*/int masklen;
 	}
-    public _Cache cache = new _Cache();
+    public final _Cache cache = new _Cache();
 
 	static public class _Hash {
 		/*Bitu*/int index;
 		CacheBlockDynRec next;
 	}
-    public _Hash hash = new _Hash();
+    public final _Hash hash = new _Hash();
 	static public class _Link {
 		public CacheBlockDynRec to;		// this block can transfer control to the to-block
-		public Vector from = new Vector();	// the from-block can transfer control to this block
+		public List<CacheBlockDynRec> from = new ArrayList<>();	// the from-block can transfer control to this block
 	}
-    public _Link[] link = new _Link[2];
-    public _Link link1;
-    public _Link link2;
+    public final _Link[] link = new _Link[2];
+    public final _Link link1;
+    public final _Link link2;
 	CacheBlockDynRec crossblock;
     public Op code;
     public SwitchBlock[] inst; // micro instructions used by Core_switch

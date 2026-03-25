@@ -1,5 +1,12 @@
 package jdos.win.builtin.winmm;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.List;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.Clip;
+
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
@@ -7,13 +14,6 @@ import jdos.win.builtin.kernel32.KResource;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.FilePath;
 import jdos.win.utils.StringUtil;
-
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.Clip;
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.Vector;
 
 public class PlaySound extends WinAPI {
     // BOOL PlaySound(LPCTSTR pszSound, HMODULE hmod, DWORD fdwSound)
@@ -24,10 +24,10 @@ public class PlaySound extends WinAPI {
     static private int MULTIMEDIA_PlaySound(int pszSound, int hmod, int fdwSound, boolean bUnicode) {
         ActivePlaySound ps = null;
 
-        Vector playSound = WinSystem.getCurrentProcess().playSound;
+        List<?> playSound = WinSystem.getCurrentProcess().playSound;
 
         /* SND_NOWAIT is ignored in w95/2k/xp. */
-        if ((fdwSound & SND_NOSTOP)!=0 && playSound.size()!=0)
+        if ((fdwSound & SND_NOSTOP)!=0 && !playSound.isEmpty())
             return FALSE;
 
         /* alloc internal structure, if we need to play something */
@@ -35,8 +35,8 @@ public class PlaySound extends WinAPI {
             ps = new ActivePlaySound(pszSound, hmod, fdwSound, bUnicode);
         }
 
-        for (int i=0;i<playSound.size();i++) {
-            ((ActivePlaySound)playSound.get(i)).stop();
+        for (Object o : playSound) {
+            ((ActivePlaySound) o).stop();
         }
 
         if (ps==null)
@@ -51,24 +51,24 @@ public class PlaySound extends WinAPI {
             this.flags = flags;
             this.unicode = unicode;
         }
-        public int pszSound;
-        public int hmod;
+        public final int pszSound;
+        public final int hmod;
         public int flags;
-        public boolean unicode;
+        public final boolean unicode;
         public boolean loop = false;
         private Thread thread = null;
         byte[] data = null;
         FilePath fileName = null;
         Clip clip = null;
         boolean bExit = false;
-        Vector playSound;
+        List<Runnable> playSound;
 
         public void stop() {
             bExit = true;
             if (clip != null)
                 clip.stop();
             if (thread != null) {
-                try {thread.join();} catch (Exception e) {}
+                try {thread.join();} catch (Exception _) {}
             }
         }
 
@@ -85,13 +85,14 @@ public class PlaySound extends WinAPI {
                 return TRUE;
             } else {
                 Win.panic("synchronous play sound not supported yet");
-                // :TODO: start play thread
-                // :TODO: put current thread to sleep and return so that other threads can run
-                // :TODO: when done playing, wake up the calling
+                // TODO start play thread
+                // TODO put current thread to sleep and return so that other threads can run
+                // TODO when done playing, wake up the calling
                 return TRUE;
             }
         }
 
+        @Override
         public void run() {
             try {
                 clip = AudioSystem.getClip();

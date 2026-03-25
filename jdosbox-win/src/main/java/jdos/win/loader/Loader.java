@@ -1,14 +1,30 @@
 package jdos.win.loader;
 
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import jdos.hardware.Memory;
-import jdos.misc.Log;
 import jdos.util.IntRef;
 import jdos.util.LongRef;
 import jdos.util.StringRef;
 import jdos.win.Console;
 import jdos.win.Win;
-import jdos.win.builtin.*;
+import jdos.win.builtin.Advapi32;
+import jdos.win.builtin.Comdlg32;
+import jdos.win.builtin.Crtdll;
+import jdos.win.builtin.Imm32;
+import jdos.win.builtin.Lz32;
 import jdos.win.builtin.Msacm32.Msacm32;
+import jdos.win.builtin.Msvfw32;
+import jdos.win.builtin.Ole32;
+import jdos.win.builtin.Shell32;
+import jdos.win.builtin.Version;
+import jdos.win.builtin.Winspool;
+import jdos.win.builtin.Wsock32;
 import jdos.win.builtin.comctl32.Comctl32;
 import jdos.win.builtin.directx.DDraw;
 import jdos.win.builtin.directx.DInput;
@@ -27,18 +43,17 @@ import jdos.win.loader.winpe.HeaderImageOptional;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Path;
 
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
 
 public class Loader {
+
+    private static final Logger logger = System.getLogger(Loader.class.getName());
+
     long nextFunctionAddress = WinProcess.ADDRESS_CALLBACK_START;
-    long maxFunctionAddress = WinProcess.ADDRESS_CALLBACK_END;
+    static final long maxFunctionAddress = WinProcess.ADDRESS_CALLBACK_END;
 
     public int registerFunction(int cb) {
         if (nextFunctionAddress >= maxFunctionAddress) {
-            Log.exit("Need to increase maximum number of function lookups to more than " + (nextFunctionAddress - maxFunctionAddress));
+            throw new IllegalStateException("Need to increase maximum number of function lookups to more than " + (nextFunctionAddress - maxFunctionAddress));
         }
         Memory.mem_writed((int) nextFunctionAddress, (cb << 16) + 0x38FE);
         long result = nextFunctionAddress;
@@ -46,16 +61,16 @@ public class Loader {
         return (int) result;
     }
 
-    private Hashtable modulesByName = new Hashtable();
-    private Hashtable modulesByHandle = new Hashtable();
-    private Vector paths;
+    private final Map<String, Module> modulesByName = new HashMap<>();
+    private final Map<Integer, Module> modulesByHandle = new HashMap<>();
+    private final List<Path> paths;
     public NativeModule main = null;
-    private int page_directory;
-    private KernelHeap callbackHeap;
+    private final int page_directory;
+    private final KernelHeap callbackHeap;
     private int nextModuleHandle = 1;
-    private WinProcess process;
+    private final WinProcess process;
 
-    public Loader(WinProcess process, KernelMemory memory, int page_directory, Vector paths) {
+    public Loader(WinProcess process, KernelMemory memory, int page_directory, List<Path> paths) {
         this.paths = paths;
         this.process = process;
         this.page_directory = page_directory;
@@ -63,9 +78,7 @@ public class Loader {
     }
 
     public void unload() {
-        Enumeration e = modulesByName.elements();
-        while (e.hasMoreElements()) {
-            Module module = (Module) e.nextElement();
+        for (Module module : modulesByName.values()) {
             module.unload();
         }
         callbackHeap.deallocate();
@@ -76,9 +89,7 @@ public class Loader {
     }
 
     public void attachThread() {
-        Enumeration e = modulesByHandle.elements();
-        while (e.hasMoreElements()) {
-            Module module = (Module)e.nextElement();
+        for (Module module : modulesByHandle.values()) {
             if (module != main &&  module.threadLibraryCalls) {
                 module.callDllMain(Module.DLL_THREAD_ATTACH);
             }
@@ -86,9 +97,7 @@ public class Loader {
     }
 
     public void detachThread() {
-        Enumeration e = modulesByHandle.elements();
-        while (e.hasMoreElements()) {
-            Module module = (Module)e.nextElement();
+        for (Module module : modulesByHandle.values()) {
             if (module != main && module.threadLibraryCalls) {
                 module.callDllMain(Module.DLL_THREAD_DETACH);
             }
@@ -99,8 +108,8 @@ public class Loader {
         try {
             NativeModule module = new NativeModule(this, getNextModuleHandle());
 
-            for (int i = 0; i < paths.size(); i++) {
-                Path path = (Path) paths.elementAt(i);
+            for (Path o : paths) {
+                Path path = o;
                 if (module.load(process, page_directory, name, path)) {
                     if (main == null) {
                         main = module;
@@ -109,9 +118,9 @@ public class Loader {
                         process.threads.add(thread);
                         WinSystem.getCurrentProcess().mainModule = module;
                     }
-                    // :TODO: reloc dll
+                    // TODO reloc dll
                     modulesByName.put(name.toLowerCase(), module);
-                    modulesByHandle.put(new Integer(module.getHandle()), module);
+                    modulesByHandle.put(module.getHandle(), module);
                     if (resolveImports(module)) {
                         if (main != module) {
                             module.callDllMain(Module.DLL_PROCESS_ATTACH);
@@ -119,11 +128,11 @@ public class Loader {
                         return module;
                     }
                     modulesByName.remove(name);
-                    modulesByHandle.remove(new Integer(module.getHandle()));
+                    modulesByHandle.remove(module.getHandle());
                 }
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
         return null;
     }
@@ -175,21 +184,21 @@ public class Loader {
         }
         if (module != null) {
             modulesByName.put(name.toLowerCase(), module);
-            modulesByHandle.put(new Integer(module.getHandle()), module);
+            modulesByHandle.put(module.getHandle(), module);
         }
         return module;
     }
 
     public Module getModuleByName(String name) {
-        return (Module) modulesByName.get(name.toLowerCase());
+        return modulesByName.get(name.toLowerCase());
     }
 
     public Module getModuleByHandle(int handle) {
-        return (Module) modulesByHandle.get(new Integer(handle));
+        return modulesByHandle.get(handle);
     }
 
     private Module internalLoadModule(String name) {
-        Module result = (Module) modulesByName.get(name.toLowerCase());
+        Module result = modulesByName.get(name.toLowerCase());
         if (result == null)
             result = load_native_module(name);
         if (result == null)
@@ -204,7 +213,7 @@ public class Loader {
             path = name.substring(0, pos+1);
             name = name.substring(pos+1);
         }
-        // :TODO: currently we only support modules in the path
+        // TODO currently we only support modules in the path
         return internalLoadModule(name);
     }
 
@@ -212,9 +221,9 @@ public class Loader {
         LongRef address = new LongRef(0);
         LongRef size = new LongRef(0);
         if (module.RtlImageDirectoryEntryToData(HeaderImageOptional.IMAGE_DIRECTORY_ENTRY_IMPORT, address, size)) {
-            Vector importDescriptors = module.getImportDescriptors(address.value);
-            for (int i = 0; i < importDescriptors.size(); i++) {
-                boolean result = importDll(module, (HeaderImageImportDescriptor) importDescriptors.elementAt(i));
+            List<?> importDescriptors = module.getImportDescriptors(address.value);
+            for (Object importDescriptor : importDescriptors) {
+                boolean result = importDll(module, (HeaderImageImportDescriptor) importDescriptor);
                 if (!result)
                     return false;
             }
@@ -225,7 +234,7 @@ public class Loader {
 
     private boolean importDll(Module module, HeaderImageImportDescriptor importDescriptor) throws IOException {
         String name = module.getVirtualString(importDescriptor.Name);
-        System.out.println("ImportDll: " + name);
+        logger.log(Level.DEBUG,"ImportDll: " + name);
         Module import_module = loadModule(name);
         if (import_module == null) {
             Win.panic("Could not find import: " + name);
@@ -239,7 +248,7 @@ public class Loader {
         }
         long[] import_list = module.getImportList(importDescriptor);
         for (int i = 0; i < import_list.length; i++) {
-            if ((import_list[i] & 0x80000000l) != 0) {
+            if ((import_list[i] & 0x8000_0000L) != 0) {
                 int ordinal = (int) import_list[i] & 0xFFFF;
                 long thunk = import_module.findOrdinalExport(exportAddress.value, exportSize.value, ordinal);
                 if (thunk == 0) {

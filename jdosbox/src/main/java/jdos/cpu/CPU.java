@@ -5,16 +5,22 @@ import jdos.debug.Debug;
 import jdos.gui.Main;
 import jdos.gui.Mapper;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.*;
 import jdos.sdl.JavaMapper;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.util.IntRef;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Map;
+
 
 public class CPU extends Module_base {
+
+    private static final Logger logger = System.getLogger(CPU.class.getName());
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+
     public static final int CPU_AUTODETERMINE_NONE=0x00;
     public static final int CPU_AUTODETERMINE_CORE=0x01;
     public static final int CPU_AUTODETERMINE_CYCLES=0x02;
@@ -31,8 +37,8 @@ public class CPU extends Module_base {
     public static final int CPU_ARCHTYPE_PENTIUM=0x50;
     public static final int CPU_ARCHTYPE_PENTIUM_PRO=0x55;
 
-    public static interface CPU_Decoder {
-        public /*Bits*/int call();
+    public interface CPU_Decoder {
+        /*Bits*/int call();
     }
 
     public static final int CPU_INT_SOFTWARE=0x1;
@@ -312,22 +318,22 @@ public class CPU extends Module_base {
     static private final int TSS_32_ldt_offset = 96;
 
     static public class Descriptor {
-        final public class Descriptor_union {
-            S_Descriptor seg = new S_Descriptor();
-            G_Descriptor gate = new G_Descriptor();
-            final public void setType(int type) {
-                seg.fill &= ~(0x1Fl << 40);
+        static final public class Descriptor_union {
+            final S_Descriptor seg = new S_Descriptor();
+            final G_Descriptor gate = new G_Descriptor();
+            public void setType(int type) {
+                seg.fill &= ~(0x1FL << 40);
                 seg.fill |= ((long)type << 40);
                 gate.fill = seg.fill;
             }
-            final public int getType() {
+            public int getType() {
                 return (int)((seg.fill >> 40) & 0x1F);
             }
-            final public void fill(long l) {
+            public void fill(long l) {
                 seg.fill = l;
                 gate.fill = l;
             }
-            final public int get_fill(int index) {
+            public int get_fill(int index) {
                 if (index == 0) {
                     return (int)seg.fill;
                 } else {
@@ -337,7 +343,7 @@ public class CPU extends Module_base {
         }
         final public void Load(/*PhysPt*/int address) {
             cpu.mpl=0;
-            saved.fill((Memory.mem_readd(address) & 0xFFFFFFFFl) | (long)Memory.mem_readd(address + 4) << 32);
+            saved.fill((Memory.mem_readd(address) & 0xFFFFFFFFL) | (long)Memory.mem_readd(address + 4) << 32);
             cpu.mpl=3;
         }
 
@@ -403,6 +409,7 @@ public class CPU extends Module_base {
     }
 
     static public class GDTDescriptorTable extends DescriptorTable {
+        @Override
         public boolean GetDescriptor(/*Bitu*/int selector, Descriptor desc) {
             /*Bitu*/int address=selector & ~7;
             if ((selector & 4) != 0) {
@@ -453,13 +460,13 @@ public class CPU extends Module_base {
     }
 
     final private static class TSS_Descriptor extends Descriptor {
-        final public /*Bitu*/int IsBusy() {
+        public /*Bitu*/int IsBusy() {
             return saved.seg.type() & 2;
         }
-        final public /*Bitu*/int Is386() {
+        public /*Bitu*/int Is386() {
             return saved.seg.type() & 8;
         }
-        final void SetBusy(boolean busy) {
+        void SetBusy(boolean busy) {
             if (busy) {
                 saved.setType(saved.getType()|2);
             } else {
@@ -476,22 +483,22 @@ public class CPU extends Module_base {
         public boolean pmode;							/* Is Protected mode enabled */
         final public GDTDescriptorTable gdt = new GDTDescriptorTable();
         final public DescriptorTable idt = new DescriptorTable();
-        final public class Stack {
+        static final public class Stack {
             public /*Bitu*/int mask, notmask;
             public boolean big;
         }
         final public Stack stack = new Stack();
-        final public class Code {
+        static final public class Code {
             public boolean big;
         }
         final public Code code = new Code();
-        final public class Hlt {
+        static final public class Hlt {
             public /*Bitu*/int cs;
             public int eip;
             public CPU_Decoder old_decoder;
         }
         final public Hlt hlt = new Hlt();
-        final public class Exception {
+        static final public class Exception {
             public /*Bitu*/int which, error;
         }
         final public Exception exception = new Exception();
@@ -515,23 +522,15 @@ public class CPU extends Module_base {
     public static CPUBlock cpu;
 
     static public int seg_value(int index) {
-        switch (index) {
-            case CPU_Regs.es:
-                return CPU_Regs.reg_esVal.dword;
-            case CPU_Regs.cs:
-                return CPU_Regs.reg_csVal.dword;
-            case CPU_Regs.ss:
-                return CPU_Regs.reg_ssVal.dword;
-            case CPU_Regs.ds:
-                return CPU_Regs.reg_dsVal.dword;
-            case CPU_Regs.fs:
-                return CPU_Regs.reg_fsVal.dword;
-            case CPU_Regs.gs:
-                return CPU_Regs.reg_gsVal.dword;
-            default:
-                Log.exit("Unknown segment");
-                return 0;
-        }
+        return switch (index) {
+            case CPU_Regs.es -> CPU_Regs.reg_esVal.dword;
+            case CPU_Regs.cs -> CPU_Regs.reg_csVal.dword;
+            case CPU_Regs.ss -> CPU_Regs.reg_ssVal.dword;
+            case CPU_Regs.ds -> CPU_Regs.reg_dsVal.dword;
+            case CPU_Regs.fs -> CPU_Regs.reg_fsVal.dword;
+            case CPU_Regs.gs -> CPU_Regs.reg_gsVal.dword;
+            default -> throw new IllegalStateException("Unknown segment");
+        };
     }
 
     public static /*Bit32s*/int CPU_Cycles = 0;
@@ -676,7 +675,7 @@ public class CPU extends Module_base {
         return false;
     }
 
-    static Descriptor desc_temp_1 = new Descriptor();
+    static final Descriptor desc_temp_1 = new Descriptor();
     static private void CPU_CheckSegments() {
         boolean needs_invalidation=false;
 
@@ -725,19 +724,19 @@ public class CPU extends Module_base {
         public TaskStateSegment() {
             valid=false;
         }
-        final public boolean IsValid() {
+        public boolean IsValid() {
             return valid;
         }
-        final /*Bitu*/int Get_back() {
+        /*Bitu*/int Get_back() {
             cpu.mpl=0;
             /*Bit16u*/int backlink=Memory.mem_readw(base);
             cpu.mpl=3;
             return backlink;
         }
-        final void SaveSelector() {
+        void SaveSelector() {
             cpu.gdt.SetDescriptor(selector,desc);
         }
-        final void Get_SSx_ESPx( /*Bitu*/int level, /*Bitu*/IntRef _ss, /*Bitu*/IntRef _esp) {
+        void Get_SSx_ESPx( /*Bitu*/int level, /*Bitu*/IntRef _ss, /*Bitu*/IntRef _esp) {
             cpu.mpl=0;
             if (is386 != 0) {
                 /*PhysPt*/int where=base+TSS_32_esp0_offset+level*8;
@@ -750,7 +749,7 @@ public class CPU extends Module_base {
             }
             cpu.mpl=3;
         }
-        final boolean SetSelector( /*Bitu*/int new_sel) {
+        boolean SetSelector( /*Bitu*/int new_sel) {
             valid=false;
             if ((new_sel & 0xfffc)==0) {
                 selector=0;
@@ -776,7 +775,7 @@ public class CPU extends Module_base {
             is386=desc.Is386();
             return true;
         }
-        TSS_Descriptor desc = new TSS_Descriptor();
+        final TSS_Descriptor desc = new TSS_Descriptor();
         /*Bitu*/int selector;
         /*PhysPt*/int base;
         /*Bitu*/long limit;
@@ -798,13 +797,13 @@ public class CPU extends Module_base {
         Flags.FillFlags();
 
         if (!new_tss_temp.SetSelector(new_tss_selector))
-            Log.exit("Illegal TSS for switch, selector="+Integer.toString(new_tss_selector, 16)+", switchtype="+Integer.toString(tstype, 16));
+            throw new IllegalStateException("Illegal TSS for switch, selector="+Integer.toString(new_tss_selector, 16)+", switchtype="+Integer.toString(tstype, 16));
         if (tstype==TSwitchType.TSwitch_IRET) {
             if (new_tss_temp.desc.IsBusy()==0)
-                Log.exit("TSS not busy for IRET");
+                throw new IllegalStateException("TSS not busy for IRET");
         } else {
             if (new_tss_temp.desc.IsBusy()!=0)
-                Log.exit("TSS busy for JMP/CALL/INT");
+                throw new IllegalStateException("TSS busy for JMP/CALL/INT");
         }
          /*Bitu*/int new_cr3;
          /*Bitu*/int new_eax,new_ebx,new_ecx,new_edx,new_esp,new_ebp,new_esi,new_edi;
@@ -833,15 +832,15 @@ public class CPU extends Module_base {
             new_gs=Memory.mem_readw(new_tss_temp.base+TSS_32_gs_offset);
             new_ldt=Memory.mem_readw(new_tss_temp.base+TSS_32_ldt_offset);
         } else {
-            Log.exit("286 task switch");
-            new_cr3=0;
-            new_eip=0;
-            new_eflags=0;
-            new_eax=0;	new_ecx=0;	new_edx=0;	new_ebx=0;
-            new_esp=0;	new_ebp=0;	new_edi=0;	new_esi=0;
-
-            new_es=0;	new_cs=0;	new_ss=0;	new_ds=0;	new_fs=0;	new_gs=0;
-            new_ldt=0;
+            throw new IllegalStateException("286 task switch");
+//            new_cr3=0;
+//            new_eip=0;
+//            new_eflags=0;
+//            new_eax=0;	new_ecx=0;	new_edx=0;	new_ebx=0;
+//            new_esp=0;	new_ebp=0;	new_edi=0;	new_esi=0;
+//
+//            new_es=0;	new_cs=0;	new_ss=0;	new_ds=0;	new_fs=0;	new_gs=0;
+//            new_ldt=0;
         }
 
         /* Check if we need to clear busy bit of old TASK */
@@ -873,7 +872,7 @@ public class CPU extends Module_base {
             Memory.mem_writed(cpu_tss.base+TSS_32_fs_offset,CPU_Regs.reg_fsVal.dword);
             Memory.mem_writed(cpu_tss.base+TSS_32_gs_offset,CPU_Regs.reg_gsVal.dword);
         } else {
-            Log.exit("286 task switch");
+            throw new IllegalStateException("286 task switch");
         }
 
         /* Setup a back link to the old TSS in new TSS */
@@ -925,12 +924,12 @@ public class CPU extends Module_base {
 
 //			new_cs=mem_readw(new_tss.base+TSS_32_cs));
             } else {
-                Log.exit("286 task switch");
+                throw new IllegalStateException("286 task switch");
             }
         }
         /* Load the new selectors */
         if ((CPU_Regs.flags & CPU_Regs.VM) != 0) {
-            CPU_Regs.SegSet16CS((int)new_cs);
+            CPU_Regs.SegSet16CS(new_cs);
             cpu.code.big=false;
             CPU_SetCPL(3);			//We don't have segment caches so this will do
         } else {
@@ -938,15 +937,15 @@ public class CPU extends Module_base {
             if (new_ldt!=0) CPU_LLDT(new_ldt);
             /* Load the new CS*/
 
-            CPU_SetCPL((int)(new_cs & 3));
-            if (!cpu.gdt.GetDescriptor((int)new_cs,cs_desc_temp))
-                Log.exit("Task switch with CS beyond limits");
+            CPU_SetCPL(new_cs & 3);
+            if (!cpu.gdt.GetDescriptor(new_cs,cs_desc_temp))
+                throw new IllegalStateException("Task switch with CS beyond limits");
             if (cs_desc_temp.saved.seg.p()==0)
-                Log.exit("Task switch with non present code-segment");
+                throw new IllegalStateException("Task switch with non present code-segment");
             switch (cs_desc_temp.Type()) {
             case DESC_CODE_N_NC_A:		case DESC_CODE_N_NC_NA:
             case DESC_CODE_R_NC_A:		case DESC_CODE_R_NC_NA:
-                if (cpu.cpl != cs_desc_temp.DPL()) Log.exit("Task CS RPL != DPL");
+                if (cpu.cpl != cs_desc_temp.DPL()) throw new IllegalStateException("Task CS RPL != DPL");
                 //goto doconforming;
                 CPU_Regs.reg_csPhys.dword=cs_desc_temp.GetBase();
                 cpu.code.big=cs_desc_temp.Big()>0;
@@ -954,23 +953,23 @@ public class CPU extends Module_base {
                 break;
             case DESC_CODE_N_C_A:		case DESC_CODE_N_C_NA:
             case DESC_CODE_R_C_A:		case DESC_CODE_R_C_NA:
-                if (cpu.cpl < cs_desc_temp.DPL()) Log.exit("Task CS RPL < DPL");
+                if (cpu.cpl < cs_desc_temp.DPL()) throw new IllegalStateException("Task CS RPL < DPL");
             //doconforming:
                 CPU_Regs.reg_csPhys.dword=cs_desc_temp.GetBase();
                 cpu.code.big=cs_desc_temp.Big()>0;
                 CPU_Regs.reg_csVal.dword=new_cs;
                 break;
             default:
-                Log.exit("Task switch CS Type "+cs_desc_temp.Type());
+                throw new IllegalStateException("Task switch CS Type "+cs_desc_temp.Type());
             }
         }
-        CPU_SetSegGeneralES((int)new_es);
-        CPU_SetSegGeneralSS((int)new_ss);
-        CPU_SetSegGeneralDS((int)new_ds);
-        CPU_SetSegGeneralFS((int)new_fs);
-        CPU_SetSegGeneralGS((int)new_gs);
+        CPU_SetSegGeneralES(new_es);
+        CPU_SetSegGeneralSS(new_ss);
+        CPU_SetSegGeneralDS(new_ds);
+        CPU_SetSegGeneralFS(new_fs);
+        CPU_SetSegGeneralGS(new_gs);
         if (!cpu_tss.SetSelector(new_tss_selector)) {
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_NORMAL, "TaskSwitch: set tss selector "+Integer.toString(new_tss_selector, 16)+" failed");
+            LOG_CPU.log(Level.DEBUG,  "TaskSwitch: set tss selector "+Integer.toString(new_tss_selector, 16)+" failed");
         }
 //	cpu_tss.desc.SetBusy(true);
 //	cpu_tss.SaveSelector();
@@ -980,7 +979,7 @@ public class CPU extends Module_base {
 
     static boolean doexception(int port) {
         cpu.mpl=3;
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL, "IO Exception port "+Integer.toString(port, 16));
+        LOG_CPU.log(Level.DEBUG,  "IO Exception port "+Integer.toString(port, 16));
         return CPU_PrepareException(EXCEPTION_GP,0);
     }
 
@@ -1015,8 +1014,8 @@ public class CPU extends Module_base {
 
     static private boolean CPU_CHECK_COND(boolean cond, String msg, int exc, int sel) {
         if (cond) {
-            // Log.exit(msg+" "+exc+" "+sel);
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN, msg);
+            // throw new IllegalStateException(msg+" "+exc+" "+sel);
+            LOG_CPU.log(Level.WARNING,  msg);
             CPU_Exception(exc, sel);
             return true;
         }
@@ -1038,9 +1037,9 @@ public class CPU extends Module_base {
             switch (num) {
             case 0xcd:
                 if (Config.C_HEAVY_DEBUG) {
-                    Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR, "Call to interrupt 0xCD this is BAD");
+                    LOG_CPU.log(Level.ERROR,  "Call to interrupt 0xCD this is BAD");
                     Debug.DEBUG_HeavyWriteLogInstruction();
-                    Log.exit("Call to interrupt 0xCD this is BAD");
+                    throw new IllegalStateException("Call to interrupt 0xCD this is BAD");
                 }
                 break;
             case 0x03:
@@ -1057,7 +1056,7 @@ public class CPU extends Module_base {
             esp = CPU_Push16(esp, CPU_Regs.reg_csVal.dword);
             esp = CPU_Push16(esp, oldeip & 0xFFFF);
 
-            /* Get the new CS:IP from vector table */
+            /* Get the new CS:IP from List<?> table */
              /*PhysPt*/int base=cpu.idt.GetBase();
             int eip=Memory.mem_readw(base+(num << 2));
 
@@ -1140,7 +1139,7 @@ public class CPU extends Module_base {
                             case DESC_DATA_ED_RW_NA:		case DESC_DATA_ED_RW_A:
                                 break;
                             default:
-                                Log.exit("INT:Inner level:Stack segment not writable.");		// or #TS(ss_sel+EXT)
+                                throw new IllegalStateException("INT:Inner level:Stack segment not writable.");		// or #TS(ss_sel+EXT)
                             }
                             if (CPU_CHECK_COND(n_ss_desc_temp_1.saved.seg.p()==0, "INT:Inner level with nonpresent SS", EXCEPTION_SS,(n_ss_1.value & 0xfffc)+(((type&CPU_INT_SOFTWARE)!=0)?0:1)))
                                 return;
@@ -1157,7 +1156,7 @@ public class CPU extends Module_base {
                                 cpu.stack.big=false;
                                 cpu.stack.mask=0xffff;
                                 cpu.stack.notmask=0xffff0000;
-                                CPU_Regs.reg_esp.word((int)(n_esp_1.value & 0xffff));
+                                CPU_Regs.reg_esp.word(n_esp_1.value & 0xffff);
                             }
 
                             CPU_SetCPL(cs_dpl);
@@ -1171,7 +1170,7 @@ public class CPU extends Module_base {
                                 CPU_Push32(o_ss_1.value);
                                 CPU_Push32(o_esp);
                             } else {					/* 16-bit Gate */
-                                if ((CPU_Regs.flags & CPU_Regs.VM)!=0) Log.exit("V86 to 16-bit gate");
+                                if ((CPU_Regs.flags & CPU_Regs.VM)!=0) throw new IllegalStateException("V86 to 16-bit gate");
                                 CPU_Push16(o_ss_1.value);
                                 CPU_Push16(o_esp);
                             }
@@ -1191,14 +1190,14 @@ public class CPU extends Module_base {
                             break;
                         }
                         if (cs_dpl!=cpu.cpl)
-                            Log.exit("Non-conforming intra privilege INT with DPL!=CPL");
+                            throw new IllegalStateException("Non-conforming intra privilege INT with DPL!=CPL");
                     case DESC_CODE_N_C_A:	case DESC_CODE_N_C_NA:
                     case DESC_CODE_R_C_A:	case DESC_CODE_R_C_NA:
                         /* Prepare stack for gate to same priviledge */
                         if (CPU_CHECK_COND(cs_desc_temp_1.saved.seg.p()==0, "INT:Same level:CS segment not present", EXCEPTION_NP,(gate_sel & 0xfffc)+(((type&CPU_INT_SOFTWARE)!=0)?0:1)))
                             return;
                         if ((CPU_Regs.flags & CPU_Regs.VM)!=0 && (cs_dpl<cpu.cpl))
-                            Log.exit("V86 interrupt doesn't change to pl0");	// or #GP(cs_sel)
+                            throw new IllegalStateException("V86 interrupt doesn't change to pl0");	// or #GP(cs_sel)
 
                         // commit point
     //do_interrupt:
@@ -1215,7 +1214,7 @@ public class CPU extends Module_base {
                         }
                         break;
                     default:
-                        Log.exit("INT:Gate Selector points to illegal descriptor with type "+Integer.toString(cs_desc_temp_1.Type(),16));
+                        throw new IllegalStateException("INT:Gate Selector points to illegal descriptor with type "+Integer.toString(cs_desc_temp_1.Type(),16));
                     }
 
                     CPU_Regs.reg_csVal.dword=(gate_sel&0xfffc) | cpu.cpl;
@@ -1229,7 +1228,7 @@ public class CPU extends Module_base {
                     CPU_Regs.SETFLAGBIT(CPU_Regs.TF,false);
                     CPU_Regs.SETFLAGBIT(CPU_Regs.NT,false);
                     CPU_Regs.SETFLAGBIT(CPU_Regs.VM,false);
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"INT:Gate to "+Integer.toString(gate_sel, 16)+":"+Long.toString(gate_off, 16)+" big "+cs_desc_temp_1.Big()+" "+((gate_temp_1.Type() & 0x8) != 0 ? "386" : "286"));
+                    LOG_CPU.log(Level.DEBUG, "INT:Gate to "+Integer.toString(gate_sel, 16)+":"+Long.toString(gate_off, 16)+" big "+cs_desc_temp_1.Big()+" "+((gate_temp_1.Type() & 0x8) != 0 ? "386" : "286"));
                     return;
                 }
             case DESC_TASK_GATE:
@@ -1244,10 +1243,9 @@ public class CPU extends Module_base {
                 }
                 return;
             default:
-                Log.exit("Illegal descriptor type "+Integer.toString(gate_temp_1.Type(), 16)+" for int "+Integer.toString(num,16));
+                throw new IllegalStateException("Illegal descriptor type "+Integer.toString(gate_temp_1.Type(), 16)+" for int "+Integer.toString(num,16));
             }
         }
-        throw new RuntimeException();
     }
 
     static private final Descriptor n_cs_desc_2 = new Descriptor();
@@ -1255,7 +1253,7 @@ public class CPU extends Module_base {
     static public boolean iret = false;
     static public void CPU_IRET(boolean use32, /*Bitu*/int oldeip) {
         iret = true;
-        if (!cpu.pmode) {					/* RealMode IRET */
+        if (!cpu.pmode) {					// RealMode IRET
             if (use32) {
                 CPU_Regs.reg_eip=CPU_Pop32();
                 CPU_Regs.SegSet16CS(CPU_Pop32());
@@ -1267,7 +1265,7 @@ public class CPU extends Module_base {
             }
             cpu.code.big=false;
             Flags.DestroyConditionFlags();
-        } else {	/* Protected mode IRET */
+        } else {	// Protected mode IRET
             if ((CPU_Regs.flags & CPU_Regs.VM)!=0) {
                 if ((CPU_Regs.flags & CPU_Regs.IOPL)!=CPU_Regs.IOPL) {
                     // win3.x e
@@ -1306,11 +1304,11 @@ public class CPU extends Module_base {
             }
             /* Check if this is task IRET */
             if (CPU_Regs.GETFLAG(CPU_Regs.NT)!=0) {
-                if (CPU_Regs.GETFLAG(CPU_Regs.VM)!=0) Log.exit("Pmode IRET with VM bit set");
+                if (CPU_Regs.GETFLAG(CPU_Regs.VM)!=0) throw new IllegalStateException("Pmode IRET with VM bit set");
                 if (CPU_CHECK_COND(!cpu_tss.IsValid(), "TASK Iret without valid TSS", EXCEPTION_TS,cpu_tss.selector & 0xfffc))
                     return;
                 if (cpu_tss.desc.IsBusy()==0) {
-                    Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"TASK Iret:TSS not busy");
+                    LOG_CPU.log(Level.ERROR, "TASK Iret:TSS not busy");
                 }
                  /*Bitu*/int back_link=cpu_tss.Get_back();
                 CPU_SwitchTask(back_link,TSwitchType.TSwitch_IRET,oldeip);
@@ -1351,10 +1349,10 @@ public class CPU extends Module_base {
                     CPU_Regs.reg_esp.dword=n_esp;
                     cpu.code.big=false;
                     CPU_Regs.SegSet16CS(n_cs_sel);
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL, "IRET:Back to V86: CS:"+Integer.toString(CPU_Regs.reg_csVal.dword, 16)+" IP "+Integer.toString(CPU_Regs.reg_eip, 16)+" SS:"+Integer.toString(CPU_Regs.reg_ssVal.dword, 16)+" SP "+Integer.toString(CPU_Regs.reg_esp.dword, 16)+" FLAGS:%X"+Integer.toString(CPU_Regs.flags,16));
+                    LOG_CPU.log(Level.DEBUG,  "IRET:Back to V86: CS:"+Integer.toString(CPU_Regs.reg_csVal.dword, 16)+" IP "+Integer.toString(CPU_Regs.reg_eip, 16)+" SS:"+Integer.toString(CPU_Regs.reg_ssVal.dword, 16)+" SP "+Integer.toString(CPU_Regs.reg_esp.dword, 16)+" FLAGS:%X"+Integer.toString(CPU_Regs.flags,16));
                     return;
                 }
-                if ((n_flags & CPU_Regs.VM)!=0) Log.exit("IRET from pmode to v86 with CPL!=0");
+                if ((n_flags & CPU_Regs.VM)!=0) throw new IllegalStateException("IRET from pmode to v86 with CPL!=0");
             } else {
                 n_eip=Memory.mem_readw(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword & cpu.stack.mask));
                 tempesp=(CPU_Regs.reg_esp.dword & cpu.stack.notmask)|((CPU_Regs.reg_esp.dword + 2) & cpu.stack.mask);
@@ -1364,7 +1362,7 @@ public class CPU extends Module_base {
                 n_flags|=(CPU_Regs.flags & 0xffff0000);
                 tempesp=(tempesp&cpu.stack.notmask)|((tempesp+2)&cpu.stack.mask);
 
-                if ((n_flags & CPU_Regs.VM)!=0) Log.exit("VM Flag in 16-bit iret");
+                if ((n_flags & CPU_Regs.VM)!=0) throw new IllegalStateException("VM Flag in 16-bit iret");
             }
             if (CPU_CHECK_COND((n_cs_sel & 0xfffc)==0, "IRET:CS selector zero", EXCEPTION_GP,0))
                 return;
@@ -1390,7 +1388,7 @@ public class CPU extends Module_base {
                     return;
                 break;
             default:
-                Log.exit("IRET:Illegal descriptor type "+Integer.toString(n_cs_desc_2.Type(),16));
+                throw new IllegalStateException("IRET:Illegal descriptor type "+Integer.toString(n_cs_desc_2.Type(),16));
             }
             if (CPU_CHECK_COND(n_cs_desc_2.saved.seg.p()==0, "IRET with nonpresent code segment",EXCEPTION_NP,(n_cs_sel & 0xfffc)))
                 return;
@@ -1409,7 +1407,7 @@ public class CPU extends Module_base {
                 if (CPU_Regs.GETFLAG_IOPL()<cpu.cpl) mask &= (~CPU_Regs.IF);
                 CPU_SetFlags(n_flags,mask);
                 Flags.DestroyConditionFlags();
-                //Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"IRET:Same level:%X:%X big %b",n_cs_sel,n_eip,cpu.code.big);
+                //LOG_CPU.log(Level.DEBUG, "IRET:Same level:%X:%X big %b",n_cs_sel,n_eip,cpu.code.big);
             } else {
                 /* Return to outer level */
                  /*Bitu*/int n_ss;
@@ -1440,7 +1438,7 @@ public class CPU extends Module_base {
                 case DESC_DATA_ED_RW_NA:		case DESC_DATA_ED_RW_A:
                     break;
                 default:
-                    Log.exit("IRET:Outer level:Stack segment not writable");		// or #GP(ss_sel)
+                    throw new IllegalStateException("IRET:Outer level:Stack segment not writable");		// or #GP(ss_sel)
                 }
                 if (CPU_CHECK_COND(n_ss_desc_2.saved.seg.p()==0, "IRET:Outer level:Stack segment not present", EXCEPTION_NP,n_ss & 0xfffc))
                     return;
@@ -1470,13 +1468,13 @@ public class CPU extends Module_base {
                     cpu.stack.big=false;
                     cpu.stack.mask=0xffff;
                     cpu.stack.notmask=0xffff0000;
-                    CPU_Regs.reg_esp.word((int)(n_esp & 0xffffl));
+                    CPU_Regs.reg_esp.word((int)(n_esp & 0xffffL));
                 }
 
                 // borland extender, zrdx
                 CPU_CheckSegments();
 
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL, "IRET:Outer level:"+Integer.toString(n_cs_sel, 16)+":"+Long.toString(n_eip, 16)+" big "+cpu.code.big);
+                LOG_CPU.log(Level.DEBUG,  "IRET:Outer level:"+Integer.toString(n_cs_sel, 16)+":"+Long.toString(n_eip, 16)+" big "+cpu.code.big);
             }
         }
     }
@@ -1507,7 +1505,7 @@ public class CPU extends Module_base {
                     return;
                 if (CPU_CHECK_COND(cpu.cpl!=desc_3.DPL(), "JMP:NC:RPL != DPL", EXCEPTION_GP,selector & 0xfffc))
                     return;
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"JMP:Code:NC to "+Integer.toString(selector, 16)+":"+Integer.toString(offset, 16)+" big "+desc_3.Big());
+                LOG_CPU.log(Level.DEBUG, "JMP:Code:NC to "+Integer.toString(selector, 16)+":"+Integer.toString(offset, 16)+" big "+desc_3.Big());
                 //goto CODE_jmp;
                 if (desc_3.saved.seg.p()==0) {
                     // win
@@ -1523,7 +1521,7 @@ public class CPU extends Module_base {
                 return;
             case DESC_CODE_N_C_A:		case DESC_CODE_N_C_NA:
             case DESC_CODE_R_C_A:		case DESC_CODE_R_C_NA:
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"JMP:Code:C to "+Integer.toString(selector, 16)+":"+Integer.toString(offset, 16)+" big "+desc_3.Big());
+                LOG_CPU.log(Level.DEBUG, "JMP:Code:C to "+Integer.toString(selector, 16)+":"+Integer.toString(offset, 16)+" big "+desc_3.Big());
                 if (CPU_CHECK_COND(cpu.cpl<desc_3.DPL(), "JMP:C:CPL < DPL", EXCEPTION_GP,selector & 0xfffc))
                     return;
     //CODE_jmp:
@@ -1544,11 +1542,11 @@ public class CPU extends Module_base {
                     return;
                 if (CPU_CHECK_COND(desc_3.DPL()<rpl, "JMP:TSS:dpl<rpl", EXCEPTION_GP,selector & 0xfffc))
                     return;
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"JMP:TSS to "+Integer.toString(selector,16));
+                LOG_CPU.log(Level.DEBUG, "JMP:TSS to "+Integer.toString(selector,16));
                 CPU_SwitchTask(selector,TSwitchType.TSwitch_JMP,oldeip);
                 break;
             default:
-                Log.exit("JMP Illegal descriptor type "+Integer.toString(desc_3.Type(),16));
+                throw new IllegalStateException("JMP Illegal descriptor type "+Integer.toString(desc_3.Type(),16));
             }
         }
     }
@@ -1592,7 +1590,7 @@ public class CPU extends Module_base {
                     return;
                 if (CPU_CHECK_COND(call_4.DPL()!=cpu.cpl, "CALL:CODE:NC:DPL!=CPL", EXCEPTION_GP,selector & 0xfffc))
                     return;
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"CALL:CODE:NC to "+Integer.toString(selector, 16)+":"+Long.toString(offset,16));
+                LOG_CPU.log(Level.DEBUG, "CALL:CODE:NC to "+Integer.toString(selector, 16)+":"+Long.toString(offset,16));
                 //goto call_code;
                 if (call_4.saved.seg.p()==0) {
                     // borland extender (RTM)
@@ -1619,7 +1617,7 @@ public class CPU extends Module_base {
             case DESC_CODE_R_C_A:case DESC_CODE_R_C_NA:
                 if (CPU_CHECK_COND(call_4.DPL()>cpu.cpl, "CALL:CODE:C:DPL>CPL", EXCEPTION_GP,selector & 0xfffc))
                     return;
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"CALL:CODE:C to "+Integer.toString(selector, 16)+":"+Long.toString(offset,16));
+                LOG_CPU.log(Level.DEBUG, "CALL:CODE:C to "+Integer.toString(selector, 16)+":"+Long.toString(offset,16));
     //call_code:
                 if (call_4.saved.seg.p()==0) {
                     // borland extender (RTM)
@@ -1687,7 +1685,7 @@ public class CPU extends Module_base {
                                 // writable data segment
                                 break;
                             default:
-                                Log.exit("Call:Gate:SS no writable data segment");	// or #TS(ss_sel)
+                                throw new IllegalStateException("Call:Gate:SS no writable data segment");	// or #TS(ss_sel)
                             }
                             if (CPU_CHECK_COND(n_ss_desc_4.saved.seg.p()==0, "CALL:Gate:Stack segment not present", EXCEPTION_SS,n_ss_sel_4.value & 0xfffc))
                                 return;
@@ -1721,7 +1719,7 @@ public class CPU extends Module_base {
                                 cpu.stack.big=false;
                                 cpu.stack.mask=0xffff;
                                 cpu.stack.notmask=0xffff0000;
-                                CPU_Regs.reg_esp.word((int)(n_esp_4.value & 0xffffl));
+                                CPU_Regs.reg_esp.word((int)(n_esp_4.value & 0xffffL));
                             }
 
                             CPU_SetCPL(n_cs_desc_4.DPL());
@@ -1753,7 +1751,7 @@ public class CPU extends Module_base {
 
                             break;
                         } else if (n_cs_dpl > cpu.cpl)
-                            Log.exit("CALL:GATE:CS DPL>CPL");		// or #GP(sel)
+                            throw new IllegalStateException("CALL:GATE:CS DPL>CPL");		// or #GP(sel)
                     case DESC_CODE_N_C_A:case DESC_CODE_N_C_NA:
                     case DESC_CODE_R_C_A:case DESC_CODE_R_C_NA:
                         // zrdx extender
@@ -1776,7 +1774,7 @@ public class CPU extends Module_base {
                         if (!use32)	CPU_Regs.reg_eip=CPU_Regs.reg_eip & 0xffff;
                         break;
                     default:
-                        Log.exit("CALL:GATE:CS no executable segment");
+                        throw new IllegalStateException("CALL:GATE:CS no executable segment");
                     }
                 }			/* Call Gates */
                 break;
@@ -1788,7 +1786,7 @@ public class CPU extends Module_base {
                 if (CPU_CHECK_COND(call_4.saved.seg.p()==0, "CALL:TSS:Segment not present", EXCEPTION_NP,selector & 0xfffc))
                     return;
 
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"CALL:TSS to "+Integer.toString(selector,16));
+                LOG_CPU.log(Level.DEBUG, "CALL:TSS to "+Integer.toString(selector,16));
                 CPU_SwitchTask(selector,TSwitchType.TSwitch_CALL_INT,oldeip);
                 break;
             case DESC_DATA_EU_RW_NA:	// vbdos
@@ -1796,7 +1794,7 @@ public class CPU extends Module_base {
                 CPU_Exception(EXCEPTION_GP,selector & 0xfffc);
                 return;
             default:
-                Log.exit("CALL:Descriptor type "+Integer.toString(call_4.Type(), 16)+" unsupported");
+                throw new IllegalStateException("CALL:Descriptor type "+Integer.toString(call_4.Type(), 16)+" unsupported");
             }
         }
     }
@@ -1868,7 +1866,7 @@ public class CPU extends Module_base {
                     } else {
                         CPU_Regs.reg_esp.word(CPU_Regs.reg_esp.word()+bytes);
                     }
-                    //Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"RET - Same level to %X:%X RPL %X DPL %X",selector,offset,rpl,desc.DPL());
+                    //LOG_CPU.log(Level.DEBUG, "RET - Same level to %X:%X RPL %X DPL %X",selector,offset,rpl,desc.DPL());
                     return;
                 case DESC_CODE_N_C_A:case DESC_CODE_N_C_NA:
                 case DESC_CODE_R_C_A:case DESC_CODE_R_C_NA:
@@ -1876,7 +1874,7 @@ public class CPU extends Module_base {
                         return;
                     break;
                 default:
-                    Log.exit("RET from illegal descriptor type "+Integer.toString(desc_5.Type(),16));
+                    throw new IllegalStateException("RET from illegal descriptor type "+Integer.toString(desc_5.Type(),16));
                 }
     //RET_same_level:
                 if (desc_5.saved.seg.p()==0) {
@@ -1903,7 +1901,7 @@ public class CPU extends Module_base {
                 } else {
                     CPU_Regs.reg_esp.word(CPU_Regs.reg_esp.word()+bytes);
                 }
-                //Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"RET - Same level to %X:%X RPL %X DPL %X",selector,offset,rpl,desc.DPL());
+                //LOG_CPU.log(Level.DEBUG, "RET - Same level to %X:%X RPL %X DPL %X",selector,offset,rpl,desc.DPL());
             } else {
                 /* Return to outer level */
                 switch (desc_5.Type()) {
@@ -1918,7 +1916,7 @@ public class CPU extends Module_base {
                         return;
                     break;
                 default:
-                    Log.exit("RET from illegal descriptor type "+Integer.toString(desc_5.Type(),16));		// or #GP(selector)
+                    throw new IllegalStateException("RET from illegal descriptor type "+Integer.toString(desc_5.Type(),16));		// or #GP(selector)
                 }
 
                 if (CPU_CHECK_COND(desc_5.saved.seg.p()==0, "RET:Outer level:CS not present", EXCEPTION_NP,selector & 0xfffc))
@@ -1955,7 +1953,7 @@ public class CPU extends Module_base {
                 case DESC_DATA_ED_RW_NA:		case DESC_DATA_ED_RW_A:
                     break;
                 default:
-                    Log.exit("RET:SS selector type no writable data segment");	// or #GP(selector)
+                    throw new IllegalStateException("RET:SS selector type no writable data segment");	// or #GP(selector)
                 }
                 if (CPU_CHECK_COND(n_ss_desc_5.saved.seg.p()==0, "RET:Stack segment not present", EXCEPTION_SS,n_ss & 0xfffc))
                     return;
@@ -1985,7 +1983,7 @@ public class CPU extends Module_base {
 //			LOG(LOG_MISC,LOG_ERROR)("RET - Higher level to %X:%X RPL %X DPL %X",selector,offset,rpl,desc.DPL());
 //                return;
             }
-            //Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"Prot ret %X:%X",selector,offset);
+            //LOG_CPU.log(Level.DEBUG, "Prot ret %X:%X",selector,offset);
             //return;
         }
         //throw new RuntimeException();
@@ -2008,10 +2006,10 @@ public class CPU extends Module_base {
 
     static public boolean CPU_LLDT( /*Bitu*/int selector) {
         if (!cpu.gdt.LLDT(selector)) {
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"LLDT failed, selector="+Integer.toString(selector,16));
+            LOG_CPU.log(Level.ERROR, "LLDT failed, selector="+Integer.toString(selector,16));
             return true;
         }
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"LDT Set to "+Integer.toString(selector, 16));
+        LOG_CPU.log(Level.DEBUG, "LDT Set to "+Integer.toString(selector, 16));
         return false;
     }
 
@@ -2027,34 +2025,34 @@ public class CPU extends Module_base {
         }
 
         if ((selector & 4) != 0 || (!cpu.gdt.GetDescriptor(selector,desc_6))) {
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"LTR failed, selector="+Integer.toString(selector,16));
+            LOG_CPU.log(Level.ERROR, "LTR failed, selector="+Integer.toString(selector,16));
             return CPU_PrepareException(EXCEPTION_GP,selector);
         }
 
         if ((desc_6.Type()==DESC_286_TSS_A) || (desc_6.Type()==DESC_386_TSS_A)) {
             if (desc_6.saved.seg.p()==0) {
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"LTR failed, selector="+Integer.toString(selector, 16)+" (not present)");
+                LOG_CPU.log(Level.ERROR, "LTR failed, selector="+Integer.toString(selector, 16)+" (not present)");
                 return CPU_PrepareException(EXCEPTION_NP,selector);
             }
-            if (!cpu_tss.SetSelector(selector)) Log.exit("LTR failed, selector="+Integer.toString(selector,16));
+            if (!cpu_tss.SetSelector(selector)) throw new IllegalStateException("LTR failed, selector="+Integer.toString(selector,16));
             cpu_tss.desc.SetBusy(true);
             cpu_tss.SaveSelector();
         } else {
             /* Descriptor was no available TSS descriptor */
-            if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"LTR failed, selector="+Integer.toString(selector, 16)+" (type="+Integer.toString(desc_6.Type(), 16)+")");
+            LOG_CPU.log(Level.DEBUG, "LTR failed, selector="+Integer.toString(selector, 16)+" (type="+Integer.toString(desc_6.Type(), 16)+")");
             return CPU_PrepareException(EXCEPTION_GP,selector);
         }
         return false;
     }
 
     static public void CPU_LGDT( /*Bitu*/int limit, /*Bitu*/int base) {
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"GDT Set to base:"+Long.toString(base, 16)+" limit:"+Integer.toString(limit,16));
+        LOG_CPU.log(Level.DEBUG, "GDT Set to base:"+Long.toString(base, 16)+" limit:"+Integer.toString(limit,16));
         cpu.gdt.SetLimit(limit);
         cpu.gdt.SetBase(base);
     }
 
     static public void CPU_LIDT( /*Bitu*/int limit, /*Bitu*/int base) {
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"IDT Set to base:"+Long.toString(base, 16)+" limit:"+Integer.toString(limit,16));
+        LOG_CPU.log(Level.DEBUG, "IDT Set to base:"+Long.toString(base, 16)+" limit:"+Integer.toString(limit,16));
         cpu.idt.SetLimit(limit);
         cpu.idt.SetBase(base);
     }
@@ -2088,7 +2086,7 @@ public class CPU extends Module_base {
                 cpu.cr0=value;
                 if ((value & CR0_PROTECTION)!=0) {
                     cpu.pmode=true;
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"Protected mode");
+                    LOG_CPU.log(Level.DEBUG, "Protected mode");
                     Paging.PAGING_Enable((value & CR0_PAGING)!=0);
 
                     if ((CPU_AutoDetermineMode & CPU_AUTODETERMINE_MASK)==0) break;
@@ -2101,7 +2099,7 @@ public class CPU extends Module_base {
                         Main.GFX_SetTitle(CPU_CyclePercUsed,-1,false);
                         if(!printed_cycles_auto_info) {
                             printed_cycles_auto_info = true;
-                            Log.log_msg("DOSBox switched to max cycles, because of the setting: cycles=auto. If the game runs too fast try a fixed cycles amount in DOSBox's options.");
+                            logger.log(Level.DEBUG, "DOSBox switched to max cycles, because of the setting: cycles=auto. If the game runs too fast try a fixed cycles amount in DOSBox's options.");
                         }
                     } else {
                         Main.GFX_SetTitle(-1,-1,false);
@@ -2115,9 +2113,9 @@ public class CPU extends Module_base {
                     CPU_AutoDetermineMode<<=CPU_AUTODETERMINE_SHIFT;
                 } else {
                     cpu.pmode=false;
-                    if ((value & CR0_PAGING)!=0) Log.log_msg("Paging requested without PE=1");
+                    if ((value & CR0_PAGING)!=0) logger.log(Level.DEBUG, "Paging requested without PE=1");
                     Paging.PAGING_Enable(false);
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"Real mode");
+                    LOG_CPU.log(Level.DEBUG, "Real mode");
                 }
                 break;
             }
@@ -2133,24 +2131,24 @@ public class CPU extends Module_base {
             cpu.cr4 = value;
             cpu.cr4 = (cpu.cr4 & ~0x5f) | (value & 0x5f);
             if ((cpu.cr4 & CR4_VIRTUAL8086_MODE_EXTENSIONS) != 0)
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"Virtual-8086 mode extensions enabled in the processor");
+                LOG_CPU.log(Level.WARNING, "Virtual-8086 mode extensions enabled in the processor");
             if ((cpu.cr4 & CR4_PROTECTED_MODE_VIRTUAL_INTERRUPTS) != 0)
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"Protected mode virtual interrupts enabled in the processor");
+                LOG_CPU.log(Level.WARNING, "Protected mode virtual interrupts enabled in the processor");
             if ((cpu.cr4 & CR4_OS_SUPPORT_UNMASKED_SIMD_EXCEPTIONS) != 0)
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"SIMD instruction support modified in the processor");
+                LOG_CPU.log(Level.WARNING, "SIMD instruction support modified in the processor");
             if ((cpu.cr4 & CR4_OS_SUPPORT_FXSAVE_FXSTORE) != 0)
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"FXSave and FXRStore enabled in the processor");
+                LOG_CPU.log(Level.WARNING, "FXSave and FXRStore enabled in the processor");
             if ((cpu.cr4 & CR4_DEBUGGING_EXTENSIONS) != 0)
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"Debugging extensions enabled");
+                LOG_CPU.log(Level.WARNING, "Debugging extensions enabled");
             if ((cpu.cr4 & CR4_TIME_STAMP_DISABLE) != 0)
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_WARN,"Timestamp restricted to CPL0");
+                LOG_CPU.log(Level.WARNING, "Timestamp restricted to CPL0");
             if ((cpu.cr4 & CR4_PHYSICAL_ADDRESS_EXTENSION) != 0) {
-                Log.exit("36-bit addressing enabled");
+                throw new IllegalStateException("36-bit addressing enabled");
             }
             Paging.PAGING_EnableGlobal((cpu.cr4 & CR4_PAGE_GLOBAL_ENABLE)!=0);
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV CR"+cr+","+Integer.toString(value, 16));
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV CR"+cr+","+Integer.toString(value, 16));
             break;
         }
     }
@@ -2179,7 +2177,7 @@ public class CPU extends Module_base {
         case 4:
             return cpu.cr4;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV XXX, CR"+cr);
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV XXX, CR"+cr);
             break;
         }
         return 0;
@@ -2217,7 +2215,7 @@ public class CPU extends Module_base {
             }
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV DR"+dr+","+Integer.toString(value,16));
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV DR"+dr+","+Integer.toString(value,16));
             break;
         }
         return false;
@@ -2242,7 +2240,7 @@ public class CPU extends Module_base {
             retvalue.dword=cpu.drx[7];
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV XXX, DR"+dr);
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV XXX, DR"+dr);
             retvalue.dword=0;
             break;
         }
@@ -2259,7 +2257,7 @@ public class CPU extends Module_base {
             cpu.trx[tr]=value;
             return false;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV TR"+tr+","+Long.toString(value,16));
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV TR"+tr+","+Long.toString(value,16));
             break;
         }
         return CPU_PrepareException(EXCEPTION_UD,0);
@@ -2275,7 +2273,7 @@ public class CPU extends Module_base {
             retvalue.dword=cpu.trx[tr];
             return false;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled MOV XXX, TR"+tr);
+            LOG_CPU.log(Level.ERROR, "Unhandled MOV XXX, TR"+tr);
             break;
         }
         return CPU_PrepareException(EXCEPTION_UD,0);
@@ -2290,7 +2288,7 @@ public class CPU extends Module_base {
         if (cpu.pmode && (cpu.cpl>0)) return CPU_PrepareException(EXCEPTION_GP,0);
         word&=0xf;
         if ((cpu.cr0 & 1)!=0) word|=1;
-        word|=(cpu.cr0&0xfffffff0l);
+        word|=(cpu.cr0& 0xfffffff0L);
         CPU_SET_CRX(0,word);
         return false;
     }
@@ -2705,15 +2703,15 @@ public class CPU extends Module_base {
         } else {
             // Stack needs to be non-zero
             if ((value & 0xfffc)==0) {
-                Log.exit("CPU_SetSegGeneral: Stack segment zero");
+                throw new IllegalStateException("CPU_SetSegGeneral: Stack segment zero");
 //				return CPU_PrepareException(EXCEPTION_GP,0);
             }
             if (!cpu.gdt.GetDescriptor(value,desc_16)) {
-                Log.exit("CPU_SetSegGeneral: Stack segment beyond limits");
+                throw new IllegalStateException("CPU_SetSegGeneral: Stack segment beyond limits");
 //				return CPU_PrepareException(EXCEPTION_GP,value & 0xfffc);
             }
             if (((value & 3)!=cpu.cpl) || (desc_16.DPL()!=cpu.cpl)) {
-                Log.exit("CPU_SetSegGeneral: Stack segment with invalid privileges");
+                throw new IllegalStateException("CPU_SetSegGeneral: Stack segment with invalid privileges");
 //				return CPU_PrepareException(EXCEPTION_GP,value & 0xfffc);
             }
 
@@ -2727,7 +2725,7 @@ public class CPU extends Module_base {
             }
 
             if (desc_16.saved.seg.p() == 0) {
-//				Log.exit("CPU_SetSegGeneral: Stack segment not present");	// or #SS(sel)
+//				throw new IllegalStateException("CPU_SetSegGeneral: Stack segment not present");	// or #SS(sel)
                 return CPU_PrepareException(EXCEPTION_SS,value & 0xfffc);
             }
 
@@ -2747,17 +2745,15 @@ public class CPU extends Module_base {
     }
 
     static public boolean CPU_SetSegGeneral_index(int seg,/*Bitu*/int value) {
-        switch (seg) {
-            case CPU_Regs.es: return CPU_SetSegGeneralES(value);
-            case CPU_Regs.cs: return CPU_SetSegGeneralCS(value);
-            case CPU_Regs.ss: return CPU_SetSegGeneralSS(value);
-            case CPU_Regs.ds: return CPU_SetSegGeneralDS(value);
-            case CPU_Regs.fs: return CPU_SetSegGeneralFS(value);
-            case CPU_Regs.gs: return CPU_SetSegGeneralGS(value);
-            default:
-                Log.exit("Unknown segment");
-                return false;
-        }
+        return switch (seg) {
+            case CPU_Regs.es -> CPU_SetSegGeneralES(value);
+            case CPU_Regs.cs -> CPU_SetSegGeneralCS(value);
+            case CPU_Regs.ss -> CPU_SetSegGeneralSS(value);
+            case CPU_Regs.ds -> CPU_SetSegGeneralDS(value);
+            case CPU_Regs.fs -> CPU_SetSegGeneralFS(value);
+            case CPU_Regs.gs -> CPU_SetSegGeneralGS(value);
+            default -> throw new IllegalStateException("Unknown segment");
+        };
     }
 
     public static boolean CPU_PopSegES(boolean use32) {
@@ -2845,7 +2841,7 @@ public class CPU extends Module_base {
             CPU_Regs.reg_eax.dword = 0;
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_ERROR,"Unhandled CPUID Function "+Integer.toString(CPU_Regs.reg_eax.dword,16));
+            LOG_CPU.log(Level.ERROR, "Unhandled CPUID Function "+Integer.toString(CPU_Regs.reg_eax.dword,16));
             CPU_Regs.reg_eax.dword=0;
             CPU_Regs.reg_ebx.dword=0;
             CPU_Regs.reg_ecx.dword=0;
@@ -2855,6 +2851,7 @@ public class CPU extends Module_base {
     }
 
     final static private CPU_Decoder HLT_Decode = new CPU_Decoder() {
+        @Override
         public /*Bits*/int call() {
             /* Once an interrupt occurs, it should change cpu core */
             if (CPU_Regs.reg_eip!=cpu.hlt.eip || CPU_Regs.reg_csVal.dword != cpu.hlt.cs) {
@@ -2911,54 +2908,50 @@ public class CPU extends Module_base {
         CPU_Regs.reg_esp.dword=(CPU_Regs.reg_esp.dword & cpu.stack.notmask)|(sp_index & cpu.stack.mask);
     }
 
-    final static private Mapper.MAPPER_Handler CPU_CycleIncrease = new Mapper.MAPPER_Handler() {
-        public void call(boolean pressed) {
-            if (!pressed) return;
-            if (CPU_CycleAutoAdjust) {
-                CPU_CyclePercUsed+=5;
-                if (CPU_CyclePercUsed>105) CPU_CyclePercUsed=105;
-                Log.log_msg("CPU speed: max "+CPU_CyclePercUsed+" percent.");
-                Main.GFX_SetTitle(CPU_CyclePercUsed,-1,false);
+    final static private Mapper.MAPPER_Handler CPU_CycleIncrease = pressed -> {
+        if (!pressed) return;
+        if (CPU_CycleAutoAdjust) {
+            CPU_CyclePercUsed+=5;
+            if (CPU_CyclePercUsed>105) CPU_CyclePercUsed=105;
+            logger.log(Level.DEBUG, "CPU speed: max "+CPU_CyclePercUsed+" percent.");
+            Main.GFX_SetTitle(CPU_CyclePercUsed,-1,false);
+        } else {
+            /*Bit32s*/int old_cycles=CPU_CycleMax;
+            if (CPU_CycleUp < 100) {
+                CPU_CycleMax = (/*Bit32s*/int)(CPU_CycleMax * (1 + (float)CPU_CycleUp / 100.0));
             } else {
-                /*Bit32s*/int old_cycles=CPU_CycleMax;
-                if (CPU_CycleUp < 100) {
-                    CPU_CycleMax = (/*Bit32s*/int)(CPU_CycleMax * (1 + (float)CPU_CycleUp / 100.0));
-                } else {
-                    CPU_CycleMax = (CPU_CycleMax + CPU_CycleUp);
-                }
-
-                CPU_CycleLeft=0;CPU_Cycles=0;
-                if (CPU_CycleMax==old_cycles) CPU_CycleMax++;
-                if(CPU_CycleMax > 15000 )
-                    Log.log_msg("CPU speed: fixed "+CPU_CycleMax+" cycles. If you need more than 20000, try core=dynamic in DOSBox's options.");
-                else
-                    Log.log_msg("CPU speed: fixed "+CPU_CycleMax+" cycles.");
-                Main.GFX_SetTitle(CPU_CycleMax,-1,false);
+                CPU_CycleMax = (CPU_CycleMax + CPU_CycleUp);
             }
+
+            CPU_CycleLeft=0;CPU_Cycles=0;
+            if (CPU_CycleMax==old_cycles) CPU_CycleMax++;
+            if(CPU_CycleMax > 15000 )
+                logger.log(Level.DEBUG, "CPU speed: fixed "+CPU_CycleMax+" cycles. If you need more than 20000, try core=dynamic in DOSBox's options.");
+            else
+                logger.log(Level.DEBUG, "CPU speed: fixed "+CPU_CycleMax+" cycles.");
+            Main.GFX_SetTitle(CPU_CycleMax,-1,false);
         }
     };
-    final static private Mapper.MAPPER_Handler CPU_CycleDecrease = new Mapper.MAPPER_Handler() {
-        public void call(boolean pressed) {
-            if (!pressed) return;
-            if (CPU_CycleAutoAdjust) {
-                CPU_CyclePercUsed-=5;
-                if (CPU_CyclePercUsed<=0) CPU_CyclePercUsed=1;
-                if(CPU_CyclePercUsed <=70)
-                    Log.log_msg("CPU speed: max "+CPU_CyclePercUsed+" percent. If the game runs too fast, try a fixed cycles amount in DOSBox's options.");
-                else
-                    Log.log_msg("CPU speed: max "+CPU_CyclePercUsed+" percent.");
-                Main.GFX_SetTitle(CPU_CyclePercUsed,-1,false);
+    final static private Mapper.MAPPER_Handler CPU_CycleDecrease = pressed -> {
+        if (!pressed) return;
+        if (CPU_CycleAutoAdjust) {
+            CPU_CyclePercUsed-=5;
+            if (CPU_CyclePercUsed<=0) CPU_CyclePercUsed=1;
+            if(CPU_CyclePercUsed <=70)
+                logger.log(Level.DEBUG, "CPU speed: max "+CPU_CyclePercUsed+" percent. If the game runs too fast, try a fixed cycles amount in DOSBox's options.");
+            else
+                logger.log(Level.DEBUG, "CPU speed: max "+CPU_CyclePercUsed+" percent.");
+            Main.GFX_SetTitle(CPU_CyclePercUsed,-1,false);
+        } else {
+            if (CPU_CycleDown < 100) {
+                CPU_CycleMax = (/*Bit32s*/int)(CPU_CycleMax / (1 + (float)CPU_CycleDown / 100.0));
             } else {
-                if (CPU_CycleDown < 100) {
-                    CPU_CycleMax = (/*Bit32s*/int)(CPU_CycleMax / (1 + (float)CPU_CycleDown / 100.0));
-                } else {
-                    CPU_CycleMax = (CPU_CycleMax - CPU_CycleDown);
-                }
-                CPU_CycleLeft=0;CPU_Cycles=0;
-                if (CPU_CycleMax <= 0) CPU_CycleMax=1;
-                Log.log_msg("CPU speed: fixed "+CPU_CycleMax+" cycles.");
-                Main.GFX_SetTitle(CPU_CycleMax,-1,false);
+                CPU_CycleMax = (CPU_CycleMax - CPU_CycleDown);
             }
+            CPU_CycleLeft=0;CPU_Cycles=0;
+            if (CPU_CycleMax <= 0) CPU_CycleMax=1;
+            logger.log(Level.DEBUG, "CPU speed: fixed "+CPU_CycleMax+" cycles.");
+            Main.GFX_SetTitle(CPU_CycleMax,-1,false);
         }
     };
 
@@ -2982,20 +2975,18 @@ public class CPU extends Module_base {
         Dosbox.ticksScheduled = 0;
     }
 
-    private static Hashtable<Integer, Long> msrs = new Hashtable<Integer, Long>();
+    private static final Map<Integer, Long> msrs = new HashMap<>();
 
     public static long readMSR(int index) {
-        Integer i = new Integer(index);
-        Long result = msrs.get(i);
+        Long result = msrs.get(index);
         if (result != null) {
-            return result.longValue();
+            return result;
         }
         return 0;
     }
 
     public static void writeMSR(int index, long value) {
-        Integer i = new Integer(index);
-        msrs.put(i, new Long(value));
+        msrs.put(index, value);
     }
     private static boolean inited = false;
     static public void initialize() {
@@ -3058,6 +3049,7 @@ public class CPU extends Module_base {
         Change_Config(configuration);
         CPU_JMP(false,0,0,0);					//Setup the first cpu core
     }
+    @Override
     public boolean Change_Config(Section newconfig){
         Section_prop section=(Section_prop)newconfig;
         CPU_AutoDetermineMode=CPU_AUTODETERMINE_NONE;
@@ -3074,8 +3066,8 @@ public class CPU extends Module_base {
             CPU_CyclePercUsed=100;
             CPU_CycleAutoAdjust=true;
             CPU_CycleLimit=-1;
-            for (/*Bitu*/int cmdnum=1; cmdnum<=cmd.GetCount(); cmdnum++) {
-                if ((str=cmd.FindCommand(cmdnum))!=null) {
+            for (/*Bitu*/int cmdnum = 1; cmdnum<=cmd.getCount(); cmdnum++) {
+                if ((str=cmd.findCommand(cmdnum))!=null) {
                     if (str.endsWith("%")) {
                         try {
                             int percval=Integer.parseInt(str.substring(0, str.length()-1));
@@ -3084,7 +3076,7 @@ public class CPU extends Module_base {
                         }
                     } else if (str.equals("limit")) {
                         cmdnum++;
-                        if ((str=cmd.FindCommand(cmdnum))!=null) {
+                        if ((str=cmd.findCommand(cmdnum))!=null) {
                             try {
                                 int cyclimit=Integer.parseInt(str);
                                 if (cyclimit>0) CPU_CycleLimit=cyclimit;
@@ -3100,8 +3092,8 @@ public class CPU extends Module_base {
                 CPU_CycleMax=3000;
                 CPU_OldCycleMax=3000;
                 CPU_CyclePercUsed=100;
-                for (/*Bitu*/int cmdnum=0; cmdnum<=cmd.GetCount(); cmdnum++) {
-                    if ((str=cmd.FindCommand(cmdnum))!=null) {
+                for (/*Bitu*/int cmdnum = 0; cmdnum<=cmd.getCount(); cmdnum++) {
+                    if ((str=cmd.findCommand(cmdnum))!=null) {
                         if (str.endsWith("%")) {
                             try {
                                 int percval=Integer.parseInt(str.substring(0, str.length()-1));
@@ -3110,7 +3102,7 @@ public class CPU extends Module_base {
                             }
                         } else if (str.equals("limit")) {
                             cmdnum++;
-                            if ((str=cmd.FindCommand(cmdnum))!=null) {
+                            if ((str=cmd.findCommand(cmdnum))!=null) {
                                 try {
                                     int cyclimit=Integer.parseInt(str);
                                     if (cyclimit>0) CPU_CycleLimit=cyclimit;
@@ -3130,7 +3122,7 @@ public class CPU extends Module_base {
                     }
                 }
             } else if(type.equals("fixed")) {
-                str = cmd.FindCommand(1);
+                str = cmd.findCommand(1);
                 try {CPU_CycleMax=Integer.parseInt(str);} catch (Exception e){}
             } else {
                 int rmdval=0;
@@ -3166,40 +3158,38 @@ public class CPU extends Module_base {
 
         CPU_ArchitectureType = CPU_ARCHTYPE_MIXED;
         String cputype = section.Get_string("cputype");
-        if (cputype.equals("auto")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_MIXED;
-        } else if (cputype.equals("386")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_386;
-        } else if (cputype.equals("386_prefetch")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_386;
-            if (core.equals("normal")) {
-                cpudecoder=Core_prefetch.CPU_Core_Prefetch_Run;
-                CPU_PrefetchQueueSize = 16;
-            } else if (core.equals("auto")) {
-                cpudecoder=Core_prefetch.CPU_Core_Prefetch_Run;
-                CPU_PrefetchQueueSize = 16;
-                CPU_AutoDetermineMode&=(~CPU_AUTODETERMINE_CORE);
-            } else {
-                Log.exit("prefetch queue emulation requires the normal core setting.");
+        switch (cputype) {
+            case "auto" -> CPU_ArchitectureType = CPU_ARCHTYPE_MIXED;
+            case "386" -> CPU_ArchitectureType = CPU_ARCHTYPE_386;
+            case "386_prefetch" -> {
+                CPU_ArchitectureType = CPU_ARCHTYPE_386;
+                if (core.equals("normal")) {
+                    cpudecoder = Core_prefetch.CPU_Core_Prefetch_Run;
+                    CPU_PrefetchQueueSize = 16;
+                } else if (core.equals("auto")) {
+                    cpudecoder = Core_prefetch.CPU_Core_Prefetch_Run;
+                    CPU_PrefetchQueueSize = 16;
+                    CPU_AutoDetermineMode &= (~CPU_AUTODETERMINE_CORE);
+                } else {
+                    throw new IllegalStateException("prefetch queue emulation requires the normal core setting.");
+                }
             }
-        } else if (cputype.equals("486")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_486NEW;
-        } else if (cputype.equals("486_prefetch")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_486NEW;
-            if (core.equals("normal")) {
-                cpudecoder=Core_prefetch.CPU_Core_Prefetch_Run;
-                CPU_PrefetchQueueSize = 32;
-            } else if (core.equals("auto")) {
-                cpudecoder=Core_prefetch.CPU_Core_Prefetch_Run;
-                CPU_PrefetchQueueSize = 32;
-                CPU_AutoDetermineMode&=(~CPU_AUTODETERMINE_CORE);
-            } else {
-                Log.exit("prefetch queue emulation requires the normal core setting.");
+            case "486" -> CPU_ArchitectureType = CPU_ARCHTYPE_486NEW;
+            case "486_prefetch" -> {
+                CPU_ArchitectureType = CPU_ARCHTYPE_486NEW;
+                if (core.equals("normal")) {
+                    cpudecoder = Core_prefetch.CPU_Core_Prefetch_Run;
+                    CPU_PrefetchQueueSize = 32;
+                } else if (core.equals("auto")) {
+                    cpudecoder = Core_prefetch.CPU_Core_Prefetch_Run;
+                    CPU_PrefetchQueueSize = 32;
+                    CPU_AutoDetermineMode &= (~CPU_AUTODETERMINE_CORE);
+                } else {
+                    throw new IllegalStateException("prefetch queue emulation requires the normal core setting.");
+                }
             }
-        } else if (cputype.equals("pentium")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_PENTIUM;
-        } else if (cputype.equals("p6")) {
-            CPU_ArchitectureType = CPU_ARCHTYPE_PENTIUM_PRO;
+            case "pentium" -> CPU_ArchitectureType = CPU_ARCHTYPE_PENTIUM;
+            case "p6" -> CPU_ArchitectureType = CPU_ARCHTYPE_PENTIUM_PRO;
         }
 
         if (CPU_ArchitectureType>=CPU_ARCHTYPE_486NEW) CPU_extflags_toggle=(CPU_Regs.ID|CPU_Regs.AC);
@@ -3217,6 +3207,7 @@ public class CPU extends Module_base {
     static private CPU test;
 
     final private static Section.SectionFunction CPU_ShutDown = new Section.SectionFunction() {
+        @Override
         public void call (Section sec) {
             if (Config.C_DYNAMIC)
                 Core_dynamic.CPU_Core_Dynamic_Cache_Close();
@@ -3224,9 +3215,10 @@ public class CPU extends Module_base {
         }
     };
     final public static Section.SectionFunction CPU_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = new CPU(section);
-            section.AddDestroyFunction(CPU_ShutDown,true);
+            section.addDestroyFunction(CPU_ShutDown,true);
         }
     };
 }

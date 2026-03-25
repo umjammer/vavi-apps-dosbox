@@ -9,9 +9,14 @@ import jdos.win.utils.StringUtil;
 import java.awt.*;
 import java.awt.font.FontRenderContext;
 import java.awt.font.LineMetrics;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Arrays;
 
 public class WinFont extends WinGDI {
+
+    private static final Logger logger = System.getLogger(WinFont.class.getName());
+
     static public WinFont create(Font font) {
         return new WinFont(nextObjectId(), font);
     }
@@ -48,9 +53,9 @@ public class WinFont extends WinGDI {
         if (fdwItalic != 0)
             style |= Font.ITALIC;
         if (fdwUnderline != 0)
-            System.out.println("Underline fonts not supported yet");
+            logger.log(Level.DEBUG,"Underline fonts not supported yet");
         if (fdwStrikeOut != 0)
-            System.out.println("Strikeout fonts not supported yet");
+            logger.log(Level.DEBUG,"Strikeout fonts not supported yet");
 
         int size = 12;
         if (nHeight != 0)
@@ -198,12 +203,12 @@ public class WinFont extends WinGDI {
         Memory.mem_writeb(lptm, font.isItalic() ? 1 : 0);lptm+=1; // tmItalic
         Memory.mem_writeb(lptm, 0);lptm+=1; // tmUnderlined
         Memory.mem_writeb(lptm, 0);lptm+=1; // tmStruckOut
-        Memory.mem_writeb(lptm, 0x06);lptm+=1; // tmPitchAndFamily TMPF_FIXED_PITCH=0x01 TMPF_VECTOR=0x02 TMPF_DEVICE=0x08 TMPF_TRUETYPE=0x04
+        Memory.mem_writeb(lptm, 0x06);lptm+=1; // tmPitchAndFamily TMPF_FIXED_PITCH=0x01 TMPF_List<?>=0x02 TMPF_DEVICE=0x08 TMPF_TRUETYPE=0x04
         Memory.mem_writeb(lptm, 0);lptm+=1; // tmCharSet 0=ANSI_CHARSET
         return WinAPI.TRUE;
     }
 
-    public Font font;
+    public final Font font;
 
     public WinFont(int id, Font font) {
         super(id);

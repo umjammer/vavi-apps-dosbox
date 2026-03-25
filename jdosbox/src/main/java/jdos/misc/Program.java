@@ -1,5 +1,8 @@
 package jdos.misc;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.Dosbox;
 import jdos.cpu.Callback;
 import jdos.dos.Dos;
@@ -13,17 +16,16 @@ import jdos.shell.Dos_shell;
 import jdos.shell.Shell;
 import jdos.util.FileIOFactory;
 import jdos.util.IntRef;
-import jdos.util.StringHelper;
 import jdos.util.StringRef;
 
-import java.util.Vector;
 
 public abstract class Program {
+
     static private /*Bitu*/int call_program;
 
     /* This registers a file on the virtual drive and creates the correct structure for it*/
 
-    private static final byte[] exe_block={
+    private static final byte[] exe_block = {
         (byte)0xbc,0x00,0x04,					//MOV SP,0x400 decrease stack size
         (byte)0xbb,0x40,0x00,					//MOV BX,0x040 for memory resize
         (byte)0xb4,0x4a,						//MOV AH,0x4A	Resize memory block
@@ -36,32 +38,35 @@ public abstract class Program {
 
     private static final int CB_POS=12;
 
-    static public interface PROGRAMS_Main {
-        public Program call();
+    public interface PROGRAMS_Main {
+        Program call();
     }
 
-    static private Vector internal_progs = new Vector();
+    static private final List<PROGRAMS_Main> internal_progs = new ArrayList<>();
 
-    public abstract void Run();
+    public abstract void run();
+
     static public void PROGRAMS_MakeFile(String name,PROGRAMS_Main main) {
         /*Bit8u*/byte[] comdata = new byte[32];
         System.arraycopy(exe_block, 0, comdata, 0, exe_block.length);
         comdata[CB_POS]=(byte)(call_program&0xff);
         comdata[CB_POS+1]=(byte)((call_program>>8)&0xff);
 
-        /* Copy save the pointer in the vector and save it's index */
-        if (internal_progs.size()>255) Log.exit("PROGRAMS_MakeFile program size too large ("+internal_progs.size()+")");
+        /* Copy save the pointer in the List<?> and save it's index */
+        if (internal_progs.size()>255) throw new IllegalStateException("PROGRAMS_MakeFile program size too large ("+internal_progs.size()+")");
         /*Bit8u*/int index = internal_progs.size();
-        internal_progs.addElement(main);
+        internal_progs.add(main);
         comdata[exe_block.length] = (byte)(index & 0xFF);
         /*Bit32u*/int size=exe_block.length+1;
         Drive_virtual.VFILE_Register(name,comdata,size);
     }
 
-    static private Callback.Handler PROGRAMS_Handler = new Callback.Handler() {
+    static private final Callback.Handler PROGRAMS_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Program.PROGRAMS_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             /* This sets up everything for a program start up call */
             /*Bitu*/int size=1/*sizeof(Bit8u)*/;
@@ -70,10 +75,10 @@ public abstract class Program {
             /*PhysPt*/int reader= Memory.PhysMake(Dos.dos.psp(),256+exe_block.length);
             index=Memory.mem_readb(reader++);
             Program new_program;
-            if(index > internal_progs.size()) Log.exit("something is messing with the memory");
-            PROGRAMS_Main handler = (PROGRAMS_Main)internal_progs.elementAt(index);
+            if(index > internal_progs.size()) throw new IllegalStateException("something is messing with the memory");
+            PROGRAMS_Main handler = internal_progs.get(index);
             new_program = handler.call();
-            new_program.Run();
+            new_program.run();
             return Callback.CBRET_NONE;
         }
     };
@@ -82,25 +87,25 @@ public abstract class Program {
 
     protected String temp_line;
     protected CommandLine cmd;
-    protected Dos_PSP psp;
+    protected final Dos_PSP psp;
 
     public Program() {
         /* Find the command line and setup the PSP */
         psp = new Dos_PSP(Dos.dos.psp());
         /* Scan environment for filename */
-        /*PhysPt*/int envscan=Memory.PhysMake(psp.GetEnvironment(),0);
+        /*PhysPt*/int envscan=Memory.PhysMake(psp.getEnvironment(),0);
         while (Memory.mem_readb(envscan)!=0) envscan+=Memory.mem_strlen(envscan)+1;
         envscan+=3;
         String tail;
         tail = Memory.MEM_BlockRead(Memory.PhysMake(Dos.dos.psp(),128),128);
-        if (tail.length()>0)
+        if (!tail.isEmpty())
             tail = tail.substring(1, (int)tail.charAt(0)+1);
         String filename = Memory.MEM_StrCopy(envscan,256);
         cmd = new CommandLine(filename,tail);
     }
 
 
-    public void ChangeToLongCmd() {
+    public void changeToLongCmd() {
     	/*
     	 * Get arguments directly from the shell instead of the psp.
     	 * this is done in securemode: (as then the arguments to mount and friends
@@ -112,18 +117,16 @@ public abstract class Program {
     	 * Length of arguments can be ~120. but switch when above 100 to be sure
     	 */
 
-    	if(/*control->SecureMode() ||*/ cmd.Get_arglength() > 100) {
-    		CommandLine temp = new CommandLine(cmd.GetFileName(),Dos_shell.full_arguments);
+    	if(/*control->SecureMode() ||*/ cmd.getArgLength() > 100) {
+    		CommandLine temp = new CommandLine(cmd.getFileName(),Dos_shell.full_arguments);
     		cmd = temp;
     	}
     	Dos_shell.full_arguments=""; //Clear so it gets even more save
     }
     static byte last_written_character = 0;//For 0xA to OxD 0xA expansion
-    protected void WriteOut(String format) {
-        WriteOut(format, new Object[0]);
-    }
-    public void WriteOut(String format, Object[] args) {
-        String buf = StringHelper.sprintf(format, args);
+
+    public void writeOut(String format, Object... args) {
+        String buf = format.formatted(args);
     	/*Bit16u*/int size = buf.length();
     	for(/*Bit16u*/int i = 0; i < size;i++) {
     		/*Bit8u*/byte[] out=new byte[1];/*Bit16u*/IntRef s=new IntRef(1);
@@ -137,7 +140,7 @@ public abstract class Program {
     //	DOS_WriteFile(STDOUT,(Bit8u *)buf,&size);
     }
 
-    protected void WriteOut_NoParsing(String format) {
+    protected void writeOut_NoParsing(String format) {
         /*Bit16u*/int size = format.length();
     	for(/*Bit16u*/int i = 0; i < size;i++) {
     		/*Bit8u*/byte[] out=new byte[1];/*Bit16u*/IntRef s=new IntRef(1);
@@ -151,20 +154,20 @@ public abstract class Program {
     //	DOS_WriteFile(STDOUT,(Bit8u *)format,&size);
     }
 
-    public boolean GetEnvStr(String entry, StringRef result) {
+    public boolean getEnvStr(String entry, StringRef result) {
         if (entry.equalsIgnoreCase("errorlevel")) {
             result.value = entry+"="+String.valueOf(Dos.dos.return_code);
             return true;
         }
     	/* Walk through the internal environment and see for a match */
-    	/*PhysPt*/int env_read=Memory.PhysMake(psp.GetEnvironment(),0);
+    	/*PhysPt*/int env_read=Memory.PhysMake(psp.getEnvironment(),0);
 
     	String env_string;
     	result.value="";
-    	if (entry.length()==0) return false;
+    	if (entry.isEmpty()) return false;
     	do 	{
     		env_string=Memory.MEM_StrCopy(env_read,1024);
-    		if (env_string.length()==0) return false;
+    		if (env_string.isEmpty()) return false;
     		env_read += env_string.length()+1;
             int pos = env_string.indexOf('=');
     		if (pos<0) continue;
@@ -176,36 +179,36 @@ public abstract class Program {
     	} while (true);
     }
 
-    public boolean GetEnvNum(/*Bitu*/int num,StringRef result) {
+    public boolean getEnvNum(/*Bitu*/int num, StringRef result) {
     	String env_string;
-    	/*PhysPt*/int env_read=Memory.PhysMake(psp.GetEnvironment(),0);
+    	/*PhysPt*/int env_read=Memory.PhysMake(psp.getEnvironment(),0);
     	do 	{
     		env_string=Memory.MEM_StrCopy(env_read,1024);
-    		if (env_string.length()==0) return false;
+    		if (env_string.isEmpty()) return false;
     		if (num==0) { result.value=env_string;return true;}
     		env_read += env_string.length()+1;
     		num--;
     	} while (true);
     }
 
-    public /*Bitu*/int GetEnvCount() {
-    	/*PhysPt*/int env_read=Memory.PhysMake(psp.GetEnvironment(),0);
+    public /*Bitu*/int getEnvCount() {
+    	/*PhysPt*/int env_read=Memory.PhysMake(psp.getEnvironment(),0);
         /*Bitu*/int num=0;
     	while (Memory.mem_readb(env_read)!=0) {
-    		for (;Memory.mem_readb(env_read)!=0;env_read++) {};
-    		env_read++;
+    		for (;Memory.mem_readb(env_read)!=0;env_read++) {}
+            env_read++;
     		num++;
     	}
         return num;
     }
 
-    public boolean SetEnv(String entry,String new_string) {
-    	/*PhysPt*/int env_read=Memory.PhysMake(psp.GetEnvironment(),0);
+    public boolean setEnv(String entry, String new_string) {
+    	/*PhysPt*/int env_read=Memory.PhysMake(psp.getEnvironment(),0);
     	/*PhysPt*/int env_write=env_read;
     	String env_string;
     	do 	{
     		env_string = Memory.MEM_StrCopy(env_read,1024);
-    		if (env_string.length()==0) break;
+    		if (env_string.isEmpty()) break;
     		env_read += env_string.length()+1;
             int pos = env_string.indexOf('=');
     		if (pos<0) continue; /* Remove corrupt entry? */
@@ -218,7 +221,7 @@ public abstract class Program {
     	} while (true);
     /* TODO Maybe save the program name sometime. not really needed though */
     	/* Save the new entry */
-    	if (new_string.length()>0) {
+    	if (!new_string.isEmpty()) {
             new_string=entry.toUpperCase()+"="+new_string;
     		Memory.MEM_BlockWrite(env_write,new_string,new_string.length()+1);
     		env_write += new_string.length()+1;
@@ -229,29 +232,30 @@ public abstract class Program {
     }
 
     static class CONFIG extends Program {
-        public void Run() {
-            if ((temp_line=cmd.FindString("-writeconf",true))!=null || (temp_line=cmd.FindString("-wc",true))!=null) {
+        @Override
+        public void run() {
+            if ((temp_line=cmd.findString("-writeconf",true))!=null || (temp_line=cmd.findString("-wc",true))!=null) {
                 /* In secure mode don't allow a new configfile to be created */
                 if(Dosbox.control.SecureMode()) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_SECURE_DISALLOW"));
+                    writeOut(Msg.get("PROGRAM_CONFIG_SECURE_DISALLOW"));
                     return;
                 }
                 if (!FileIOFactory.canOpen(temp_line, FileIOFactory.MODE_WRITE)) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_FILE_ERROR"),new Object[] {temp_line});
+                    writeOut(Msg.get("PROGRAM_CONFIG_FILE_ERROR"), temp_line);
                     return;
                 }
                 Dosbox.control.PrintConfig(temp_line);
                 return;
             }
-            if ((temp_line=cmd.FindString("-writelang",true))!=null || (temp_line=cmd.FindString("-wl",true))!=null) {
+            if ((temp_line=cmd.findString("-writelang",true))!=null || (temp_line=cmd.findString("-wl",true))!=null) {
                 /* In secure mode don't allow a new languagefile to be created
                  * Who knows which kind of file we would overwriting. */
                 if(Dosbox.control.SecureMode()) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_SECURE_DISALLOW"));
+                    writeOut(Msg.get("PROGRAM_CONFIG_SECURE_DISALLOW"));
                     return;
                 }
                 if (!FileIOFactory.canOpen(temp_line, FileIOFactory.MODE_WRITE)) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_FILE_ERROR"),new Object[] {temp_line});
+                    writeOut(Msg.get("PROGRAM_CONFIG_FILE_ERROR"), temp_line);
                     return;
                 }
                 Msg.write(temp_line);
@@ -259,22 +263,22 @@ public abstract class Program {
             }
 
             /* Code for switching to secure mode */
-            if(cmd.FindExist("-securemode",true)) {
+            if(cmd.findExist("-securemode",true)) {
                 Dosbox.control.SwitchToSecureMode();
-                WriteOut(Msg.get("PROGRAM_CONFIG_SECURE_ON"));
+                writeOut(Msg.get("PROGRAM_CONFIG_SECURE_ON"));
                 return;
             }
 
             /* Code for getting the current configuration.           *
              * Official format: config -get "section property"       *
              * As a bonus it will set %CONFIG% to this value as well */
-            if((temp_line=cmd.FindString("-get",true))!=null) {
-                String temp2 = cmd.GetStringRemain();//So -get n1 n2= can be used without quotes
-                if(temp2 != null && temp2.length()>0) temp_line = temp_line + " " + temp2;
+            if((temp_line=cmd.findString("-get",true))!=null) {
+                String temp2 = cmd.getStringRemain();//So -get n1 n2= can be used without quotes
+                if(temp2 != null && !temp2.isEmpty()) temp_line = temp_line + " " + temp2;
 
                 int space = temp_line.indexOf(" ");
                 if(space<0) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_GET_SYNTAX"));
+                    writeOut(Msg.get("PROGRAM_CONFIG_GET_SYNTAX"));
                     return;
                 }
                 //Copy the found property to a new string and erase from templine (mind the space)
@@ -282,16 +286,16 @@ public abstract class Program {
 
                 Section sec = Dosbox.control.GetSection(temp_line);
                 if(sec==null) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_SECTION_ERROR"),new Object[] {temp_line});
+                    writeOut(Msg.get("PROGRAM_CONFIG_SECTION_ERROR"), temp_line);
                     return;
                 }
-                String val = sec.GetPropValue(prop);
+                String val = sec.getPropValue(prop);
                 if(val.equals(Section.NO_SUCH_PROPERTY)) {
-                    WriteOut(Msg.get("PROGRAM_CONFIG_NO_PROPERTY"), new Object[] {prop,temp_line});
+                    writeOut(Msg.get("PROGRAM_CONFIG_NO_PROPERTY"), prop,temp_line);
                     return;
                 }
-                WriteOut(val);
-                Shell.first_shell.SetEnv("CONFIG",val);
+                writeOut(val);
+                Shell.first_shell.setEnv("CONFIG",val);
                 return;
             }
 
@@ -302,11 +306,11 @@ public abstract class Program {
              * Accepted: without quotes and/or without -set and/or without section *
              *           and/or the "=" replaced by a " "                          */
 
-            if ((temp_line=cmd.FindString("-set",true))!=null) { //get all arguments
-                String temp2 = cmd.GetStringRemain();//So -set n1 n2=n3 can be used without quotes
-                if(temp2!=null && temp2.length()>0) temp_line = temp_line + " " + temp2;
-            } else 	if((temp_line=cmd.GetStringRemain())==null) {//no set
-                WriteOut(Msg.get("PROGRAM_CONFIG_USAGE")); //and no arguments specified
+            if ((temp_line=cmd.findString("-set",true))!=null) { //get all arguments
+                String temp2 = cmd.getStringRemain();//So -set n1 n2=n3 can be used without quotes
+                if(temp2!=null && !temp2.isEmpty()) temp_line = temp_line + " " + temp2;
+            } else 	if((temp_line=cmd.getStringRemain())==null) {//no set
+                writeOut(Msg.get("PROGRAM_CONFIG_USAGE")); //and no arguments specified
                 return;
             }
             //Wanted input: n1 n2=n3
@@ -319,7 +323,7 @@ public abstract class Program {
                 copy = temp_line.substring(0, pos);
                 temp_line=temp_line.substring(pos+1);
             } else {
-                WriteOut(Msg.get("PROGRAM_CONFIG_USAGE"));
+                writeOut(Msg.get("PROGRAM_CONFIG_USAGE"));
                 return;
             }
             //if n1 n2 n3 then replace last space with =
@@ -335,11 +339,11 @@ public abstract class Program {
                     Section sec=Dosbox.control.GetSectionFromProperty(copy);
                     if(sec==null){
                         if(Dosbox.control.GetSectionFromProperty(temp_line)!=null) return; //Weird situation:ignore
-                        WriteOut(Msg.get("PROGRAM_CONFIG_PROPERTY_ERROR"),new Object[] {copy});
+                        writeOut(Msg.get("PROGRAM_CONFIG_PROPERTY_ERROR"), copy);
                         return;
                     } //Hack to allow config ems true
                     temp_line = copy+"="+temp_line;
-                    copy = sec.GetName();
+                    copy = sec.getName();
                     sign = temp_line.indexOf(' ');
                     if(sign>=0) 
                         temp_line = temp_line.substring(0, sign)+"="+temp_line.substring(sign+1);
@@ -353,20 +357,17 @@ public abstract class Program {
              * the configuration parser. Then the section is restarted.
              */
             Section sec = Dosbox.control.GetSection(copy);
-            if(sec==null) { WriteOut(Msg.get("PROGRAM_CONFIG_SECTION_ERROR"),new Object[] {copy});return;}
-            sec.ExecuteDestroy(false);
-            sec.HandleInputline(temp_line);
-            sec.ExecuteInit(false);
+            if(sec==null) { writeOut(Msg.get("PROGRAM_CONFIG_SECTION_ERROR"), copy);return;}
+            sec.executeDestroy(false);
+            sec.handleInputline(temp_line);
+            sec.executeInit(false);
         }
     }
 
-    static private PROGRAMS_Main CONFIG_ProgramStart = new PROGRAMS_Main() {
-        public Program call() {
-            return new CONFIG();
-        }
-    };
+    static private final PROGRAMS_Main CONFIG_ProgramStart = CONFIG::new;
 
-    public static Section.SectionFunction PROGRAMS_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction PROGRAMS_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             call_program=Callback.CALLBACK_Allocate();
             Callback.CALLBACK_Setup(call_program,PROGRAMS_Handler,Callback.CB_RETF,"internal program");

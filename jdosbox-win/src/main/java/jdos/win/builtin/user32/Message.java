@@ -77,7 +77,7 @@ public class Message extends WinAPI {
 
     // LRESULT WINAPI SendMessageA( HWND hwnd, UINT msg, WPARAM wparam, LPARAM lparam )
     static public int SendMessageA(int hWnd, int msg, int wParam, int lParam) {
-        // :TODO: broadcast message
+        // TODO broadcast message
         return call_window_proc(hWnd, msg, wParam, lParam, true);
     }
 

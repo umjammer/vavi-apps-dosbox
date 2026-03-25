@@ -21,6 +21,7 @@ public class WinFatFile extends WinFile {
         this.attributes = attributes;
     }
 
+    @Override
     public long size() {
         if (fatFile == null) {
             return 0;
@@ -28,6 +29,7 @@ public class WinFatFile extends WinFile {
         return fatFile.filelength;
     }
 
+    @Override
     public long seek(long pos, int from) {
         if (fatFile == null)
             return -1;
@@ -44,6 +46,7 @@ public class WinFatFile extends WinFile {
         return pPos.value;
     }
 
+    @Override
     public int read(int buffer, int size) {
         byte[] buf = new byte[size];
         IntRef pSize = new IntRef(size);
@@ -53,6 +56,7 @@ public class WinFatFile extends WinFile {
         return pSize.value;
     }
 
+    @Override
     public int read(byte[] buffer) {
         IntRef pSize = new IntRef(buffer.length);
         if (!fatFile.Read(buffer, pSize))
@@ -60,6 +64,7 @@ public class WinFatFile extends WinFile {
         return pSize.value;
     }
 
+    @Override
     public int write(int buffer, int size) {
         byte[] buf = new byte[size];
         Memory.mem_memcpy(buf, 0, buffer, size);
@@ -69,6 +74,7 @@ public class WinFatFile extends WinFile {
         return pSize.value;
     }
 
+    @Override
     protected void onFree() {
         fatFile.Close();
     }

@@ -18,10 +18,12 @@ public class Dplayx extends BuiltinModule {
     }
 
     // HRESULT WINAPI DirectPlayCreate( LPGUID lpGUID, LPDIRECTPLAY *lplpDP, IUnknown *pUnkOuter )
-    private Callback.Handler DirectPlayCreate = new HandlerBase() {
+    private final Callback.Handler DirectPlayCreate = new HandlerBase() {
+        @Override
         public String getName() {
             return "Dplayx.DirectPlayCreate";
         }
+        @Override
         public void onCall() {
             int lpGUID = CPU.CPU_Pop32();
             int lplpDP = CPU.CPU_Pop32();
@@ -31,10 +33,12 @@ public class Dplayx extends BuiltinModule {
     };
 
     // HRESULT WINAPI DirectPlayEnumerateA(LPDPENUMDPCALLBACKA lpEnumCallback, LPVOID lpContext);
-    private Callback.Handler DirectPlayEnumerateA = new HandlerBase() {
+    private final Callback.Handler DirectPlayEnumerateA = new HandlerBase() {
+        @Override
         public String getName() {
             return "Dplayx.DirectPlayEnumerateA";
         }
+        @Override
         public void onCall() {
             int lpEnumCallback = CPU.CPU_Pop32();
             int lpContext = CPU.CPU_Pop32();
@@ -43,10 +47,12 @@ public class Dplayx extends BuiltinModule {
     };
 
     // HRESULT WINAPI DirectPlayEnumerateW(LPDPENUMDPCALLBACKW lpEnumCallback, LPVOID lpContext);
-    private Callback.Handler DirectPlayEnumerateW = new HandlerBase() {
+    private final Callback.Handler DirectPlayEnumerateW = new HandlerBase() {
+        @Override
         public String getName() {
             return "Dplayx.DirectPlayEnumerateW";
         }
+        @Override
         public void onCall() {
             int lpEnumCallback = CPU.CPU_Pop32();
             int lpContext = CPU.CPU_Pop32();
@@ -55,10 +61,12 @@ public class Dplayx extends BuiltinModule {
     };
 
     // HRESULT WINAPI DirectPlayLobbyCreateA(LPGUID lpGUIDDSP, LPDIRECTPLAYLOBBYA *lplpDPL, IUnknown *lpUnk, LPVOID lpData, DWORD dwDataSize)
-    private Callback.Handler DirectPlayLobbyCreateA = new HandlerBase() {
+    private final Callback.Handler DirectPlayLobbyCreateA = new HandlerBase() {
+        @Override
         public String getName() {
             return "Dplayx.DirectPlayLobbyCreateA";
         }
+        @Override
         public void onCall() {
             int lpGUIDDSP = CPU.CPU_Pop32();
             int lplpDPL = CPU.CPU_Pop32();
@@ -72,10 +80,12 @@ public class Dplayx extends BuiltinModule {
     };
 
     // HRESULT WINAPI DirectPlayLobbyCreateW( LPGUID lpGUIDDSP, LPDIRECTPLAYLOBBY *lplpDPL, IUnknown *lpUnk, LPVOID lpData, DWORD dwDataSize)
-    private Callback.Handler DirectPlayLobbyCreateW = new HandlerBase() {
+    private final Callback.Handler DirectPlayLobbyCreateW = new HandlerBase() {
+        @Override
         public String getName() {
             return "Dplayx.DirectPlayLobbyCreateW";
         }
+        @Override
         public void onCall() {
             int lpGUIDDSP = CPU.CPU_Pop32();
             int lplpDPL = CPU.CPU_Pop32();

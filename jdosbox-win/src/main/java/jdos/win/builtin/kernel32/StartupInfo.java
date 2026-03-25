@@ -65,7 +65,7 @@ class StartupInfo extends WinAPI {
     public String desktop;
     public String title;
 
-    public int cb;
+    public final int cb;
     public int lpReserved;
     public int lpDesktop;
     public int lpTitle;

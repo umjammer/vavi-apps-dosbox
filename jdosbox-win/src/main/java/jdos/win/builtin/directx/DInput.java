@@ -16,10 +16,12 @@ public class DInput  extends BuiltinModule {
     }
 
     // HRESULT WINAPI DirectInputCreateA(HINSTANCE hinst, DWORD dwVersion, LPDIRECTINPUTA *ppDI, LPUNKNOWN punkOuter);
-    private Callback.Handler DirectInputCreateA = new HandlerBase() {
+    private final Callback.Handler DirectInputCreateA = new HandlerBase() {
+        @Override
         public String getName() {
             return "DInput.DirectInputCreateA";
         }
+        @Override
         public void onCall() {
             int hinst = CPU.CPU_Pop32();
             int dwVersion = CPU.CPU_Pop32();

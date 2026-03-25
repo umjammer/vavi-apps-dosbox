@@ -1,24 +1,30 @@
 package jdos.host;
 
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.misc.setup.Section_prop;
 import jdos.util.Ptr;
-import jdos.util.StringHelper;
 import org.jnetpcap.Pcap;
 import org.jnetpcap.PcapHeader;
 import org.jnetpcap.PcapIf;
 import org.jnetpcap.nio.JBuffer;
 import org.jnetpcap.nio.JMemory;
 
-import java.util.ArrayList;
-
 public class PCapEthernet implements Ethernet{
+
+    private static final Logger logger = System.getLogger(PCapEthernet.class.getName());
+
     Pcap pcap;
 
+    @Override
     public void send(byte[] buffer, int offset, int len) {
         pcap.sendPacket(buffer, offset, len);
     }
 
+    @Override
     public void receive(RxFrame frame) {
         PcapHeader header = new PcapHeader(JMemory.POINTER);
         JBuffer buffer = new JBuffer(JMemory.POINTER);
@@ -29,40 +35,42 @@ public class PCapEthernet implements Ethernet{
         }
     }
 
+    @Override
     public void close() {
         if (pcap!=null) {
             pcap.close();
             pcap = null;
         }
     }
+    @Override
     public boolean open(Section_prop section, byte[] mac) {
         pcap = open(section.Get_string("realnic"), true);
         return pcap!=null;
     }
     static public Pcap open(String realnicstring, boolean async) {
         try {
-            ArrayList alldevs = new ArrayList(); // Will be filled with NICs
+            List<PcapIf> alldevs = new ArrayList<>(); // Will be filled with NICs
             StringBuilder errbuf = new StringBuilder(); // For any error msgs
 
-            /***************************************************************************
-             * First get a list of devices on this system
-             **************************************************************************/
+            //
+            // First get a list of devices on this system
+            //
             int r = Pcap.findAllDevs(alldevs, errbuf);
             if (r == Pcap.NOT_OK || alldevs.isEmpty()) {
-                Log.log_msg("Cannot enumerate network interfaces: " + errbuf.toString());
+                logger.log(Level.DEBUG, "Cannot enumerate network interfaces: " + errbuf);
                 return null;
             }
 
             if (realnicstring.equalsIgnoreCase("list")) {
                 int i = 0;
-                Log.log_msg("\nNetwork Interface List \n-----------------------------------");
+                logger.log(Level.DEBUG, "\nNetwork Interface List \n-----------------------------------");
                 for (i=0;i<alldevs.size();i++) {
-                    PcapIf currentdev = (PcapIf)alldevs.get(i);
+                    PcapIf currentdev = alldevs.get(i);
                     String desc = currentdev.getDescription();
-                    if (desc == null || desc.length()==0)
+                    if (desc == null || desc.isEmpty())
                         desc = "no description";
                     i++;
-                    Log.log_msg(StringHelper.sprintf("%2d. %s\n    (%s)\n", new Object[]{new Integer(i), currentdev.getName(), desc}));
+                    logger.log(Level.DEBUG, "%2d. %s\n    (%s)\n".formatted(i, currentdev.getName(), desc));
                 }
                 Pcap.freeAllDevs(alldevs, errbuf);
                 return null;
@@ -71,32 +79,31 @@ public class PCapEthernet implements Ethernet{
             try {
                 int index = Integer.parseInt(realnicstring);
                 if (index>=0 && index<=alldevs.size()) {
-                    dev = (PcapIf)alldevs.get(index);
+                    dev = alldevs.get(index);
                 }
             } catch (Exception e) {
-                for (int i=0;i<alldevs.size();i++) {
-                    PcapIf currentdev = (PcapIf)alldevs.get(i);
+                for (PcapIf currentdev : alldevs) {
                     if (currentdev.getName().contains(realnicstring)) {
                         dev = currentdev;
                         break;
-                    } else if (currentdev.getDescription()!=null && currentdev.getDescription().contains(realnicstring)) {
+                    } else if (currentdev.getDescription() != null && currentdev.getDescription().contains(realnicstring)) {
                         dev = currentdev;
                         break;
                     }
                 }
             }
             if (dev == null) {
-                Log.log_msg("Unable to find network interface - check realnic parameter\n");
+                logger.log(Level.DEBUG, "Unable to find network interface - check realnic parameter\n");
                 Pcap.freeAllDevs(alldevs, errbuf);
                 return null;
             }
             String desc = dev.getDescription();
-            if (desc == null || desc.length() == 0)
+            if (desc == null || desc.isEmpty())
                 desc = "no description";
-    		Log.log_msg("Using Network interface:\n" + dev.getName() + "\n(" + desc + ")\n");
+    		logger.log(Level.DEBUG, "Using Network interface:\n" + dev.getName() + "\n(" + desc + ")\n");
             Pcap pcap = Pcap.openLive(dev.getName(), 65536, Pcap.MODE_PROMISCUOUS, -1, errbuf);
             if (pcap == null) {
-                Log.log_msg("\\nUnable to open the interface: " + errbuf.toString());
+                logger.log(Level.DEBUG, "\\nUnable to open the interface: " + errbuf);
                 Pcap.freeAllDevs(alldevs, errbuf);
                 return null;
             }
@@ -104,7 +111,7 @@ public class PCapEthernet implements Ethernet{
                 pcap.setNonBlock(1, errbuf);
             return pcap;
         } catch (Throwable e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
             return null;
         }
     }

@@ -8,7 +8,8 @@ import jdos.win.system.WinObject;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Hook extends WinObject {
     static public Hook create(int type, int threadId, int eip) {
@@ -26,7 +27,7 @@ public class Hook extends WinObject {
     static public int CallNextHookEx(int hhk, int nCode, int wParam, int lParam) {
         if (StaticData.currentHookIndex+1<StaticData.currentHookChain.size()) {
             StaticData.currentHookIndex++;
-            Hook hook = StaticData.currentHookChain.elementAt(StaticData.currentHookIndex);
+            Hook hook = StaticData.currentHookChain.get(StaticData.currentHookIndex);
             WinSystem.call(hook.eip, nCode, wParam, lParam);
             return CPU_Regs.reg_eax.dword;
         }
@@ -72,11 +73,7 @@ public class Hook extends WinObject {
             Win.panic("Kernel32.SetWindowsHookExA does not support WH_KEYBOARD_LL or WH_MOUSE_LL yet");
         }
         Hook hook = create(idHook, dwThreadId, lpfn);
-        Vector<Hook> hooks = StaticData.hooks.get(idHook);
-        if (hooks == null) {
-            hooks = new Vector<Hook>();
-            StaticData.hooks.put(idHook, hooks);
-        }
+        List<Hook> hooks = StaticData.hooks.computeIfAbsent(idHook, k -> new ArrayList<>());
         hooks.add(hook);
         return hook.handle;
     }
@@ -88,14 +85,14 @@ public class Hook extends WinObject {
         this.eip = eip;
     }
 
-    public int type;
-    public int threadId;
-    public int eip;
+    public final int type;
+    public final int threadId;
+    public final int eip;
 
     static public int HOOK_CallHooks(int id, int code, int wparam, int lparam) {
-        Vector hooks = StaticData.hooks.get(id);
-        if (hooks != null && hooks.size()>0) {
-            Hook hook = (Hook)hooks.elementAt(0);
+        List<Hook> hooks = StaticData.hooks.get(id);
+        if (hooks != null && !hooks.isEmpty()) {
+            Hook hook = hooks.getFirst();
             StaticData.currentHookChain = hooks;
             StaticData.currentHookIndex = 0;
             WinSystem.call(hook.eip, code, wparam, lparam);

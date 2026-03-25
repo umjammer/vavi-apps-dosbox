@@ -121,7 +121,7 @@ public class WinPen extends WinGDI {
         return penPtr.handle;
     }
 
-    public EXTLOGPEN logpen = new EXTLOGPEN();
+    public final EXTLOGPEN logpen = new EXTLOGPEN();
 
     public WinPen(int id) {
         super(id);

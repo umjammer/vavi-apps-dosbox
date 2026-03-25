@@ -1,10 +1,9 @@
 package jdos.cpu.core_dynamic;
 
 import jdos.cpu.CPU_Regs;
-import jdos.cpu.PageFaultException;
 import jdos.hardware.Memory;
 import jdos.hardware.RAM;
-import jdos.misc.Log;
+
 
 public class Helper extends CPU_Regs {
     public static final DynDecode decode = new DynDecode();
@@ -73,9 +72,9 @@ public class Helper extends CPU_Regs {
         for (int i=0;i<count;i++) {
             decode.page.index--;
             decode.code--;
-            // :TODO: handle page change
+            // TODO handle page change
             if (decode.page.index<0) {
-                Log.exit("Dynamic Core:  Self modifying code across page boundries not implemented yet");
+                throw new IllegalStateException("Dynamic Core:  Self modifying code across page boundries not implemented yet");
             }
             decode.page.wmap.p[decode.page.index]-=0x01;
         }

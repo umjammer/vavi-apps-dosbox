@@ -9,7 +9,7 @@ public class Winproc {
         /* Some window procedures modify register they shouldn't, or are not
         * properly declared stdcall; so we need a small assembly wrapper to
         * call them. */
-        // :TODO: deal with this WINE comment, it looks like they push/pop ebx, esi, edi
+        // TODO deal with this WINE comment, it looks like they push/pop ebx, esi, edi
         WinSystem.call(lpPrevWndFunc, hWnd, Msg, wParam, lParam);
         return CPU_Regs.reg_eax.dword;
     }

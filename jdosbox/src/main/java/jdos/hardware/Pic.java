@@ -4,16 +4,21 @@ import jdos.Dosbox;
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Core_normal;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Arrays;
+
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
 import jdos.types.MachineType;
 
 public class Pic extends Module_base {
+
+    private static final Logger logger = System.getLogger(Pic.class.getName());
+    private static final Logger LOG_PIC = System.getLogger("LOG_PIC");
+
     public interface PIC_EventHandler {
-        public void call(/*Bitu*/int val);
+        void call(/*Bitu*/int val);
     }
 
     public static float PIC_TickIndex() {
@@ -64,8 +69,8 @@ public class Pic extends Module_base {
 
     static void slave_startIRQ(){
         /*Bit8u*/int pic1_irq = 8;
-        final int p = (slave.irr & slave.imrr)&slave.isrr;
-        final int max = slave.special?8:slave.active_irq;
+        int p = (slave.irr & slave.imrr)&slave.isrr;
+        int max = slave.special?8:slave.active_irq;
         for(/*Bit8u*/int i = 0,s = 1;i < max;i++, s<<=1){
             if ((p & s)!=0){
                 pic1_irq = i;
@@ -73,7 +78,7 @@ public class Pic extends Module_base {
             }
         }
         // Maybe change the E_Exit to a return
-        if (pic1_irq == 8) Log.exit("irq 2 is active, but no irq active on the slave PIC.");
+        if (pic1_irq == 8) throw new IllegalStateException("irq 2 is active, but no irq active on the slave PIC.");
 
         slave.start_irq(pic1_irq);
         master.start_irq(2);
@@ -90,8 +95,8 @@ public class Pic extends Module_base {
         if (PIC_IRQCheck==0) return;
         if (CPU.cpudecoder==Core_normal.CPU_Core_Normal_Trap_Run) return;
 
-        final int p = (master.irr & master.imrr)&master.isrr;
-        final int max = master.special?8:master.active_irq;
+        int p = (master.irr & master.imrr)&master.isrr;
+        int max = master.special?8:master.active_irq;
         for(/*Bit8u*/int i = 0,s = 1;i < max;i++, s<<=1){
             if ((p & s)!=0) {
                 if (i==2) { //second pic
@@ -121,7 +126,7 @@ public class Pic extends Module_base {
             pic_queue.next_entry=entry.next;
 
             srv_lag = entry.index;
-            //System.out.println("PIC_RunQueue "+entry.pic_event+" "+String.valueOf(entry.value));
+            //logger.log(Level.DEBUG,"PIC_RunQueue "+entry.pic_event+" "+String.valueOf(entry.value));
             entry.pic_event.call(entry.value); // call the event handler
 
             /* Put the entry in the free list */
@@ -134,11 +139,7 @@ public class Pic extends Module_base {
         if (pic_queue.next_entry!=null) {
             /*Bits*/int cycles=(/*Bits*/int)(pic_queue.next_entry.index*CPU.CPU_CycleMax-index_nd);
             if (cycles==0) cycles=1;
-            if (cycles<CPU.CPU_CycleLeft) {
-                CPU.CPU_Cycles=cycles;
-            } else {
-                CPU.CPU_Cycles=CPU.CPU_CycleLeft;
-            }
+            CPU.CPU_Cycles = Math.min(cycles, CPU.CPU_CycleLeft);
         } else CPU.CPU_Cycles=CPU.CPU_CycleLeft;
         CPU.CPU_CycleLeft-=CPU.CPU_Cycles;
         if 	(PIC_IRQCheck!=0)	PIC_runIRQs();
@@ -151,7 +152,7 @@ public class Pic extends Module_base {
     }
     public static void PIC_AddEvent(PIC_EventHandler handler,float delay,/*Bitu*/int val/*=0*/) {
         if (pic_queue.free_entry==null) {
-		    Log.log(LogTypes.LOG_PIC, LogSeverities.LOG_ERROR,"Event queue full");
+		    LOG_PIC.log(Level.ERROR, "Event queue full");
 		    return;
         }
         PICEntry entry=pic_queue.free_entry;
@@ -225,7 +226,7 @@ public class Pic extends Module_base {
         pic.set_imr(newmask);
     }
 
-    static private int PIC_QUEUESIZE = 512;
+    static private final int PIC_QUEUESIZE = 512;
     
     static private class PIC_Controller {
         /*Bitu*/int icw_words;
@@ -275,9 +276,9 @@ public class Pic extends Module_base {
         }
 
         void check_for_irq(){
-            final /*Bit8u*/int possible_irq = (irr&imrr)&isrr;
+            /*Bit8u*/int possible_irq = (irr&imrr)&isrr;
             if (possible_irq!=0) {
-                final /*Bit8u*/int a_irq = special?8:active_irq;
+                /*Bit8u*/int a_irq = special?8:active_irq;
                 for(int i = 0, s = 1; i < a_irq;i++, s<<=1){
                     if ((possible_irq & s)!=0) {
                         //There is an irq ready to be served => signal master and/or cpu
@@ -343,7 +344,7 @@ public class Pic extends Module_base {
                 isr |= 1<<(val);
                 isrr = ~isr;
             } else if (rotate_on_auto_eoi) {
-                Log.exit("rotate on auto EOI not handled");
+                throw new IllegalStateException("rotate on auto EOI not handled");
             }
         }
     }
@@ -365,123 +366,119 @@ public class Pic extends Module_base {
             for (int i=0;i<entries.length;i++)
                 entries[i] = new PICEntry();
         }
-        PICEntry[] entries = new PICEntry[PIC_QUEUESIZE];
+        final PICEntry[] entries = new PICEntry[PIC_QUEUESIZE];
         PICEntry free_entry;
         PICEntry next_entry;
     }
     
     static public Pic_queue pic_queue;
 
-    static private IoHandler.IO_WriteHandler write_command = new IoHandler.IO_WriteHandler() {
-        public void call(/*Bitu*/int port, /*Bitu*/int val, /*Bitu*/int iolen) {
-            PIC_Controller pic=pics[port==0x20 ? 0 : 1];
-            if ((val&0x10)!=0) {		// ICW1 issued
-                if ((val&0x04)!=0) Log.exit("PIC: 4 byte interval not handled");
-                if ((val&0x08)!=0) Log.exit("PIC: level triggered mode not handled");
-                if ((val&0xe0)!=0) Log.exit("PIC: 8080/8085 mode not handled");
-                pic.single=(val&0x02)==0x02;
-                pic.icw_index=1;			// next is ICW2
-                pic.icw_words=2 + (val&0x01);	// =3 if ICW4 needed
-            } else if ((val&0x08)!=0) {	// OCW3 issued
-                if ((val&0x04)!=0) Log.exit("PIC: poll command not handled");
-                if ((val&0x02)!=0) {		// function select
-                    if ((val&0x01)!=0) pic.request_issr=true;	/* select read interrupt in-service register */
-                    else pic.request_issr=false;			/* select read interrupt request register */
-                }
-                if ((val&0x40)!=0) {		// special mask select
-                    if ((val&0x20)!=0) pic.special=true;
-                    else pic.special=false;
-                    //Check if there are irqs ready to run, as the priority system has possibly been changed.
-			        pic.check_for_irq();
-                    if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,"port "+Integer.toString(port, 16)+" : special mask "+((pic.special)?"ON":"OFF"));
-                }
-            } else {	// OCW2 issued
-                if ((val&0x20)!=0) {		// EOI commands
-                    if ((val&0x80)!=0) Log.exit("rotate mode not supported");
-                    if ((val&0x40)!=0) {		// specific EOI
-                        pic.isr &= ~(1<< ((val-0x60)));
-				        pic.isrr = ~pic.isr;
-				        pic.check_after_EOI();
-        //				if (val&0x80);	// perform rotation
-                    } else {		// nonspecific EOI
-                        if (pic.active_irq != 8) {
-                            //If there is no irq in service, ignore the call, some games send an eoi to both pics when a sound irq happens (regardless of the irq).
-                            pic.isr &= ~(1 << (pic.active_irq));
-                            pic.isrr = ~pic.isr;
-                            pic.check_after_EOI();
-                        }
-        //				if (val&0x80);	// perform rotation
+    /*Bitu*//*Bitu*//*Bitu*/
+    static private final IoHandler.IO_WriteHandler write_command = (port, val, iolen) -> {
+        PIC_Controller pic=pics[port==0x20 ? 0 : 1];
+        if ((val&0x10)!=0) {		// ICW1 issued
+            if ((val&0x04)!=0) throw new IllegalStateException("PIC: 4 byte interval not handled");
+            if ((val&0x08)!=0) throw new IllegalStateException("PIC: level triggered mode not handled");
+            if ((val&0xe0)!=0) throw new IllegalStateException("PIC: 8080/8085 mode not handled");
+            pic.single=(val&0x02)==0x02;
+            pic.icw_index=1;			// next is ICW2
+            pic.icw_words=2 + (val&0x01);	// =3 if ICW4 needed
+        } else if ((val&0x08)!=0) {	// OCW3 issued
+            if ((val&0x04)!=0) throw new IllegalStateException("PIC: poll command not handled");
+            if ((val&0x02)!=0) {		// function select
+                if ((val&0x01)!=0) pic.request_issr=true;	/* select read interrupt in-service register */
+                else pic.request_issr=false;			/* select read interrupt request register */
+            }
+            if ((val&0x40)!=0) {		// special mask select
+                if ((val&0x20)!=0) pic.special=true;
+                else pic.special=false;
+                //Check if there are irqs ready to run, as the priority system has possibly been changed.
+                pic.check_for_irq();
+                LOG_PIC.log(Level.DEBUG, "port "+Integer.toString(port, 16)+" : special mask "+((pic.special)?"ON":"OFF"));
+            }
+        } else {	// OCW2 issued
+            if ((val&0x20)!=0) {		// EOI commands
+                if ((val&0x80)!=0) throw new IllegalStateException("rotate mode not supported");
+                if ((val&0x40)!=0) {		// specific EOI
+                    pic.isr &= ~(1<< ((val-0x60)));
+                    pic.isrr = ~pic.isr;
+                    pic.check_after_EOI();
+    //				if (val&0x80);	// perform rotation
+                } else {		// nonspecific EOI
+                    if (pic.active_irq != 8) {
+                        //If there is no irq in service, ignore the call, some games send an eoi to both pics when a sound irq happens (regardless of the irq).
+                        pic.isr &= ~(1 << (pic.active_irq));
+                        pic.isrr = ~pic.isr;
+                        pic.check_after_EOI();
                     }
-                } else {
-                    if ((val&0x40)==0) {		// rotate in auto EOI mode
-                        if ((val&0x80)!=0) pic.rotate_on_auto_eoi=true;
-                        else pic.rotate_on_auto_eoi=false;
-                    } else if ((val&0x80)!=0) {
-                        Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,"set priority command not handled");
-                    }	// else NOP command
+    //				if (val&0x80);	// perform rotation
                 }
-            }	// end OCW2
-        }
-    };
-
-    static private IoHandler.IO_WriteHandler write_data = new IoHandler.IO_WriteHandler() {
-        public void call(/*Bitu*/int port, /*Bitu*/int val, /*Bitu*/int iolen) {
-            PIC_Controller pic=pics[port==0x21 ? 0 : 1];
-            switch(pic.icw_index) {
-            case 0:                        /* mask register */
-                pic.set_imr(val);
-                break;
-            case 1:                        /* icw2          */
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,(port==0x21 ? 0 : 1)+":Base vector "+Integer.toString(val,16));
-                pic.vector_base = val&0xf8;
-                if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
-                else if(pic.single) pic.icw_index=3;		/* skip ICW3 in single mode */
-                break;
-            case 2:							/* icw 3 */
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,(port==0x21 ? 0 : 1)+":ICW 3 "+Integer.toString(val,16));
-                if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
-                break;
-            case 3:							/* icw 4 */
-                /*
-                    0	    1 8086/8080  0 mcs-8085 mode
-                    1	    1 Auto EOI   0 Normal EOI
-                    2-3	   0x Non buffer Mode
-                           10 Buffer Mode Slave
-                           11 Buffer mode Master
-                    4		Special/Not Special nested mode
-                */
-                pic.auto_eoi=(val & 0x2)>0;
-
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,(port==0x21 ? 0 : 1)+":ICW 4 "+Integer.toString(val,16));
-
-                if ((val&0x01)==0) Log.exit("PIC:ICW4: "+Integer.toString(val, 16)+", 8085 mode not handled");
-                if ((val&0x10)!=0) Log.log_msg("PIC:ICW4: "+Integer.toString(val, 16)+", special fully-nested mode not handled");
-
-                if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
-                break;
-            default:
-                if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_PIC,LogSeverities.LOG_NORMAL,"ICW HUH? "+Integer.toString(val,16));
-                break;
-            }
-        }
-    };
-
-    static private IoHandler.IO_ReadHandler read_command = new IoHandler.IO_ReadHandler() {
-        public /*Bitu*/int call(/*Bitu*/int port, /*Bitu*/int iolen) {
-            PIC_Controller pic=pics[port==0x20 ? 0 : 1];
-            if (pic.request_issr){
-                return pic.isr;
             } else {
-                return pic.irr;
+                if ((val&0x40)==0) {		// rotate in auto EOI mode
+                    if ((val&0x80)!=0) pic.rotate_on_auto_eoi=true;
+                    else pic.rotate_on_auto_eoi=false;
+                } else if ((val&0x80)!=0) {
+                    LOG_PIC.log(Level.DEBUG, "set priority command not handled");
+                }	// else NOP command
             }
+        }	// end OCW2
+    };
+
+    /*Bitu*//*Bitu*//*Bitu*/
+    static private final IoHandler.IO_WriteHandler write_data = (port, val, iolen) -> {
+        PIC_Controller pic=pics[port==0x21 ? 0 : 1];
+        switch(pic.icw_index) {
+        case 0:                        /* mask register */
+            pic.set_imr(val);
+            break;
+        case 1:                        /* icw2          */
+            LOG_PIC.log(Level.DEBUG, (port==0x21 ? 0 : 1)+":Base vector "+Integer.toString(val,16));
+            pic.vector_base = val&0xf8;
+            if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
+            else if(pic.single) pic.icw_index=3;		/* skip ICW3 in single mode */
+            break;
+        case 2:							/* icw 3 */
+            LOG_PIC.log(Level.DEBUG, (port==0x21 ? 0 : 1)+":ICW 3 "+Integer.toString(val,16));
+            if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
+            break;
+        case 3:							/* icw 4 */
+            /*
+                0	    1 8086/8080  0 mcs-8085 mode
+                1	    1 Auto EOI   0 Normal EOI
+                2-3	   0x Non buffer Mode
+                       10 Buffer Mode Slave
+                       11 Buffer mode Master
+                4		Special/Not Special nested mode
+            */
+            pic.auto_eoi=(val & 0x2)>0;
+
+            LOG_PIC.log(Level.DEBUG, (port==0x21 ? 0 : 1)+":ICW 4 "+Integer.toString(val,16));
+
+            if ((val&0x01)==0) throw new IllegalStateException("PIC:ICW4: "+Integer.toString(val, 16)+", 8085 mode not handled");
+            if ((val&0x10)!=0) logger.log(Level.DEBUG, "PIC:ICW4: "+Integer.toString(val, 16)+", special fully-nested mode not handled");
+
+            if(pic.icw_index++ >= pic.icw_words) pic.icw_index=0;
+            break;
+        default:
+            LOG_PIC.log(Level.DEBUG, "ICW HUH? "+Integer.toString(val,16));
+            break;
         }
     };
 
-    static private IoHandler.IO_ReadHandler read_data = new IoHandler.IO_ReadHandler() {
-        public /*Bitu*/int call(/*Bitu*/int port, /*Bitu*/int iolen) {
-            PIC_Controller pic=pics[port==0x21 ? 0 : 1];
-	        return pic.imr;
+    /*Bitu*//*Bitu*//*Bitu*/
+    static private final IoHandler.IO_ReadHandler read_command = (port, iolen) -> {
+        PIC_Controller pic=pics[port==0x20 ? 0 : 1];
+        if (pic.request_issr){
+            return pic.isr;
+        } else {
+            return pic.irr;
         }
+    };
+
+    /*Bitu*//*Bitu*//*Bitu*/
+    static private final IoHandler.IO_ReadHandler read_data = (port, iolen) -> {
+        PIC_Controller pic=pics[port==0x21 ? 0 : 1];
+        return pic.imr;
     };
 
     static private void AddEntry(PICEntry entry) {
@@ -520,8 +517,8 @@ public class Pic extends Module_base {
     static boolean InEventService = false;
     static double srv_lag = 0;
 
-    IoHandler.IO_ReadHandleObject[] ReadHandler = new IoHandler.IO_ReadHandleObject[4];
-	IoHandler.IO_WriteHandleObject[] WriteHandler = new IoHandler.IO_WriteHandleObject[4];
+    final IoHandler.IO_ReadHandleObject[] ReadHandler = new IoHandler.IO_ReadHandleObject[4];
+	final IoHandler.IO_WriteHandleObject[] WriteHandler = new IoHandler.IO_WriteHandleObject[4];
 
     public Pic(Section configuration) {
         super(configuration);
@@ -575,18 +572,19 @@ public class Pic extends Module_base {
 
     static Pic test;
 
-    public static Section.SectionFunction PIC_Destroy = new Section.SectionFunction() {
+    public static final Section.SectionFunction PIC_Destroy = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = null;
-            for (int i=0;i<pics.length;i++)
-                pics[i] = null;
+            Arrays.fill(pics, null);
             master = null;
             slave = null;
             pic_queue = null;
         }
     };
     
-    public static Section.SectionFunction PIC_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction PIC_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             pic_queue = new Pic_queue();
             for (int i=0;i<pics.length;i++)
@@ -595,7 +593,7 @@ public class Pic extends Module_base {
             slave = pics[1];
             test = new Pic(section);
             if (section!=null)
-                section.AddDestroyFunction(PIC_Destroy);
+                section.addDestroyFunction(PIC_Destroy);
         }
     };
 }

@@ -1,5 +1,8 @@
 package jdos.win.builtin;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -10,6 +13,9 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
 abstract public class HandlerBase extends WinAPI implements Callback.Handler {
+
+    private static final Logger logger = System.getLogger(HandlerBase.class.getName());
+
     boolean resetError = true;
     public boolean wait = false;
 
@@ -22,6 +28,7 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
     public HandlerBase(boolean resetError) {
         this.resetError = resetError;
     }
+    @Override
     public int call() {
         currentHandler = this;
         if (level == 0) {
@@ -36,7 +43,7 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
 //            long start = System.currentTimeMillis();
             onCall();
 //            if (!getName().endsWith("WinMM.timeGetTime") && !getName().endsWith("PeekMessageA"))
-//            System.out.println("*** "+ Ptr.toString(CPU_Regs.reg_eip)+" "+getName()+" "+(System.currentTimeMillis()-start)+"ms");
+//            logger.log(Level.DEBUG,"*** "+ Ptr.toString(CPU_Regs.reg_eip)+" "+getName()+" "+(System.currentTimeMillis()-start)+"ms");
         }
         level--;
         currentHandler = null;
@@ -54,27 +61,27 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
     abstract public void onCall();
 
     protected void notImplemented() {
-        System.out.println(getName()+" not implemented yet.");
+        logger.log(Level.DEBUG,getName()+" not implemented yet.");
         Console.out(getName() + " not implemented yet.");
         Win.exit();
     }
 
     static public void dumpRegs() {
         System.out.print("eax=");
-        System.out.print(Long.toString(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_eax.dword & 0xFFFFFFFFL, 16));
         System.out.print(" ecx=");
-        System.out.print(Long.toString(CPU_Regs.reg_ecx.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_ecx.dword & 0xFFFFFFFFL, 16));
         System.out.print(" edx=");
-        System.out.print(Long.toString(CPU_Regs.reg_edx.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_edx.dword & 0xFFFFFFFFL, 16));
         System.out.print(" ebx=");
-        System.out.print(Long.toString(CPU_Regs.reg_ebx.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_ebx.dword & 0xFFFFFFFFL, 16));
         System.out.print(" esp=");
-        System.out.print(Long.toString(CPU_Regs.reg_esp.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_esp.dword & 0xFFFFFFFFL, 16));
         System.out.print(" ebp=");
-        System.out.print(Long.toString(CPU_Regs.reg_ebp.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_ebp.dword & 0xFFFFFFFFL, 16));
         System.out.print(" esi=");
-        System.out.print(Long.toString(CPU_Regs.reg_esi.dword & 0xFFFFFFFFl, 16));
+        System.out.print(Long.toString(CPU_Regs.reg_esi.dword & 0xFFFFFFFFL, 16));
         System.out.print(" edi=");
-        System.out.println(Long.toString(CPU_Regs.reg_edi.dword & 0xFFFFFFFFl, 16));
+        logger.log(Level.DEBUG,Long.toString(CPU_Regs.reg_edi.dword & 0xFFFFFFFFL, 16));
     }
 }

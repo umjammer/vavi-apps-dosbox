@@ -12,7 +12,7 @@ import jdos.win.utils.Error;
 public class IDirectPlayLobby  extends IUnknown {
     static final int VTABLE_SIZE = 10;
 
-    static int OFFSET_FLAGS = 0;
+    static final int OFFSET_FLAGS = 0;
     static final int DATA_SIZE = 4;
 
     static private final Guid v2 = new Guid(0x194c220, 0xa303, 0x11d0, 0x9c, 0x4f, 0x0, 0xa0, 0xc9, 0x5, 0x42, 0x5e);
@@ -56,10 +56,12 @@ public class IDirectPlayLobby  extends IUnknown {
         return address;
     }
 
-    static private Callback.Handler QueryInterface = new HandlerBase() {
+    static private final Callback.Handler QueryInterface = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.QueryInterface";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int riid = CPU.CPU_Pop32();
@@ -75,10 +77,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT Connect(this, DWORD dwFlags, LPDIRECTPLAY2* lplpDP, IUnknown* pUnk)
-    static private Callback.Handler Connect = new HandlerBase() {
+    static private final Callback.Handler Connect = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.Connect";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -89,10 +93,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT CreateAddress(this, REFGUID guidSP, REFGUID guidDataType, LPCVOID lpData, DWORD dwDataSize, LPVOID lpAddress, LPDWORD lpdwAddressSize)
-    static private Callback.Handler CreateAddress = new HandlerBase() {
+    static private final Callback.Handler CreateAddress = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.CreateAddress";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int guidSP = CPU.CPU_Pop32();
@@ -106,10 +112,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT EnumAddress(this, LPDPENUMADDRESSCALLBACK lpEnumAddressCallback, LPCVOID lpAddress, DWORD dwAddressSize, LPVOID lpContext)
-    static private Callback.Handler EnumAddress = new HandlerBase() {
+    static private final Callback.Handler EnumAddress = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumAddress";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpEnumAddressCallback = CPU.CPU_Pop32();
@@ -121,10 +129,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT EnumAddressTypes(this, LPDPLENUMADDRESSTYPESCALLBACK lpEnumAddressTypeCallback, REFGUID guidSP, LPVOID lpContext, DWORD dwFlags)
-    static private Callback.Handler EnumAddressTypes = new HandlerBase() {
+    static private final Callback.Handler EnumAddressTypes = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumAddressTypes";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpEnumAddressTypeCallback = CPU.CPU_Pop32();
@@ -136,10 +146,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT EnumLocalApplications(this, LPDPLENUMLOCALAPPLICATIONSCALLBACK lpEnumLocalAppCallback, LPVOID lpContext, DWORD dwFlags)
-    static private Callback.Handler EnumLocalApplications = new HandlerBase() {
+    static private final Callback.Handler EnumLocalApplications = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumLocalApplications";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpEnumLocalAppCallback = CPU.CPU_Pop32();
@@ -150,10 +162,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT GetConnectionSettings(this, DWORD dwAppID, LPVOID lpData, LPDWORD lpdwDataSize)
-    static private Callback.Handler GetConnectionSettings = new HandlerBase() {
+    static private final Callback.Handler GetConnectionSettings = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.GetConnectionSettings";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwAppID = CPU.CPU_Pop32();
@@ -164,10 +178,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT ReceiveLobbyMessage(this, DWORD dwFlags, DWORD dwAppID, LPDWORD lpdwMessageFlags, LPVOID lpData, LPDWORD lpdwDataSize)
-    static private Callback.Handler ReceiveLobbyMessage = new HandlerBase() {
+    static private final Callback.Handler ReceiveLobbyMessage = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.ReceiveLobbyMessage";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -181,10 +197,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT RunApplication(this, DWORD dwFlags, LPDWORD lpdwAppID, LPDPLCONNECTION lpConn, HANDLE hReceiveEvent)
-    static private Callback.Handler RunApplication = new HandlerBase() {
+    static private final Callback.Handler RunApplication = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.RunApplication";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -196,10 +214,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT SendLobbyMessage(this, DWORD dwFlags, DWORD dwAppID, LPVOID lpData, DWORD dwDataSize)
-    static private Callback.Handler SendLobbyMessage = new HandlerBase() {
+    static private final Callback.Handler SendLobbyMessage = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.SendLobbyMessage";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -211,10 +231,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT SetConnectionSettings(this, DWORD dwFlags, DWORD dwAppID, LPDPLCONNECTION lpConn)
-    static private Callback.Handler SetConnectionSettings = new HandlerBase() {
+    static private final Callback.Handler SetConnectionSettings = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.SetConnectionSettings";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -225,10 +247,12 @@ public class IDirectPlayLobby  extends IUnknown {
     };
 
     // HRESULT SetLobbyMessageEvent(this, DWORD dwFlags, DWORD dwAppID, HANDLE hReceiveEvent)
-    static private Callback.Handler SetLobbyMessageEvent = new HandlerBase() {
+    static private final Callback.Handler SetLobbyMessageEvent = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.SetLobbyMessageEvent";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwFlags = CPU.CPU_Pop32();
@@ -240,10 +264,12 @@ public class IDirectPlayLobby  extends IUnknown {
 
     /*** IDirectPlayLobby2 methods ***/
     // HRESULT CreateCompoundAddress)(THIS_ LPCDPCOMPOUNDADDRESSELEMENT lpElements, DWORD dwElementCount, LPVOID lpAddress, LPDWORD lpdwAddressSize)
-    static private Callback.Handler CreateCompoundAddress = new HandlerBase() {
+    static private final Callback.Handler CreateCompoundAddress = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectPlayLobby.CreateCompoundAddress";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpElements = CPU.CPU_Pop32();

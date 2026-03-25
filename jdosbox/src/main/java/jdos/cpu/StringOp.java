@@ -3,11 +3,13 @@ package jdos.cpu;
 import jdos.cpu.core_normal.Prefix_helpers;
 import jdos.hardware.IO;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 public class StringOp extends Prefix_helpers {
+
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+
     static public final int R_OUTSB=1;
     static public final int R_OUTSW=2;
     static public final int R_OUTSD=3;
@@ -298,8 +300,8 @@ public class StringOp extends Prefix_helpers {
             }
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_ERROR,"Unhandled string op "+type);
-            Log.exit("Unhandled string op "+type);
+            LOG_CPU.log(Level.ERROR, "Unhandled string op "+type);
+            throw new IllegalStateException("Unhandled string op "+type);
         }
     }
 
@@ -311,7 +313,7 @@ public class StringOp extends Prefix_helpers {
 
         si_base=base_ds;
         di_base=CPU_Regs.reg_esPhys.dword;
-        count=reg_ecx.dword & 0xFFFFFFFFl;
+        count=reg_ecx.dword & 0xFFFFFFFFL;
         if ((prefixes & PREFIX_REP)==0) {
             count=1;
         } else {
@@ -551,35 +553,35 @@ public class StringOp extends Prefix_helpers {
             }
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_ERROR,"Unhandled string op "+type);
-            Log.exit("Unhandled string op "+type);
+            LOG_CPU.log(Level.ERROR, "Unhandled string op "+type);
+            throw new IllegalStateException("Unhandled string op "+type);
         }
     }
     
     static public String description(int type) {
-        switch (type) {
-        case R_OUTSB: return "OUTSB";
-        case R_OUTSW: return "OUTSW";
-        case R_OUTSD: return "OUTSD";
-        case R_INSB: return "INSB";
-        case R_INSW: return "INSW";
-        case R_INSD: return "INSD";
-        case R_MOVSB: return "MOVSB";
-        case R_MOVSW: return "MOVSW";
-        case R_MOVSD: return "MOVSD";
-        case R_LODSB: return "LODSB";
-        case R_LODSW: return "LODSW";
-        case R_LODSD: return "LODSD";
-        case R_STOSB: return "STOSB";
-        case R_STOSW: return "STOSW";
-        case R_STOSD: return "STOSD";
-        case R_SCASB: return "SCASB";
-        case R_SCASW: return "SCASW";
-        case R_SCASD: return "SCASD";
-        case R_CMPSB: return "CMPSB";
-        case R_CMPSW: return "CMPSW";
-        case R_CMPSD: return "CMPSD";
-        }
-        return "";
+        return switch (type) {
+            case R_OUTSB -> "OUTSB";
+            case R_OUTSW -> "OUTSW";
+            case R_OUTSD -> "OUTSD";
+            case R_INSB -> "INSB";
+            case R_INSW -> "INSW";
+            case R_INSD -> "INSD";
+            case R_MOVSB -> "MOVSB";
+            case R_MOVSW -> "MOVSW";
+            case R_MOVSD -> "MOVSD";
+            case R_LODSB -> "LODSB";
+            case R_LODSW -> "LODSW";
+            case R_LODSD -> "LODSD";
+            case R_STOSB -> "STOSB";
+            case R_STOSW -> "STOSW";
+            case R_STOSD -> "STOSD";
+            case R_SCASB -> "SCASB";
+            case R_SCASW -> "SCASW";
+            case R_SCASD -> "SCASD";
+            case R_CMPSB -> "CMPSB";
+            case R_CMPSW -> "CMPSW";
+            case R_CMPSD -> "CMPSD";
+            default -> "";
+        };
     }
 }

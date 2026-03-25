@@ -3,7 +3,8 @@ package jdos.win.system;
 import jdos.win.builtin.kernel32.WinThread;
 import jdos.win.builtin.user32.Input;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Scheduler {
     private static class SchedulerItem {
@@ -14,8 +15,8 @@ public class Scheduler {
     }
     private static SchedulerItem currentThread = null;
     private static SchedulerItem first;
-    private static Hashtable<WinThread, SchedulerItem> threadMap = new Hashtable<WinThread, SchedulerItem>();
-    private static long start = System.currentTimeMillis();
+    private static final Map<WinThread, SchedulerItem> threadMap = new HashMap<>();
+    private static final long start = System.currentTimeMillis();
 
     // DirectX surface to force to the screen
     public static int monitor;
@@ -111,9 +112,9 @@ public class Scheduler {
         return currentThread.thread;
     }
 
-    // :TODO: run them in order of process to minimize page swapping
+    // TODO run them in order of process to minimize page swapping
     static public void tick() {
-        if (threadMap.size() == 0) {
+        if (threadMap.isEmpty()) {
             return;
         }
         SchedulerItem next = currentThread.next;
@@ -134,7 +135,7 @@ public class Scheduler {
             next = next.next;
         }
         if (next.thread != currentThread.thread) {
-            //System.out.println("Switching threads: "+currentThread.thread.getHandle()+"("+ Ptr.toString(CPU_Regs.reg_eip)+") -> "+next.thread.getHandle()+"("+Ptr.toString(next.thread.cpuState.eip)+")");
+            //logger.log(Level.DEBUG,"Switching threads: "+currentThread.thread.getHandle()+"("+ Ptr.toString(CPU_Regs.reg_eip)+") -> "+next.thread.getHandle()+"("+Ptr.toString(next.thread.cpuState.eip)+")");
             currentThread.thread.saveCPU();
             if (currentThread.thread.getProcess() != next.thread.getProcess()) {
                 next.thread.getProcess().switchPageDirectory();

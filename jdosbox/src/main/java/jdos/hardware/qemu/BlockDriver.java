@@ -16,12 +16,12 @@ public abstract class BlockDriver {
     abstract public int bdrv_write(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors);
 //    abstract public void bdrv_close(Block.BlockDriverState bs);
 //    abstract public void bdrv_rebind(Block.BlockDriverState bs);
-//    abstract public int bdrv_create(String filename, Hashtable<String, String> options);
+//    abstract public int bdrv_create(String filename, Map<?, ?><String, String> options);
 //    abstract public int bdrv_set_key(Block.BlockDriverState bs, String key);
 //    abstract public int bdrv_make_empty(Block.BlockDriverState bs);
 //    /* aio */
 //    static public interface  bdrv_aio_read_write {
-//        public Block.BlockDriverAIOCB call(Block.BlockDriverState bs, long sector_num, QemuCommon.QEMUIOVector qiov, int nb_sectors, Block.BlockDriverCompletionFunc cb, Object opaque);
+//        public Block.BlockDriverAIOCB call(Block.BlockDriverState bs, long sector_num, QemuCommon.QEMUIOList<?> qiov, int nb_sectors, Block.BlockDriverCompletionFunc cb, Object opaque);
 //    }
 //    public bdrv_aio_read_write bdrv_aio_readv;
 //    public bdrv_aio_read_write bdrv_aio_writev;
@@ -29,7 +29,7 @@ public abstract class BlockDriver {
 //    abstract public Block.BlockDriverAIOCB bdrv_aio_discard(Block.BlockDriverState bs, long sector_num, int nb_sectors, Block.BlockDriverCompletionFunc cb, Object opaque);
 //
 //    static public interface bdrv_co_read_write {
-//        public int call(Block.BlockDriverState bs, long sector_num, int nb_sectors, QemuCommon.QEMUIOVector qiov);
+//        public int call(Block.BlockDriverState bs, long sector_num, int nb_sectors, QemuCommon.QEMUIOList<?> qiov);
 //    }
 //    public bdrv_co_read_write bdrv_co_readv;
 //    public bdrv_co_read_write bdrv_co_writev;

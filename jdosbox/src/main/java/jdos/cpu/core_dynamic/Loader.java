@@ -4,13 +4,21 @@ import jdos.Dosbox;
 import jdos.hardware.mame.RasterizerCompiler;
 
 import java.io.*;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 public class Loader {
+
+    private static final Logger logger = System.getLogger(Loader.class.getName());
+
     private static class SaveItem {
         public SaveItem(String name, byte[] byteCode, int start, byte[] opCode, String source) {
             this.name = name;
@@ -19,11 +27,11 @@ public class Loader {
             this.source = source;
             this.start = start;
         }
-        String source;
-        String name;
-        byte[] byteCode;
-        byte[] opCode;
-        int start;
+        final String source;
+        final String name;
+        final byte[] byteCode;
+        final byte[] opCode;
+        final int start;
     }
     private static class Item {
         String name;
@@ -31,15 +39,15 @@ public class Loader {
         int start;
     }
 
-    private static Vector savedItems = new Vector();
+    private static final List<SaveItem> savedItems = new ArrayList<>();
 
-    private static Hashtable items = new Hashtable();
+    private static final Map<Integer, List<Item>> items = new HashMap<>();
     private static boolean initialized = false;
 
     public static boolean isLoaded() {
         if (!initialized)
             init();
-        return items.size()!=0;
+        return !items.isEmpty();
     }
     private static void init() {
         initialized = true;
@@ -55,32 +63,27 @@ public class Loader {
                     int len = dis.readInt();
                     item.opCodes = new byte[len];
                     dis.readFully(item.opCodes);
-                    Integer key = new Integer(item.start);
-                    Vector bucket = (Vector)items.get(key);
-                    if (bucket == null) {
-                        bucket = new Vector();
-                        items.put(key, bucket);
-                    }
-                    bucket.addElement(item);
+                    Integer key = item.start;
+                    List<Item> bucket = items.computeIfAbsent(key, k -> new ArrayList<>());
+                    bucket.add(item);
                 }
-                System.out.println("Loaded " + count + " blocks");
+                logger.log(Level.DEBUG,"Loaded " + count + " blocks");
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
-            try {dis.close();} catch (Exception e) {}
+            try {dis.close();} catch (Exception _) {}
         }
     }
     public static Op load(int start, byte[] opCodes) {
-        Integer key = new Integer(start);
-        Vector bucket = (Vector)items.get(key);
+        Integer key = start;
+        List<Item> bucket = items.get(key);
         if (bucket != null) {
-            for (int i=0;i<bucket.size();i++) {
-                Item item = (Item)bucket.elementAt(i);
-                if (item.start==start && Arrays.equals(item.opCodes, opCodes)) {
+            for (Item item : bucket) {
+                if (item.start == start && Arrays.equals(item.opCodes, opCodes)) {
                     try {
-                        return (Op)Class.forName(item.name).newInstance();
+                        return (Op) Class.forName(item.name).getDeclaredConstructor().newInstance();
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.log(Level.ERROR, e.getMessage(), e);
                     }
                 }
             }
@@ -109,12 +112,12 @@ public class Loader {
                 if (!dir.exists())
                     dir.mkdirs();
                 File[] existing = dir.listFiles();
+                //noinspection ForLoopReplaceableByForEach
                 for (int i=0;i<existing.length;i++) {
                     existing[i].delete();
                 }
             }
-            for (int i=0;i<savedItems.size();i++) {
-                SaveItem item = (SaveItem)savedItems.elementAt(i);
+            for (SaveItem item : savedItems) {
                 out.putNextEntry(new ZipEntry(item.name + ".class"));
                 out.write(item.byteCode);
                 dos.writeUTF(item.name);
@@ -122,7 +125,7 @@ public class Loader {
                 dos.writeInt(item.opCode.length);
                 dos.write(item.opCode);
                 if (source) {
-                    FileOutputStream fos = new FileOutputStream(dirName+File.separator+item.name.substring(item.name.lastIndexOf('.')+1)+".java");
+                    FileOutputStream fos = new FileOutputStream(dirName + File.separator + item.name.substring(item.name.lastIndexOf('.') + 1) + ".java");
                     fos.write(item.source.getBytes());
                     fos.close();
                     src_dos.writeUTF("jdos.cpu.core_dynamic." + item.name);
@@ -143,9 +146,9 @@ public class Loader {
                 fos.write(src_bos.toByteArray());
                 fos.close();
             }
-            System.out.println("Saved "+savedItems.size()+" blocks");
+            logger.log(Level.DEBUG,"Saved "+savedItems.size()+" blocks");
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
     }
 }

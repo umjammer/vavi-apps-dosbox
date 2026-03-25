@@ -1,18 +1,19 @@
 package jdos.ints;
 
 import jdos.Dosbox;
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.hardware.IoHandler;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.types.MachineType;
 import jdos.util.IntRef;
 
 public class Bios_keyboard {
+
+    private static final Logger LOG_BIOS = System.getLogger("LOG_BIOS");
+
     static private /*Bitu*/int call_int16,call_irq1,call_irq6;
 
     /* Nice table from BOCHS i should feel bad for ripping this */
@@ -24,12 +25,12 @@ public class Bios_keyboard {
             this.control = control;
             this.alt = alt;
         }
-        /*Bit16u*/int normal;
-        /*Bit16u*/int shift;
-        /*Bit16u*/int control;
-        /*Bit16u*/int alt;
+        /*Bit16u*/final int normal;
+        /*Bit16u*/final int shift;
+        /*Bit16u*/final int control;
+        /*Bit16u*/final int alt;
     }
-    static private Scan[] scan_to_scanascii = {
+    static private final Scan[] scan_to_scanascii = {
           new Scan(   none,   none,   none,   none ),
           new Scan( 0x011b, 0x011b, 0x011b, 0x01f0 ), /* escape */
           new Scan( 0x0231, 0x0221,   none, 0x7800 ), /* 1! */
@@ -221,11 +222,13 @@ public class Bios_keyboard {
         */
 
 
-    static private Callback.Handler IRQ1_Handler = new Callback.Handler() {
+    static private final Callback.Handler IRQ1_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Bios_keyboard.IRQ1_Handler";
         }
         /* the scancode is in reg_al */
+        @Override
         public /*Bitu*/int call() {
         /* handling of the locks key is difficult as sdl only gives
          * states for numlock capslock.
@@ -237,7 +240,7 @@ public class Bios_keyboard {
             flags2=Memory.mem_readb(Bios.BIOS_KEYBOARD_FLAGS2);
             flags3=Memory.mem_readb(Bios.BIOS_KEYBOARD_FLAGS3);
             leds  =Memory.mem_readb(Bios.BIOS_KEYBOARD_LEDS);
-            // :TODO: :ADD: if (Dos_keyboard_layout.DOS_LayoutKey(scancode,flags1,flags2,flags3)) return Callback.CBRET_NONE;
+            // TODO :ADD: if (Dos_keyboard_layout.DOS_LayoutKey(scancode,flags1,flags2,flags3)) return Callback.CBRET_NONE;
         //LOG_MSG("key input %d %d %d %d",scancode,flags1,flags2,flags3);
             switch (scancode) {
             /* First the hard ones  */
@@ -461,10 +464,12 @@ public class Bios_keyboard {
         return false;
     }
 
-    static private Callback.Handler INT16_Handler = new Callback.Handler() {
+    static private final Callback.Handler INT16_Handler = new Callback.Handler() {
+        @Override
         public String getName() {
             return "Bios_keyboard.INT16_Handler";
         }
+        @Override
         public /*Bitu*/int call() {
             /*Bit16u*/IntRef temp=new IntRef(0);
             switch (CPU_Regs.reg_eax.high()) {
@@ -534,7 +539,7 @@ public class Bios_keyboard {
                     IoHandler.IO_Write(0x60,0xf3);
                     IoHandler.IO_Write(0x60,(CPU_Regs.reg_ebx.high()&3)<<5|(CPU_Regs.reg_ebx.low()&0x1f));
                 } else {
-                    if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_BIOS, LogSeverities.LOG_ERROR,"INT16:Unhandled Typematic Rate Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" BX="+Integer.toString(CPU_Regs.reg_ebx.word(),16));
+                    LOG_BIOS.log(Level.ERROR, "INT16:Unhandled Typematic Rate Call "+Integer.toString(CPU_Regs.reg_eax.low(), 16)+" BX="+Integer.toString(CPU_Regs.reg_ebx.word(),16));
                 }
                 break;
             case 0x05:	/* STORE KEYSTROKE IN KEYBOARD BUFFER */
@@ -549,10 +554,10 @@ public class Bios_keyboard {
                 break;
             case 0x55:
                 /* Weird call used by some dos apps */
-                Log.log(LogTypes.LOG_BIOS,LogSeverities.LOG_NORMAL,"INT16:55:Word TSR compatible call");
+                LOG_BIOS.log(Level.DEBUG, "INT16:55:Word TSR compatible call");
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_BIOS,LogSeverities.LOG_ERROR,"INT16:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
+                LOG_BIOS.log(Level.ERROR, "INT16:Unhandled call "+Integer.toString(CPU_Regs.reg_eax.high(),16));
                 break;
 
             }

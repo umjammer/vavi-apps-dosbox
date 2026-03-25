@@ -1,17 +1,20 @@
 package jdos.host.router;
 
-import jdos.util.StringHelper;
-
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.LinkedList;
 
 public class EtherUtil {
+
+    private static final Logger logger = System.getLogger(EtherUtil.class.getName());
+
     protected final static Ether ether = new Ether();
     protected static final int CLIENT_ADDRESS = 0xC0A89D07; // 192.168.157.7
     protected static final int SERVER_ADDRESS = 0xC0A89D01; // 192.168.157.1
     protected static final int SERVER_NETMASK = 0xFFFFFF00; // 255.255.255.0
     protected static final byte[] SERVER_MAC_ADDRESS = new byte[] {(byte)0xAC, (byte)0xDE, 0x48, (byte)0x88, (byte)0x99, (byte)0xAB};
 
-    protected static LinkedList frames;
+    protected static LinkedList<byte[]> frames;
 
     static public int readWord(byte[] bytes, int off) {
         return bytes[off+1] & 0xFF | ((bytes[off] & 0xFF) << 8);
@@ -39,7 +42,7 @@ public class EtherUtil {
         while (length > 1) {
           data = (((buffer[i+offset] << 8) & 0xFF00) | ((buffer[i + 1 + offset]) & 0xFF));
           sum += data;
-          if ((sum & 0xFFFF0000) > 0) {
+          if ((sum & 0xFFFF_0000L) > 0) {
             sum = sum & 0xFFFF;
             sum += 1;
           }
@@ -49,7 +52,7 @@ public class EtherUtil {
 
         if (length > 0) {
           sum += (buffer[i+offset] << 8 & 0xFF00);
-          if ((sum & 0xFFFF0000) > 0) {
+          if ((sum & 0xFFFF_0000L) > 0) {
             sum = sum & 0xFFFF;
             sum += 1;
           }
@@ -74,16 +77,16 @@ public class EtherUtil {
         int row=0;
         for (int i=offset;i<offset+len;i++) {
             if (col == 0) {
-                System.out.print(StringHelper.sprintf("%08x", new Object[]{row * 8}));
+                System.out.printf("%08x", row * 8);
             }
-            System.out.print(StringHelper.sprintf(" %02x", new Object[] {(buffer[i] & 0xFF)}));
+            System.out.printf(" %02x", (buffer[i] & 0xFF));
             col++;
             if (col==8) {
-                System.out.println(" ........");
+                logger.log(Level.DEBUG," ........");
                 row++;
                 col = 0;
             }
         }
-        System.out.println();
+        logger.log(Level.DEBUG, "");
     }
 }

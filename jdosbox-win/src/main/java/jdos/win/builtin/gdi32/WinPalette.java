@@ -78,7 +78,7 @@ public class WinPalette extends WinGDI {
         return SYSPAL_NOSTATIC;
     }
 
-    int[] palette;
+    final int[] palette;
 
     public WinPalette(int handle, int[] palette) {
         super(handle);

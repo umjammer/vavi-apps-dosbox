@@ -17,7 +17,7 @@ public class WinFindFile extends WinObject {
         return (WinFindFile)object;
     }
 
-    FilePath[] results;
+    final FilePath[] results;
     int index = 0;
 
     private WinFindFile(int id, FilePath[] results) {

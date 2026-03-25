@@ -1,70 +1,48 @@
 package jdos.host.router;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
+
 public class ICMP extends EtherUtil {
+
+    private static final Logger logger = System.getLogger(ICMP.class.getName());
+
     private void parse(byte[] buffer, int offset) {
         type = buffer[offset] & 0xFF;
         code = buffer[offset+1] & 0xFF;
         checksum = (short)readWord(buffer, offset+2);
     }
+
     public void handle(byte[] buffer, int offset, int len) {
         System.out.print("Received ICMP Packet ");
         parse(buffer, offset);
         if (type == 0) {
-            System.out.println(" PING");
+            logger.log(Level.DEBUG," PING");
         } else {
-            String strType = null;
+            String strType = switch (type) {
+                case 3 -> "Destination Unreachable";
+                case 4 -> "Source Quench";
+                case 5 -> "Redirect Message";
+                case 8 -> "Echo Request";
+                case 9 -> "Router Advertisement";
+                case 10 -> "Router Solicitation";
+                case 11 -> "Time Exceeded";
+                case 12 -> "Parameter Problem: Bad IP header";
+                case 13 -> "Timestamp";
+                case 14 -> "Timestamp Reply";
+                case 15 -> "Information Request";
+                case 16 -> "Information Reply";
+                case 17 -> "Address Mask Request";
+                case 18 -> "Address Mask Reply";
+                case 30 -> "Traceroute";
+                default -> null;
+            };
 
-            switch (type) {
-                case 3:
-                    strType = "Destination Unreachable";
-                    break;
-                case 4:
-                    strType = "Source Quench";
-                    break;
-                case 5:
-                    strType = "Redirect Message";
-                    break;
-                case 8:
-                    strType = "Echo Request";
-                    break;
-                case 9:
-                    strType = "Router Advertisement";
-                    break;
-                case 10:
-                    strType = "Router Solicitation";
-                    break;
-                case 11:
-                    strType = "Time Exceeded";
-                    break;
-                case 12:
-                    strType = "Parameter Problem: Bad IP header";
-                    break;
-                case 13:
-                    strType = "Timestamp";
-                    break;
-                case 14:
-                    strType = "Timestamp Reply";
-                    break;
-                case 15:
-                    strType = "Information Request";
-                    break;
-                case 16:
-                    strType = "Information Reply";
-                    break;
-                case 17:
-                    strType = "Address Mask Request";
-                    break;
-                case 18:
-                    strType = "Address Mask Reply";
-                    break;
-                case 30:
-                    strType = "Traceroute";
-                    break;
-            }
             System.out.print(" type="+type);
             if (strType != null)
                 System.out.print("("+strType+")");
-            System.out.println(" code="+code);
+            logger.log(Level.DEBUG," code="+code);
         }
     }
 

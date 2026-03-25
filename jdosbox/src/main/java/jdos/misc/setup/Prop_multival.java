@@ -1,10 +1,11 @@
 package jdos.misc.setup;
 
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Prop_multival extends Property {
-    protected Section_prop section;
-    protected String separator;
+    protected final Section_prop section;
+    protected final String separator;
     protected void make_default_value() {
         Property p = section.Get_prop(0);
         if (p == null) return;
@@ -15,7 +16,7 @@ public class Prop_multival extends Property {
             if (p == null)
                 break;
             String props = p.Get_Default_Value().toString();
-            if (props.length()!=0) {
+            if (!props.isEmpty()) {
                 result+=separator;
                 result+=props;
             }
@@ -27,6 +28,7 @@ public class Prop_multival extends Property {
         separator = sep;
     }
     public Section_prop GetSection() {return section;}
+    @Override
     public void SetValue(String input) {
         SetVal(new Value(input, Value.Etype.V_STRING), false, true);
         //No properties in this section. do nothing
@@ -45,7 +47,7 @@ public class Prop_multival extends Property {
             if (pos >= 0) {
                 in = input.substring(0, pos); //seperator found
                 input = input.substring(pos+separator.length());
-            } else if (input.length() > 0) { //last argument
+            } else if (!input.isEmpty()) { //last argument
                 in = input;
                 input = "";
             }
@@ -58,16 +60,17 @@ public class Prop_multival extends Property {
             p.SetValue(in);
         }
     }
-    public Vector GetValues() {
+    @Override
+    public List<Value> getValues() {
         if (section.Get_prop(0) == null)
             return suggested_values;
-        Vector result = new Vector();
+        List<Value> result = new ArrayList<>();
         int i=0;
         while (true) {
             Property p = section.Get_prop(i++);
             if (p == null)
                 return suggested_values;
-            Vector v = p.GetValues();
+            List<Value> v = p.getValues();
             if (!v.isEmpty()) return v;
         }
     }

@@ -273,7 +273,7 @@ public class WinDialog extends WinAPI {
         WinWindow wnd = WinWindow.get(hwndDlg);
         if (wnd == null)
             return 0;
-        Iterator children = wnd.getChildren();
+        Iterator<WinWindow> children = wnd.getChildren();
         while (children.hasNext()) {
             WinWindow child = (WinWindow) children.next();
             if (WinWindow.GetWindowLongA(child.handle, GWL_ID) == id)
@@ -491,27 +491,15 @@ public class WinDialog extends WinAPI {
             /* Windows treats dialog control class ids 0-5 same way as 0x80-0x85 */
             if ((id >= 0x80) && (id <= 0x85)) id -= 0x80;
             if (id <= 5) {
-                String name = null;
-                switch (id) {
-                    case 0:
-                        name = "Button";
-                        break;
-                    case 1:
-                        name = "Edit";
-                        break;
-                    case 2:
-                        name = "Static";
-                        break;
-                    case 3:
-                        name = "ListBox";
-                        break;
-                    case 4:
-                        name = "ScrollBar";
-                        break;
-                    case 5:
-                        name = "ComboBox";
-                        break;
-                }
+                String name = switch (id) {
+                    case 0 -> "Button";
+                    case 1 -> "Edit";
+                    case 2 -> "Static";
+                    case 3 -> "ListBox";
+                    case 4 -> "ScrollBar";
+                    case 5 -> "ComboBox";
+                    default -> null;
+                };
                 info.className = WinSystem.getCurrentProcess().classNames.get(name.toLowerCase()).handle;
             } else {
                 info.className = NULL;

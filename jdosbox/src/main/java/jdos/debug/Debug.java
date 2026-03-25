@@ -1,6 +1,5 @@
 package jdos.debug;
 
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.misc.setup.Section;
 
@@ -60,10 +59,10 @@ public class Debug {
     public static final int DONE = 47;
     public static final int INSTRUCTION_DONE = 48;
 
-    static long[] last = new long[50];
+    static final long[] last = new long[50];
 
     static DataOutputStream log = null;
-    static public boolean logging = true;
+    static public final boolean logging = true;
 
     static {
         try {log = new DataOutputStream(new BufferedOutputStream(new FileOutputStream("debug.log")));} catch (Exception e){}
@@ -195,9 +194,7 @@ public class Debug {
         return false;
     }
 
-    public static Section.SectionFunction DEBUG_Init = new Section.SectionFunction() {
-        public void call(Section section) {
-        }
+    public static final Section.SectionFunction DEBUG_Init = section -> {
     };
 
     public static boolean DEBUG_ExitLoop() {

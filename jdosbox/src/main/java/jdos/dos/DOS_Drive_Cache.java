@@ -1,48 +1,36 @@
 package jdos.dos;
 
 import jdos.misc.Cross;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.util.*;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
-import java.util.Vector;
+import java.util.List;
 
-// :TODO: this entire class was hard to port with accuracy, it will need lots of testing
+
+// TODO this entire class was hard to port with accuracy, it will need lots of testing
 public class DOS_Drive_Cache {
-    Comparator SortByName = new Comparator() {
-        public int compare(Object o1, Object o2) {
-            return ((CFileInfo)o1).shortname.compareTo(((CFileInfo)o2).shortname);
-        }
+
+    private static final Logger LOG_DOSMISC = System.getLogger("LOG_DOSMISC");
+    private static final Logger LOG_FILES = System.getLogger("LOG_FILES");
+
+    Comparator<CFileInfo> SortByName = Comparator.comparing(o -> o.shortname);
+
+    final Comparator<CFileInfo> SortByDirName = (a, b) -> {
+        if (a.isDir!=b.isDir) return a.isDir?1:-1;
+        return a.shortname.compareTo(b.shortname);
     };
 
-    Comparator SortByDirName = new Comparator() {
-        public int compare(Object o1, Object o2) {
-            CFileInfo a = (CFileInfo)o1;
-            CFileInfo b = (CFileInfo)o2;
-            if (a.isDir!=b.isDir) return a.isDir?1:-1;
-            return a.shortname.compareTo(b.shortname);
-        }
+    final Comparator<CFileInfo> SortByDirNameRev = (a, b) -> {
+        if (a.isDir!=b.isDir) return a.isDir?1:-1;
+        return b.shortname.compareTo(a.shortname);
     };
 
-    Comparator SortByDirNameRev = new Comparator() {
-        public int compare(Object o1, Object o2) {
-            CFileInfo a = (CFileInfo)o1;
-            CFileInfo b = (CFileInfo)o2;
-            if (a.isDir!=b.isDir) return a.isDir?1:-1;
-            return b.shortname.compareTo(a.shortname);
-        }
-    };
-
-    Comparator SortByNameRev = new Comparator() {
-            public int compare(Object o1, Object o2) {
-            CFileInfo a = (CFileInfo)o1;
-            CFileInfo b = (CFileInfo)o2;
-            return b.shortname.compareTo(a.shortname);
-        }
-    };
+    final Comparator<CFileInfo> SortByNameRev = (a, b) -> b.shortname.compareTo(a.shortname);
 
     /* The following variable can be lowered to free up some memory.
      * The negative side effect: The stored searches will be turned over faster.
@@ -129,12 +117,12 @@ public class DOS_Drive_Cache {
 
             // Info
             /*		if (!dirp) {
-                LOG_DEBUG("DIR: Error Caching in %s",dirPath);
+                logger.log(Level.TRACE,"DIR: Error Caching in %s",dirPath);
                 return false;
             } else {
                 char buffer[128];
                 sprintf(buffer,"DIR: Caching in %s (%d Files)",dirPath,dirSearch[srchNr]->fileList.size());
-                LOG_DEBUG(buffer);
+                logger.log(Level.TRACE,buffer);
             }*/
         }
         if (SetResult(dirSearch[id], result, dirSearch[id].nextEntry)) return true;
@@ -164,13 +152,13 @@ public class DOS_Drive_Cache {
         if (pos!=0) {
             // Last Entry = File
             StringRef d = new StringRef(path.substring(pos+1));
-            GetLongName(dirInfo, d);
+            getLongName(dirInfo, d);
             dir = d.value;
             work.value+=dir;
         }
 
         if (work.value.endsWith(File.separator) && !(work.value.endsWith(":"+File.separator)) && work.value.length()>1) {
-            work.value = work.value.substring(0, work.value.length());
+            work.value = work.value;
         }
 
         return work.value;
@@ -190,11 +178,11 @@ public class DOS_Drive_Cache {
 
         while (low<=high) {
             mid = (low+high)/2;
-            res = fullname.compareTo(((CFileInfo)curDir.longNameList.elementAt(mid)).orgname);
+            res = fullname.compareTo(((CFileInfo)curDir.longNameList.get(mid)).orgname);
             if (res>0)	low  = mid+1; else
             if (res<0)	high = mid-1;
             else {
-                shortname.value = ((CFileInfo)curDir.longNameList.elementAt(mid)).shortname;
+                shortname.value = ((CFileInfo)curDir.longNameList.get(mid)).shortname;
                 return true;
             }
         }
@@ -220,7 +208,7 @@ public class DOS_Drive_Cache {
 
         if (local_findcounter == MAX_OPENDIRS) { //Here is the reset from above.
             // no free slot found...
-            Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DIRCACHE: FindFirst/Next: All slots full. Resetting");
+            LOG_DOSMISC.log(Level.ERROR, "DIRCACHE: FindFirst/Next: All slots full. Resetting");
             // Clear the internal list then.
             dirFindFirstID = 0;
             this.nextFreeFindFirst = 1; //the next free one after this search
@@ -235,19 +223,19 @@ public class DOS_Drive_Cache {
 
         // Copy entries to use with FindNext
         for (/*Bitu*/int i=0; i<dirSearch[dirID.value].fileList.size(); i++) {
-            CopyEntry((CFileInfo)dirFindFirst[dirFindFirstID],(CFileInfo)dirSearch[dirID.value].fileList.elementAt(i));
+            copyEntry(dirFindFirst[dirFindFirstID], dirSearch[dirID.value].fileList.get(i));
         }
         // Now re-sort the fileList accordingly to output
         switch (sortDirType) {
         case TDirSort.ALPHABETICAL		: break;
         //		case ALPHABETICAL		: std::sort(dirFindFirst[dirFindFirstID]->fileList.begin(), dirFindFirst[dirFindFirstID]->fileList.end(), SortByName);		break;
-        case TDirSort.DIRALPHABETICAL	: java.util.Collections.sort(dirFindFirst[dirFindFirstID].fileList, SortByDirName);		break;
-        case TDirSort.ALPHABETICALREV	: java.util.Collections.sort(dirFindFirst[dirFindFirstID].fileList, SortByNameRev);		break;
-        case TDirSort.DIRALPHABETICALREV	: java.util.Collections.sort(dirFindFirst[dirFindFirstID].fileList, SortByDirNameRev);	break;
+        case TDirSort.DIRALPHABETICAL	: dirFindFirst[dirFindFirstID].fileList.sort(SortByDirName);		break;
+        case TDirSort.ALPHABETICALREV	: dirFindFirst[dirFindFirstID].fileList.sort(SortByNameRev);		break;
+        case TDirSort.DIRALPHABETICALREV	: dirFindFirst[dirFindFirstID].fileList.sort(SortByDirNameRev);	break;
         case TDirSort.NOSORT				: break;
         }
 
-        //	Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DIRCACHE: FindFirst : %s (ID:%02X)",path,dirFindFirstID);
+        //	LOG_DOSMISC.log(Level.ERROR, "DIRCACHE: FindFirst : %s (ID:%02X)",path,dirFindFirstID);
         id.value = dirFindFirstID;
         return true;
     }
@@ -255,7 +243,7 @@ public class DOS_Drive_Cache {
     public boolean FindNext(/*Bit16u*/int id, StringRef result) {
         // out of range ?
         if ((id>=MAX_OPENDIRS) || dirFindFirst[id]==null) {
-        if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_ERROR,"DIRCACHE: FindFirst/Next failure : ID out of range: "+Integer.toString(id,16));
+        LOG_DOSMISC.log(Level.ERROR, "DIRCACHE: FindFirst/Next failure : ID out of range: "+Integer.toString(id,16));
         return false;
         }
         if (!SetResult(dirFindFirst[id], result, dirFindFirst[id].nextEntry)) {
@@ -269,7 +257,7 @@ public class DOS_Drive_Cache {
 
     void ClearFileInfo(CFileInfo dir) {
         for(/*Bit32u*/int i=0; i<dir.fileList.size(); i++) {
-            CFileInfo info = (CFileInfo)dir.fileList.elementAt(i);
+            CFileInfo info = (CFileInfo)dir.fileList.get(i);
             if (info!=null)
                 ClearFileInfo(info);
         }
@@ -304,12 +292,12 @@ public class DOS_Drive_Cache {
             dir = FindDirInfo(path,expand);
         }
 
-        //	LOG_DEBUG("DIR: Caching out %s : dir %s",expand,dir->orgname);
+        //	logger.log(Level.TRACE,"DIR: Caching out %s : dir %s",expand,dir->orgname);
         // delete file objects...
         for(/*Bit32u*/int i=0; i<dir.fileList.size(); i++) {
-            if (dirSearch[srchNr]==dir.fileList.elementAt(i)) dirSearch[srchNr] = null;
-            DeleteFileInfo((CFileInfo)dir.fileList.elementAt(i));
-            dir.fileList.setElementAt(null, i);
+            if (dirSearch[srchNr]==dir.fileList.get(i)) dirSearch[srchNr] = null;
+            DeleteFileInfo((CFileInfo)dir.fileList.get(i));
+            dir.fileList.set(i, null); // TODO
         }
         // clear lists
         dir.fileList.clear();
@@ -329,12 +317,12 @@ public class DOS_Drive_Cache {
             file.value = path.substring(pos+1);
             // Check if file already exists, then don't add new entry...
             if (checkExists) {
-                if (GetLongName(dir,file)>=0) return;
+                if (getLongName(dir,file)>=0) return;
             }
 
         CreateEntry(dir,file.value,false);
 
-        /*Bits*/int index = GetLongName(dir,file);
+        /*Bits*/int index = getLongName(dir,file);
         if (index>=0) {
             /*Bit32u*/int i;
             // Check if there are any open search dir that are affected by this...
@@ -343,9 +331,9 @@ public class DOS_Drive_Cache {
                 dirSearch[i].nextEntry++;
             }
         }
-        //		LOG_DEBUG("DIR: Added Entry %s",path);
+        //		logger.log(Level.TRACE,"DIR: Added Entry %s",path);
         } else {
-        //		LOG_DEBUG("DIR: Error: Failed to add %s",path);
+        //		logger.log(Level.TRACE,"DIR: Error: Failed to add %s",path);
         }
     }
 
@@ -370,7 +358,7 @@ public class DOS_Drive_Cache {
 
     public void EmptyCache() {
         // Empty Cache and reinit
-        Clear();
+        clear();
         dirBase		= new CFileInfo();
         save_dir	= null;
         srchNr		= 0;
@@ -389,7 +377,7 @@ public class DOS_Drive_Cache {
         Drives.Set_Label(vname,l,cdrom);
         label = l.value;
         if (label==null) label="";
-        if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_DOSMISC,LogSeverities.LOG_NORMAL,"DIRCACHE: Set volume label to "+label);
+        LOG_DOSMISC.log(Level.DEBUG, "DIRCACHE: Set volume label to "+label);
     }
 
     public String GetLabel() {
@@ -409,11 +397,11 @@ public class DOS_Drive_Cache {
         /*Bitu*/int	    nextEntry;
         /*Bitu*/int	    shortNr;
         // contents
-        Vector	fileList = new Vector();
-        Vector	longNameList = new Vector();
+        final List<CFileInfo>	fileList = new ArrayList<>();
+        final List<CFileInfo>	longNameList = new ArrayList<>();
     }
 
-    private boolean RemoveTrailingDot(StringRef shortname) {
+    private static boolean removeTrailingDot(StringRef shortname) {
         // remove trailing '.' if no extension is available (Linux compatibility)
         int len = shortname.value.length();
         if (len>0 && (shortname.value.charAt(len-1)=='.')) {
@@ -425,23 +413,23 @@ public class DOS_Drive_Cache {
         return false;
     }
 
-    private /*Bits*/int GetLongName(CFileInfo curDir, StringRef shortName) {
+    private /*Bits*/int getLongName(CFileInfo curDir, StringRef shortName) {
         int filelist_size = curDir.fileList.size();
         if (filelist_size<=0) return -1;
 
         // Remove dot, if no extension...
-        RemoveTrailingDot(shortName);
+        removeTrailingDot(shortName);
         // Search long name and return array number of element
         /*Bits*/int low	= 0;
         /*Bits*/int high	= filelist_size-1;
         /*Bits*/int mid,res;
         while (low<=high) {
             mid = (low+high)/2;
-            res = shortName.value.compareTo(((CFileInfo)curDir.fileList.elementAt(mid)).shortname);
+            res = shortName.value.compareTo(curDir.fileList.get(mid).shortname);
             if (res>0)	low  = mid+1; else
             if (res<0)	high = mid-1; else
             {	// Found
-                shortName.value = ((CFileInfo)curDir.fileList.elementAt(mid)).orgname;
+                shortName.value = curDir.fileList.get(mid).orgname;
                 return mid;
             }
         }
@@ -481,7 +469,7 @@ public class DOS_Drive_Cache {
         createShort = createShort || (len>8);
         if (!createShort) {
             StringRef buffer = new StringRef(tmpName);
-            createShort = (GetLongName(curDir,buffer)>=0);
+            createShort = (getLongName(curDir,buffer)>=0);
         }
         if (createShort) {
             // Create number
@@ -504,8 +492,8 @@ public class DOS_Drive_Cache {
             }
 
             // keep list sorted for CreateShortNameID to work correctly
-            if (curDir.longNameList.size()>0) {
-                if (info.shortname.compareTo(((CFileInfo)curDir.longNameList.lastElement()).shortname)>=0) {
+            if (!curDir.longNameList.isEmpty()) {
+                if (info.shortname.compareTo(curDir.longNameList.getLast().shortname)>=0) {
                     // append at end of list
                     curDir.longNameList.add(info);
                 } else {
@@ -513,13 +501,13 @@ public class DOS_Drive_Cache {
                     boolean found=false;
                     int i;
                     for (i=0;i<curDir.longNameList.size();i++) {
-                        CFileInfo it = (CFileInfo)curDir.longNameList.elementAt(i);
+                        CFileInfo it = curDir.longNameList.get(i);
                         if (info.shortname.compareTo(it.shortname)<0) {
                             found = true;
                             break;
                         }
                     }
-                    if (found) curDir.longNameList.insertElementAt(info, i);
+                    if (found) curDir.longNameList.add(i, info);
                     else curDir.longNameList.add(info);
                 }
             } else {
@@ -530,7 +518,7 @@ public class DOS_Drive_Cache {
             info.shortname= tmpName;
         }
         StringRef sn = new StringRef(info.shortname);
-        RemoveTrailingDot(sn);
+        removeTrailingDot(sn);
         info.shortname = sn.value;
     }
 
@@ -545,16 +533,16 @@ public class DOS_Drive_Cache {
 
         while (low<=high) {
             mid = (low+high)/2;
-            res = CompareShortname(name,((CFileInfo)curDir.longNameList.elementAt(mid)).shortname);
+            res = CompareShortname(name, curDir.longNameList.get(mid).shortname);
 
             if (res>0)	low  = mid+1; else
             if (res<0)	high = mid-1;
             else {
                 // any more same x chars in next entries ?
                 do {
-                    foundNr = ((CFileInfo)curDir.longNameList.elementAt(mid)).shortNr;
+                    foundNr = curDir.longNameList.get(mid).shortNr;
                     mid++;
-                } while(mid<curDir.longNameList.size() && (CompareShortname(name,((CFileInfo)curDir.longNameList.elementAt(mid)).shortname)==0));
+                } while(mid<curDir.longNameList.size() && (CompareShortname(name, curDir.longNameList.get(mid).shortname)==0));
                 break;
             }
         }
@@ -595,7 +583,7 @@ public class DOS_Drive_Cache {
 
     private boolean SetResult(CFileInfo dir, StringRef result, /*Bitu*/int entryNr) {
         if (entryNr>=dir.fileList.size()) return false;
-        CFileInfo info = (CFileInfo)dir.fileList.elementAt(entryNr);
+        CFileInfo info = dir.fileList.get(entryNr);
         // copy filename, short version
         result.value=info.shortname;
         // Set to next Entry
@@ -604,7 +592,7 @@ public class DOS_Drive_Cache {
     }
 
     private boolean IsCachedIn(CFileInfo curDir) {
-        return (curDir.fileList.size()>0);
+        return (!curDir.fileList.isEmpty());
     }
 
     private CFileInfo FindDirInfo(String path, StringRef expandedPath) {
@@ -621,7 +609,7 @@ public class DOS_Drive_Cache {
             return save_dir;
         }
 
-        //	LOG_DEBUG("DIR: Find %s",path);
+        //	logger.log(Level.TRACE,"DIR: Find %s",path);
 
         // Remove base dir path
         if (basePath.length()>=path.length())
@@ -653,17 +641,17 @@ public class DOS_Drive_Cache {
             else	 { dir.value=start; }
 
             // Path found
-            /*Bits*/int nextDir = GetLongName(curDir,dir);
+            /*Bits*/int nextDir = getLongName(curDir,dir);
             expandedPath.value+=dir.value;
 
             // Error check
             /*		if ((errorcheck) && (nextDir<0)) {
-            LOG_DEBUG("DIR: Error: %s not found.",expandedPath);
+            logger.log(Level.TRACE,"DIR: Error: %s not found.",expandedPath);
             };
             */
             // Follow Directory
-            if ((nextDir>=0) && ((CFileInfo)curDir.fileList.elementAt(nextDir)).isDir) {
-                curDir = (CFileInfo)curDir.fileList.elementAt(nextDir);
+            if ((nextDir>=0) && curDir.fileList.get(nextDir).isDir) {
+                curDir = curDir.fileList.get(nextDir);
                 curDir.orgname=dir.value;
                 if (!IsCachedIn(curDir)) {
                     if (OpenDir(curDir,expandedPath.value,id)) {
@@ -693,7 +681,7 @@ public class DOS_Drive_Cache {
     }
 
     private boolean OpenDir(CFileInfo dir, String expand, /*Bit16u*/IntRef id) {
-        id.value = GetFreeID(dir);
+        id.value = getFreeID(dir);
         dirSearch[id.value] = dir;
         String expandcopy = expand;
         // Add "/"
@@ -728,21 +716,21 @@ public class DOS_Drive_Cache {
         boolean found = false;
 
         // keep list sorted (so GetLongName works correctly, used by CreateShortName in this routine)
-        if (dir.fileList.size()>0) {
-            if (!(info.shortname.compareTo(((CFileInfo)dir.fileList.lastElement()).shortname)<0)) {
+        if (!dir.fileList.isEmpty()) {
+            if (!(info.shortname.compareTo(((CFileInfo)dir.fileList.getLast()).shortname)<0)) {
                 // append at end of list
                 dir.fileList.add(info);
             } else {
                 // look for position where to insert this element
                 int it;
                 for (it=0;it<dir.fileList.size(); ++it) {
-                    if (info.shortname.compareTo(((CFileInfo)dir.fileList.elementAt(it)).shortname)<0) {
+                    if (info.shortname.compareTo(((CFileInfo)dir.fileList.get(it)).shortname)<0) {
                         found = true;
                         break;
                     }
                 }
                 // Put file in lists
-                if (found) dir.fileList.insertElementAt(info, it);
+                if (found) dir.fileList.add(it, info);
                 else dir.fileList.add(info);
             }
         } else {
@@ -751,7 +739,7 @@ public class DOS_Drive_Cache {
         }
     }
 
-    void CopyEntry(CFileInfo dir, CFileInfo from) {
+    void copyEntry(CFileInfo dir, CFileInfo from) {
         CFileInfo info = new CFileInfo();
         // just copy things into new fileinfo
         info.orgname=from.orgname;
@@ -762,7 +750,7 @@ public class DOS_Drive_Cache {
         dir.fileList.add(info);
     }
 
-    /*Bit16u*/int GetFreeID(CFileInfo dir) {
+    /*Bit16u*/int getFreeID(CFileInfo dir) {
         if (dir.id != MAX_OPENDIRS)
             return dir.id;
         for (/*Bit16u*/int i=0; i<MAX_OPENDIRS; i++) {
@@ -771,16 +759,17 @@ public class DOS_Drive_Cache {
                 return i;
             }
         }
-        Log.log(LogTypes.LOG_FILES, LogSeverities.LOG_NORMAL,"DIRCACHE: Too many open directories!");
+        LOG_FILES.log(Level.DEBUG, "DIRCACHE: Too many open directories!");
         dir.id=0;
         return 0;
     }
 
-    void Clear() {
+    void clear() {
         DeleteFileInfo(dirBase);
         dirBase = null;
         nextFreeFindFirst	= 0;
-        for (/*Bit32u*/int i=0; i<MAX_OPENDIRS; i++) dirSearch[i] = null;
+        /*Bit32u*/
+        Arrays.fill(dirSearch, null);
     }
 
     private CFileInfo	dirBase;
@@ -793,12 +782,11 @@ public class DOS_Drive_Cache {
     private String		save_expanded;
 
     private /*Bit16u*/int	srchNr;
-    private CFileInfo[]	dirSearch = new CFileInfo[MAX_OPENDIRS];
+    private final CFileInfo[]	dirSearch = new CFileInfo[MAX_OPENDIRS];
     //private String[] dirSearchName = new String[MAX_OPENDIRS];
-    private CFileInfo[] dirFindFirst = new CFileInfo[MAX_OPENDIRS];
+    private final CFileInfo[] dirFindFirst = new CFileInfo[MAX_OPENDIRS];
     private /*Bit16u*/int nextFreeFindFirst;
 
     private String  	label="";
     private boolean		updatelabel;
-
 }

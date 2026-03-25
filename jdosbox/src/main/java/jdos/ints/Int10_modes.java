@@ -1,25 +1,33 @@
 package jdos.ints;
 
 import jdos.Dosbox;
-import jdos.hardware.*;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import jdos.hardware.IO;
+import jdos.hardware.IoHandler;
+import jdos.hardware.Memory;
+import jdos.hardware.RAM;
+import jdos.hardware.VGA;
+import jdos.hardware.VGA_dac;
+import jdos.hardware.VGA_other;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.types.MachineType;
 import jdos.types.SVGACards;
 
 public class Int10_modes {
-    static public final int _EGA_HALF_CLOCK		=0x0001;
-    static public final int  _EGA_LINE_DOUBLE	=0x0002;
-    static public final int  _VGA_PIXEL_DOUBLE	=0x0004;
 
-    static public final int  SEQ_REGS =0x05;
-    static public final int  GFX_REGS =0x09;
-    static public final int  ATT_REGS =0x15;
+    private static final Logger LOG_INT10 = System.getLogger("LOG_INT10");
 
-    public static Int10.VideoModeBlock ModeList_VGA[]={
+    static public final int _EGA_HALF_CLOCK		= 0x0001;
+    static public final int _EGA_LINE_DOUBLE	= 0x0002;
+    static public final int _VGA_PIXEL_DOUBLE	= 0x0004;
+
+    static public final int SEQ_REGS = 0x05;
+    static public final int GFX_REGS = 0x09;
+    static public final int ATT_REGS = 0x15;
+
+    public static final Int10.VideoModeBlock[] ModeList_VGA = {
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
-        new Int10.VideoModeBlock( 0x000  , VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
+        new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x002  ,VGA.M_TEXT   ,720 ,400 ,80 ,25 ,9 ,16 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,400 ,0	),
         new Int10.VideoModeBlock( 0x003  ,VGA.M_TEXT   ,720 ,400 ,80 ,25 ,9 ,16 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,400 ,0	),
@@ -116,7 +124,7 @@ public class Int10_modes {
         new Int10.VideoModeBlock(0xFFFF  ,VGA.M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	),
     };
 
-    private static Int10.VideoModeBlock ModeList_VGA_Text_200lines[]={
+    private static final Int10.VideoModeBlock[] ModeList_VGA_Text_200lines = {
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,320 ,200 ,40 ,25 ,8 , 8 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK | _EGA_LINE_DOUBLE),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,320 ,200 ,40 ,25 ,8 , 8 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK | _EGA_LINE_DOUBLE),
@@ -124,7 +132,7 @@ public class Int10_modes {
         new Int10.VideoModeBlock( 0x003  ,VGA.M_TEXT   ,640 ,200 ,80 ,25 ,8 , 8 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,400 ,_EGA_LINE_DOUBLE )
     };
 
-    private static Int10.VideoModeBlock ModeList_VGA_Text_350lines[]={
+    private static final Int10.VideoModeBlock[] ModeList_VGA_Text_350lines = {
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,350 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,350 ,_EGA_HALF_CLOCK	),
@@ -132,7 +140,7 @@ public class Int10_modes {
         new Int10.VideoModeBlock( 0x003  ,VGA.M_TEXT   ,640 ,350 ,80 ,25 ,8 ,14 ,8 ,0xB8000 ,0x1000 ,100 ,449 ,80 ,350 ,0	)
     };
 
-    private static Int10.VideoModeBlock ModeList_VGA_Tseng[]={
+    private static final Int10.VideoModeBlock[] ModeList_VGA_Tseng = {
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
@@ -173,7 +181,7 @@ public class Int10_modes {
         new Int10.VideoModeBlock(0xFFFF  ,VGA.M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	),
     };
 
-    private static Int10.VideoModeBlock ModeList_VGA_Paradise[]={
+    private static final Int10.VideoModeBlock[] ModeList_VGA_Paradise = {
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,360 ,400 ,40 ,25 ,9 ,16 ,8 ,0xB8000 ,0x0800 ,50  ,449 ,40 ,400 ,_EGA_HALF_CLOCK	),
@@ -205,7 +213,7 @@ public class Int10_modes {
     };
 
 
-    private static Int10.VideoModeBlock ModeList_EGA[]={
+    private static final Int10.VideoModeBlock[] ModeList_EGA ={
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,366 ,40 ,350 ,_EGA_HALF_CLOCK	),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,320 ,350 ,40 ,25 ,8 ,14 ,8 ,0xB8000 ,0x0800 ,50  ,366 ,40 ,350 ,_EGA_HALF_CLOCK	),
@@ -224,7 +232,7 @@ public class Int10_modes {
         new Int10.VideoModeBlock(0xFFFF  ,VGA.M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	),
     };
 
-    private static Int10.VideoModeBlock ModeList_OTHER[]={
+    private static final Int10.VideoModeBlock[] ModeList_OTHER ={
         /* mode  ,type     ,sw  ,sh  ,tw ,th ,cw,ch ,pt,pstart  ,plength,htot,vtot,hde,vde ,special flags */
         new Int10.VideoModeBlock( 0x000  ,VGA.M_TEXT   ,320 ,400 ,40 ,25 ,8 ,8  ,8 ,0xB8000 ,0x0800 ,56  ,31  ,40 ,25  ,0   ),
         new Int10.VideoModeBlock( 0x001  ,VGA.M_TEXT   ,320 ,400 ,40 ,25 ,8 ,8  ,8 ,0xB8000 ,0x0800 ,56  ,31  ,40 ,25  ,0	),
@@ -240,10 +248,10 @@ public class Int10_modes {
         new Int10.VideoModeBlock(0xFFFF  ,VGA.M_ERROR  ,0   ,0   ,0  ,0  ,0 ,0  ,0 ,0x00000 ,0x0000 ,0   ,0   ,0  ,0   ,0 	),
     };
 
-    private static Int10.VideoModeBlock Hercules_Mode=
+    private static final Int10.VideoModeBlock Hercules_Mode=
         new Int10.VideoModeBlock(0x007  ,VGA.M_TEXT   ,640 ,400 ,80 ,25 ,8 ,14 ,1 ,0xB0000 ,0x1000 ,97 ,25  ,80 ,25  ,0	);
 
-    private static byte[][] text_palette =
+    private static final byte[][] text_palette =
     {
       {0x00,0x00,0x00},{0x00,0x00,0x2a},{0x00,0x2a,0x00},{0x00,0x2a,0x2a},{0x2a,0x00,0x00},{0x2a,0x00,0x2a},{0x2a,0x2a,0x00},{0x2a,0x2a,0x2a},
       {0x00,0x00,0x15},{0x00,0x00,0x3f},{0x00,0x2a,0x15},{0x00,0x2a,0x3f},{0x2a,0x00,0x15},{0x2a,0x00,0x3f},{0x2a,0x2a,0x15},{0x2a,0x2a,0x3f},
@@ -255,7 +263,7 @@ public class Int10_modes {
       {0x15,0x15,0x15},{0x15,0x15,0x3f},{0x15,0x3f,0x15},{0x15,0x3f,0x3f},{0x3f,0x15,0x15},{0x3f,0x15,0x3f},{0x3f,0x3f,0x15},{0x3f,0x3f,0x3f}
     };
 
-    private static byte[][] mtext_palette =
+    private static final byte[][] mtext_palette =
     {
       {0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},
       {0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},
@@ -267,7 +275,7 @@ public class Int10_modes {
       {0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f}
     };
 
-    private static byte[][] mtext_s3_palette =
+    private static final byte[][] mtext_s3_palette =
     {
       {0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},{0x00,0x00,0x00},
       {0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},{0x2a,0x2a,0x2a},
@@ -279,7 +287,7 @@ public class Int10_modes {
       {0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f},{0x3f,0x3f,0x3f}
     };
 
-    private static byte[][] ega_palette =
+    private static final byte[][] ega_palette =
     {
       {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
       {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
@@ -291,13 +299,13 @@ public class Int10_modes {
       {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f}
     };
 
-    private static byte[][] cga_palette =
+    private static final byte[][] cga_palette =
     {
         {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
         {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
     };
 
-    private static byte[][] cga_palette_2 =
+    private static final byte[][] cga_palette_2 =
     {
         {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
         {0x00,0x00,0x00}, {0x00,0x00,0x2a}, {0x00,0x2a,0x00}, {0x00,0x2a,0x2a}, {0x2a,0x00,0x00}, {0x2a,0x00,0x2a}, {0x2a,0x15,0x00}, {0x2a,0x2a,0x2a},
@@ -309,7 +317,7 @@ public class Int10_modes {
         {0x15,0x15,0x15}, {0x15,0x15,0x3f}, {0x15,0x3f,0x15}, {0x15,0x3f,0x3f}, {0x3f,0x15,0x15}, {0x3f,0x15,0x3f}, {0x3f,0x3f,0x15}, {0x3f,0x3f,0x3f},
     };
 
-    private static byte[][] vga_palette =
+    private static final byte[][] vga_palette =
     {
       {0x00,0x00,0x00},{0x00,0x00,0x2a},{0x00,0x2a,0x00},{0x00,0x2a,0x2a},{0x2a,0x00,0x00},{0x2a,0x00,0x2a},{0x2a,0x15,0x00},{0x2a,0x2a,0x2a},
       {0x15,0x15,0x15},{0x15,0x15,0x3f},{0x15,0x3f,0x15},{0x15,0x3f,0x3f},{0x3f,0x15,0x15},{0x3f,0x15,0x3f},{0x3f,0x3f,0x15},{0x3f,0x3f,0x3f},
@@ -350,7 +358,7 @@ public class Int10_modes {
 
     public static Int10.VideoModeBlock CurMode;
 
-    private static boolean SetCurMode(Int10.VideoModeBlock modeblock[],/*Bit16u*/int mode) {
+    private static boolean SetCurMode(Int10.VideoModeBlock[] modeblock,/*Bit16u*/int mode) {
         /*Bitu*/int i=0;
         while (modeblock[i].mode!=0xffff) {
             if (modeblock[i].mode!=mode) i++;
@@ -418,7 +426,7 @@ public class Int10_modes {
         for (/*Bit8u*/int ct=0;ct<8;ct++) Int10_char.INT10_SetCursorPos((short)0,(short)0,(short)ct);
         // Set active page 0
         Int10_char.INT10_SetActivePage((short)0);
-        /* Set some interrupt vectors */
+        /* Set some interrupt List<?>s */
         switch (CurMode.cheight) {
         case 8:Memory.RealSetVec(0x43,Int10.int10.rom.font_8_first);break;
         case 14:Memory.RealSetVec(0x43,Int10.int10.rom.font_14);break;
@@ -437,7 +445,7 @@ public static boolean INT10_SetVideoMode_OTHER(/*Bit16u*/int mode,boolean clearm
 		if (mode>0xa) return false;
 		if (mode==7) mode=0; // PCJR defaults to 0 on illegal mode 7
 		if (!SetCurMode(ModeList_OTHER,mode)) {
-			if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"Trying to set illegal mode "+Integer.toString(mode,16));
+			LOG_INT10.log(Level.ERROR, "Trying to set illegal mode "+Integer.toString(mode,16));
 			return false;
 		}
 		break;
@@ -448,7 +456,7 @@ public static boolean INT10_SetVideoMode_OTHER(/*Bit16u*/int mode,boolean clearm
 		mode=7; // in case the video parameter table is modified
 		break;
 	}
-	if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_INT10, LogSeverities.LOG_NORMAL,"Set Video Mode "+Integer.toString(mode,16));
+	LOG_INT10.log(Level.DEBUG, "Set Video Mode "+Integer.toString(mode,16));
 
 	/* Setup the VGA to the correct mode */
 //	VGA_SetMode(CurMode.type);
@@ -496,12 +504,12 @@ public static boolean INT10_SetVideoMode_OTHER(/*Bit16u*/int mode,boolean clearm
 	//Setup the tandy palette
 	for (/*Bit8u*/short ct=0;ct<16;ct++) VGA_dac.VGA_DAC_CombineColor(ct,ct);
 	//Setup the special registers for each Dosbox.machine type
-	final /*Bit8u*/byte[] mode_control_list={
+	/*Bit8u*/byte[] mode_control_list={
 		0x2c,0x28,0x2d,0x29,	//0-3
 		0x2a,0x2e,0x1e,0x29,	//4-7
 		0x2a,0x2b,0x3b			//8-a
 	};
-	final /*Bit8u*/byte[] mode_control_list_pcjr={
+	/*Bit8u*/byte[] mode_control_list_pcjr={
 		0x0c,0x08,0x0d,0x09,	//0-3
 		0x0a,0x0e,0x0e,0x09,	//4-7
 		0x1a,0x1b,0x0b			//8-a
@@ -640,7 +648,7 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 		mode-=0x80;
 	}
 	Int10.int10.vesa_setmode=0xffff;
-	if (Log.level<=LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_NORMAL,"Set Video Mode "+Integer.toString(mode,16));
+	LOG_INT10.log(Level.DEBUG, "Set Video Mode "+Integer.toString(mode,16));
 	if (!Dosbox.IS_EGAVGA_ARCH()) return INT10_SetVideoMode_OTHER(mode,clearmem);
 
 	/* First read mode setup settings from bios area */
@@ -657,19 +665,19 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 		case SVGACards.SVGA_TsengET4K:
 		case SVGACards.SVGA_TsengET3K:
 			if (!SetCurMode(ModeList_VGA_Tseng,mode)){
-				if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"VGA:Trying to set illegal mode "+Integer.toString(mode,16));
+				LOG_INT10.log(Level.ERROR, "VGA:Trying to set illegal mode "+Integer.toString(mode,16));
 				return false;
 			}
 			break;
 		case SVGACards.SVGA_ParadisePVGA1A:
 			if (!SetCurMode(ModeList_VGA_Paradise,mode)){
-				if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"VGA:Trying to set illegal mode "+Integer.toString(mode,16));
+				LOG_INT10.log(Level.ERROR, "VGA:Trying to set illegal mode "+Integer.toString(mode,16));
 				return false;
 			}
 			break;
 		default:
 			if (!SetCurMode(ModeList_VGA,mode)){
-				if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"VGA:Trying to set illegal mode "+Integer.toString(mode,16));
+				LOG_INT10.log(Level.ERROR, "VGA:Trying to set illegal mode "+Integer.toString(mode,16));
 				return false;
 			}
 		}
@@ -687,7 +695,7 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 		}
 	} else {
 		if (!SetCurMode(ModeList_EGA,mode)){
-			if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"EGA:Trying to set illegal mode "+Integer.toString(mode,16));
+			LOG_INT10.log(Level.ERROR, "EGA:Trying to set illegal mode "+Integer.toString(mode,16));
 			return false;
 		}
 	}
@@ -820,21 +828,17 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 
 	/*Bitu*/int vretrace;
 	if (Dosbox.IS_VGA_ARCH()) {
-		switch (CurMode.vdispend) {
-		case 400: vretrace=CurMode.vdispend+12;
-				break;
-		case 480: vretrace=CurMode.vdispend+10;
-				break;
-		case 350: vretrace=CurMode.vdispend+37;
-				break;
-		default: vretrace=CurMode.vdispend+12;
-		}
+        vretrace = switch (CurMode.vdispend) {
+            case 400 -> CurMode.vdispend + 12;
+            case 480 -> CurMode.vdispend + 10;
+            case 350 -> CurMode.vdispend + 37;
+            default -> CurMode.vdispend + 12;
+        };
 	} else {
-		switch (CurMode.vdispend) {
-		case 350: vretrace=CurMode.vdispend;
-				break;
-		default: vretrace=CurMode.vdispend+24;
-		}
+        vretrace = switch (CurMode.vdispend) {
+            case 350 -> CurMode.vdispend;
+            default -> CurMode.vdispend + 24;
+        };
 	}
 
 	/* Vertical Retrace Start */
@@ -854,21 +858,17 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 
 	/*Bitu*/int vblank_trim;
 	if (Dosbox.IS_VGA_ARCH()) {
-		switch (CurMode.vdispend) {
-		case 400: vblank_trim=6;
-				break;
-		case 480: vblank_trim=7;
-				break;
-		case 350: vblank_trim=5;
-				break;
-		default: vblank_trim=8;
-		}
+        vblank_trim = switch (CurMode.vdispend) {
+            case 400 -> 6;
+            case 480 -> 7;
+            case 350 -> 5;
+            default -> 8;
+        };
 	} else {
-		switch (CurMode.vdispend) {
-		case 350: vblank_trim=0;
-				break;
-		default: vblank_trim=23;
-		}
+        vblank_trim = switch (CurMode.vdispend) {
+            case 350 -> 0;
+            default -> 23;
+        };
 	}
 
 	/* Vertical Blank Start */
@@ -927,22 +927,13 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 	}
 
 	/* Offset Register */
-	/*Bitu*/int offset;
-	switch (CurMode.type) {
-	case VGA.M_LIN8:
-		offset = CurMode.swidth/8;
-		break;
-	case VGA.M_LIN15:
-	case VGA.M_LIN16:
-		offset = 2 * CurMode.swidth/8;
-		break;
-	case VGA.M_LIN32:
-		offset = 4 * CurMode.swidth/8;
-		break;
-	default:
-		offset = CurMode.hdispend/2;
-	}
-	IoHandler.IO_Write(crtc_base,0x13);
+	/*Bitu*/int offset = switch (CurMode.type) {
+        case VGA.M_LIN8 -> CurMode.swidth / 8;
+        case VGA.M_LIN15, VGA.M_LIN16 -> 2 * CurMode.swidth / 8;
+        case VGA.M_LIN32 -> 4 * CurMode.swidth / 8;
+        default -> CurMode.hdispend / 2;
+    };
+    IoHandler.IO_Write(crtc_base,0x13);
 	IoHandler.IO_Write(crtc_base + 1,(offset & 0xff));
 
 	if (Dosbox.svgaCard == SVGACards.SVGA_S3Trio) {
@@ -1004,26 +995,15 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 			/*Bitu*/int clock=CurMode.vtotal*8*CurMode.htotal*70;
 			VGA.VGA_SetClock(3,clock/1000);
 		}
-		/*Bit8u*/short misc_control_2;
+		/*Bit8u*/short misc_control_2 = switch (CurMode.type) {
+            case VGA.M_LIN8 -> 0x00;
+            case VGA.M_LIN15 -> 0x30;
+            case VGA.M_LIN16 -> 0x50;
+            case VGA.M_LIN32 -> 0xd0;
+            default -> 0x0;
+        };
 		/* Setup Pixel format */
-		switch (CurMode.type) {
-		case VGA.M_LIN8:
-			misc_control_2=0x00;
-			break;
-		case VGA.M_LIN15:
-			misc_control_2=0x30;
-			break;
-		case VGA.M_LIN16:
-			misc_control_2=0x50;
-			break;
-		case VGA.M_LIN32:
-			misc_control_2=0xd0;
-			break;
-		default:
-			misc_control_2=0x0;
-			break;
-		}
-		IO.IO_WriteB(crtc_base,0x67);IO.IO_WriteB(crtc_base+1,misc_control_2);
+        IO.IO_WriteB(crtc_base,0x67);IO.IO_WriteB(crtc_base+1,misc_control_2);
 	}
 
 	/* Write Misc Output */
@@ -1285,11 +1265,11 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 		IoHandler.IO_Write(crtc_base+1,0);
 		/* Setup the linear frame buffer */
 		IoHandler.IO_Write(crtc_base,0x59);
-		IoHandler.IO_Write(crtc_base+1,(int)((Int10.S3_LFB_BASE >> 24)&0xff));
+		IoHandler.IO_Write(crtc_base+1, (Int10.S3_LFB_BASE >> 24)&0xff);
 		IoHandler.IO_Write(crtc_base,0x5a);
-		IoHandler.IO_Write(crtc_base+1,(int)((Int10.S3_LFB_BASE >> 16)&0xff));
+		IoHandler.IO_Write(crtc_base+1, (Int10.S3_LFB_BASE >> 16)&0xff);
 		IoHandler.IO_Write(crtc_base,0x6b); // BIOS scratchpad
-		IoHandler.IO_Write(crtc_base+1,(int)((Int10.S3_LFB_BASE >> 24)&0xff));
+		IoHandler.IO_Write(crtc_base+1, (Int10.S3_LFB_BASE >> 24)&0xff);
 
 		/* Setup some remaining S3 registers */
 		IoHandler.IO_Write(crtc_base,0x41); // BIOS scratchpad
@@ -1334,20 +1314,12 @@ public static boolean INT10_SetVideoMode(/*Bit16u*/int mode) {
 			default:
 				reg_3a=5;
 				break;
-		};
-
-		switch (CurMode.type) {
-		case VGA.M_LIN4: // <- Theres a discrepance with real hardware on this
-		case VGA.M_LIN8:
-		case VGA.M_LIN15:
-		case VGA.M_LIN16:
-		case VGA.M_LIN32:
-			reg_31 = 9;
-			break;
-		default:
-			reg_31 = 5;
-			break;
 		}
+
+        reg_31 = switch (CurMode.type) { // <- Theres a discrepance with real hardware on this
+            case VGA.M_LIN4, VGA.M_LIN8, VGA.M_LIN15, VGA.M_LIN16, VGA.M_LIN32 -> 9;
+            default -> 5;
+        };
 		IoHandler.IO_Write(crtc_base,0x3a);IoHandler.IO_Write(crtc_base+1,reg_3a);
 		IoHandler.IO_Write(crtc_base,0x31);IoHandler.IO_Write(crtc_base+1,reg_31);	//Enable banked memory and 256k+ access
 		IoHandler.IO_Write(crtc_base,0x58);IoHandler.IO_Write(crtc_base+1,0x3);		//Enable 8 mb of linear addressing
@@ -1382,22 +1354,13 @@ static public /*Bitu*/int VideoModeMemSize(/*Bitu*/int mode) {
 	if (!Dosbox.IS_VGA_ARCH())
 		return 0;
 
-	Int10.VideoModeBlock[] modelist = null;
+	Int10.VideoModeBlock[] modelist = switch (Dosbox.svgaCard) {
+        case SVGACards.SVGA_TsengET4K, SVGACards.SVGA_TsengET3K -> ModeList_VGA_Tseng;
+        case SVGACards.SVGA_ParadisePVGA1A -> ModeList_VGA_Paradise;
+        default -> ModeList_VGA;
+    };
 
-	switch (Dosbox.svgaCard) {
-	case SVGACards.SVGA_TsengET4K:
-	case SVGACards.SVGA_TsengET3K:
-		modelist = ModeList_VGA_Tseng;
-		break;
-	case SVGACards.SVGA_ParadisePVGA1A:
-		modelist = ModeList_VGA_Paradise;
-		break;
-	default:
-		modelist = ModeList_VGA;
-		break;
-	}
-
-	Int10.VideoModeBlock vmodeBlock = null;
+    Int10.VideoModeBlock vmodeBlock = null;
 	/*Bitu*/int i=0;
 	while (modelist[i].mode!=0xffff) {
 		if (modelist[i].mode==mode) {
@@ -1409,20 +1372,16 @@ static public /*Bitu*/int VideoModeMemSize(/*Bitu*/int mode) {
 	if (vmodeBlock==null)
         return 0;
 
-	switch(vmodeBlock.type) {
-	case VGA.M_LIN4:
-		return vmodeBlock.swidth*vmodeBlock.sheight/2;
-	case VGA.M_LIN8:
-		return vmodeBlock.swidth*vmodeBlock.sheight;
-	case VGA.M_LIN15: case VGA.M_LIN16:
-		return vmodeBlock.swidth*vmodeBlock.sheight*2;
-	case VGA.M_LIN32:
-		return vmodeBlock.swidth*vmodeBlock.sheight*4;
-	case VGA.M_TEXT:
-		return vmodeBlock.twidth*vmodeBlock.theight*2;
-	}
-	// Return 0 for all other types, those always fit in memory
-	return 0;
+    return switch (vmodeBlock.type) {
+        case VGA.M_LIN4 -> vmodeBlock.swidth * vmodeBlock.sheight / 2;
+        case VGA.M_LIN8 -> vmodeBlock.swidth * vmodeBlock.sheight;
+        case VGA.M_LIN15, VGA.M_LIN16 -> vmodeBlock.swidth * vmodeBlock.sheight * 2;
+        case VGA.M_LIN32 -> vmodeBlock.swidth * vmodeBlock.sheight * 4;
+        case VGA.M_TEXT -> vmodeBlock.twidth * vmodeBlock.theight * 2;
+        default ->
+            // Return 0 for all other types, those always fit in memory
+                0;
+    };
 }
 
 }

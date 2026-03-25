@@ -5,9 +5,9 @@ import jdos.win.Console;
 import jdos.win.Win;
 
 public class LittleEndianFile {
-    private byte w[];
-    private int address;
-    private int len;
+    private final byte[] w;
+    private final int address;
+    private final int len;
     private int pos;
 
     public LittleEndianFile(int address) {
@@ -26,9 +26,9 @@ public class LittleEndianFile {
     }
 
     public String readCString() {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         while (pos+1<len) {
-            char c = (char)readByte(); // :TODO: need to research converting according to 1252
+            char c = (char)readByte(); // TODO need to research converting according to 1252
             if (c == 0)
                 break;
             result.append(c);
@@ -43,7 +43,7 @@ public class LittleEndianFile {
     }
 
     public String readCString(int len) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         for (int i=0;i<len && pos+1<=this.len;i++) {
             char c = (char)readByte();
             result.append(c);
@@ -52,7 +52,7 @@ public class LittleEndianFile {
     }
 
     public String readCStringW() {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         while (true) {
             char c = (char)readShort();
             if (c == 0)
@@ -63,7 +63,7 @@ public class LittleEndianFile {
     }
 
     public String readCStringW(int len) {
-        StringBuffer result = new StringBuffer();
+        StringBuilder result = new StringBuilder();
         int i;
         for (i=0;i<len && pos+2<=this.len;i++) {
             char c = (char)readShort();
@@ -103,10 +103,10 @@ public class LittleEndianFile {
     public final long readUnsignedInt() {
         int result = Memory.mem_readd(address + pos);
         pos+=4;
-        return result & 0xFFFFFFFFl;
+        return result & 0xFFFFFFFFL;
     }
 
-    public final int read(byte b[], int off, int len) {
+    public final int read(byte[] b, int off, int len) {
         if (len>available())
             len=available();
         Memory.mem_memcpy(b, off, address + pos, len);
@@ -114,7 +114,7 @@ public class LittleEndianFile {
         return len;
     }
 
-    public final int read(byte b[]) {
+    public final int read(byte[] b) {
         return read(b, 0, b.length);
     }
 

@@ -4,18 +4,18 @@ import jdos.util.LongHelper;
 import jdos.util.OverflowException;
 
 public class Instructions extends Table_ea {
-    static public interface loadb {
-        public int call();
+    public interface loadb {
+        int call();
     }
-    static public interface saveb {
-        public void call(int value);
+    public interface saveb {
+        void call(int value);
     }
 
-    static public interface loadw {
-        public int call();
+    public interface loadw {
+        int call();
     }
-    static public interface savew {
-        public void call(int value);
+    public interface savew {
+        void call(int value);
     }
 
     static public int ADDB(int op2, int l) {
@@ -417,7 +417,8 @@ public class Instructions extends Table_ea {
     }
 
     static public int do_RCLB(int op2, int l) {
-        /*Bit8u*/int cf=(/*Bit8u*/int)FillFlags()&0x1;
+        /*Bit8u*//*Bit8u*/
+        int cf= FillFlags() &0x1;
         lf_var1b(l);
         lf_var2b(op2%9);
         lf_resb((lf_var1b() << lf_var2b()) |
@@ -437,7 +438,8 @@ public class Instructions extends Table_ea {
         return (op2%17)!=0;
     }
     static public int do_RCLW(int op2, int l) {
-        /*Bit16u*/int cf=(/*Bit16u*/int)FillFlags()&0x1;
+        /*Bit16u*//*Bit16u*/
+        int cf= FillFlags() &0x1;
         lf_var1w(l);
         lf_var2b(op2%17);
         lf_resw((lf_var1w() << lf_var2b()) |
@@ -803,7 +805,7 @@ public class Instructions extends Table_ea {
     }
 
     static public void MULD(int l) {
-        /*Bit64u*/long tempu=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl)*(l & 0xFFFFFFFFl);
+        /*Bit64u*/long tempu=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFL)*(l & 0xFFFFFFFFL);
         CPU_Regs.reg_eax.dword=(int)tempu;
         CPU_Regs.reg_edx.dword=(int)(tempu >> 32);
         FillFlagsNoCFOF();
@@ -855,7 +857,7 @@ public class Instructions extends Table_ea {
             CPU.CPU_PrepareException(0, 0);
             return false;
         }
-        /*Bit64u*/long num=(((long)CPU_Regs.reg_edx.dword)<<32)|(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl);
+        /*Bit64u*/long num=(((long)CPU_Regs.reg_edx.dword)<<32)|(CPU_Regs.reg_eax.dword & 0xFFFFFFFFL);
         try {
             /*Bit64u*/long quo= LongHelper.divideLongByInt(num,val);
             CPU_Regs.reg_edx.dword=(int)(quo >> 32);
@@ -909,10 +911,10 @@ public class Instructions extends Table_ea {
             CPU.CPU_PrepareException(0, 0);
             return false;
         }
-        /*Bit64s*/long num=(((long)CPU_Regs.reg_edx.dword)<<32)|(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl);
+        /*Bit64s*/long num=(((long)CPU_Regs.reg_edx.dword)<<32)|(CPU_Regs.reg_eax.dword & 0xFFFFFFFFL);
         /*Bit64s*/long quo=num/val;
         /*Bit32s*/int rem=(/*Bit32s*/int)(num % val);
-        /*Bit32s*/int quo32s=(/*Bit32s*/int)(quo&0xffffffffl);
+        /*Bit32s*/int quo32s=(/*Bit32s*/int)(quo& 0xffffffffL);
         if (quo!=(/*Bit64s*/long)quo32s) {
             CPU.CPU_PrepareException(0, 0);
             return false;

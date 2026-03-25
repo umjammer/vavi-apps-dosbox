@@ -37,7 +37,7 @@ public class Drive_iso extends Dos_Drive {
         /*Bit16u*/int VolumeSeqNumberL;
         /*Bit16u*/int VolumeSeqNumberM;
         /*Bit8u*/short fileIdentLength;
-        /*Bit8u*/byte[] ident = new byte[222];
+        /*Bit8u*/final byte[] ident = new byte[222];
 
         public void copy(isoDirEntry i) {
             length = i.length;
@@ -95,26 +95,26 @@ public class Drive_iso extends Dos_Drive {
 		/*Bit32u*/long endSector;
 		/*Bit32u*/long pos;
 	}
-    private DirIterator[] dirIterators = new DirIterator[DOS_Drive_Cache.MAX_OPENDIRS];
+    private final DirIterator[] dirIterators = new DirIterator[DOS_Drive_Cache.MAX_OPENDIRS];
 
 	private int nextFreeDirIterator;
 
 	private static class SectorHashEntry {
 		boolean valid;
 		/*Bit32u*/long sector;
-		/*Bit8u*/byte[] data = new byte[ISO_FRAMESIZE];
+		/*Bit8u*/final byte[] data = new byte[ISO_FRAMESIZE];
 	}
-    private SectorHashEntry[] sectorHashEntries = new SectorHashEntry[ISO_MAX_HASH_TABLE_SIZE];
+    private final SectorHashEntry[] sectorHashEntries = new SectorHashEntry[ISO_MAX_HASH_TABLE_SIZE];
 
 	private boolean dataCD;
-	private isoDirEntry rootEntry = new isoDirEntry();
+	private final isoDirEntry rootEntry = new isoDirEntry();
 	private /*Bit8u*/short mediaid;
-	private String fileName;
+	private final String fileName;
 	private /*Bit8u*/short subUnit;
 	private char driveLetter;
 	private String discLabel;
 
-    class isoFile extends DOS_File {
+    static class isoFile extends DOS_File {
         isoFile(Drive_iso drive, String name, FileStat_Block stat, /*Bit32u*/long offset) {
             this.drive = drive;
             time = stat.time;
@@ -128,6 +128,7 @@ public class Drive_iso extends Dos_Drive {
             this.name = null;
             SetName(name);
         }
+        @Override
         public boolean	Read(byte[] data,/*Bit16u*/IntRef size) {
             if (filePos + size.value > fileEnd)
                 size.value = (int)(fileEnd - filePos);
@@ -164,11 +165,13 @@ public class Drive_iso extends Dos_Drive {
             filePos += size.value;
             return true;
         }
+        @Override
         public boolean	Write(byte[] data,/*Bit16u*/IntRef size) {
             return false;
         }
+        @Override
         public boolean	Seek(/*Bit32u*/LongRef pos,/*Bit32u*/int type) {
-            int p = (int)(pos.value & 0xFFFFFFFFl);
+            int p = (int)(pos.value & 0xFFFFFFFFL);
             switch (type) {
                 case Dos_files.DOS_SEEK_SET:
                     filePos = fileBegin + p;
@@ -188,20 +191,22 @@ public class Drive_iso extends Dos_Drive {
             pos.value = filePos - fileBegin;
             return true;
         }
+        @Override
         public boolean	Close() {
             if (refCtr == 1) open = false;
 	        return true;
         }
+        @Override
         public /*Bit16u*/int GetInformation() {
             return 0x40;		// read-only drive
         }
 
-        private Drive_iso drive;
-        private /*Bit8u*/byte[] buffer = new byte[ISO_FRAMESIZE];
+        private final Drive_iso drive;
+        private final /*Bit8u*/byte[] buffer = new byte[ISO_FRAMESIZE];
         private int cachedSector;
-        private /*Bit32u*/long fileBegin;
+        private final /*Bit32u*/long fileBegin;
         private /*Bit32u*/long filePos;
-        private /*Bit32u*/long fileEnd;
+        private final /*Bit32u*/long fileEnd;
         private /*Bit32u*/int info;
     }
 
@@ -223,7 +228,7 @@ public class Drive_iso extends Dos_Drive {
                 StringRef d = new StringRef(discLabel);
                 Drives.Set_Label(buffer.value,d,true);
                 discLabel = d.value;
-            } else if (CDROM_Interface_Image.images[subUnit].HasDataTrack() == false) { //Audio only cdrom
+            } else if (CDROM_Interface_Image.images[subUnit].hasDataTrack() == false) { //Audio only cdrom
                 info = "isoDrive "+fileName;
                 this.driveLetter = driveLetter;
                 this.mediaid = mediaid;
@@ -244,7 +249,7 @@ public class Drive_iso extends Dos_Drive {
         if (DosMSCDEX.MSCDEX_HasDrive(driveLetter)) {
             CDROM_Interface_Image oldCdrom = CDROM_Interface_Image.images[subUnit.value];
             Dos_cdrom.CDROM_Interface cdrom = new CDROM_Interface_Image(subUnit.value);
-            if (!cdrom.SetDevice(path, 0)) {
+            if (!cdrom.setDevice(path, 0)) {
                 CDROM_Interface_Image.images[subUnit.value] = oldCdrom;
                 cdrom.close();
                 return 3;
@@ -256,12 +261,14 @@ public class Drive_iso extends Dos_Drive {
         }
     }
 
+    @Override
     public void Activate() {
         ShortRef s = new ShortRef(subUnit);
         UpdateMscdex(driveLetter, fileName, s);
         subUnit = s.value;
     }
 
+    @Override
     public DOS_File FileOpen(String name,/*Bit32u*/int flags) {
         if ((flags & 0x0f) == Dos_files.OPEN_WRITE) {
             Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
@@ -284,32 +291,38 @@ public class Drive_iso extends Dos_Drive {
         return null;
     }
 
+    @Override
     public DOS_File FileCreate(String name,/*Bit16u*/int attributes) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
         return null;
     }
 
+    @Override
     public boolean FileUnlink(String _name) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
         return false;
     }
 
+    @Override
     public boolean RemoveDir(String _dir) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
         return false;
     }
 
+    @Override
     public boolean MakeDir(String _dir) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
         return false;
     }
 
+    @Override
     public boolean TestDir(String dir) {
         isoDirEntry de=new isoDirEntry();
         return (lookup(de, dir) && IS_DIR(de.fileFlags));
     }
 
-    public boolean FindFirst(String dir,Dos_DTA dta,boolean fcb_findfirst/*=false*/) {
+    @Override
+    public boolean FindFirst(String dir, Dos_DTA dta, boolean fcb_findfirst/*=false*/) {
         isoDirEntry de=new isoDirEntry();
         if (!lookup(de, dir)) {
             Dos.DOS_SetError(Dos.DOSERR_PATH_NOT_FOUND);
@@ -318,7 +331,7 @@ public class Drive_iso extends Dos_Drive {
 
         // get a directory iterator and save its id in the dta
         int dirIterator = GetDirIterator(de);
-        boolean isRoot = (dir.length() == 0);
+        boolean isRoot = (dir.isEmpty());
         dirIterators[dirIterator].root = isRoot;
         dta.SetDirID(dirIterator);
 
@@ -340,6 +353,7 @@ public class Drive_iso extends Dos_Drive {
         return FindNext(dta);
     }
 
+    @Override
     public boolean FindNext(Dos_DTA dta) {
         /*Bit8u*/ShortRef attr=new ShortRef(0);
         StringRef pattern = new StringRef();
@@ -375,11 +389,13 @@ public class Drive_iso extends Dos_Drive {
         return false;
     }
 
-    public boolean Rename(String oldname,String newname) {
+    @Override
+    public boolean Rename(String oldname, String newname) {
         Dos.DOS_SetError(Dos.DOSERR_ACCESS_DENIED);
         return false;
     }
 
+    @Override
     public boolean GetFileAttr(String name,/*Bit16u*/IntRef attr) {
         attr.value = 0;
         isoDirEntry de = new isoDirEntry();
@@ -392,6 +408,7 @@ public class Drive_iso extends Dos_Drive {
         return success;
     }
 
+    @Override
     public boolean AllocationInfo(/*Bit16u*/IntRef bytes_sector,/*Bit8u*/ShortRef sectors_cluster,/*Bit16u*/IntRef total_clusters,/*Bit16u*/IntRef free_clusters) {
         bytes_sector.value = 2048;
         sectors_cluster.value = 1; // cluster size for cdroms ?
@@ -400,11 +417,13 @@ public class Drive_iso extends Dos_Drive {
         return true;
     }
 
+    @Override
     public boolean FileExists(String name) {
         isoDirEntry de=new isoDirEntry();
         return (lookup(de, name) && !IS_DIR(de.fileFlags));
     }
 
+    @Override
     public boolean FileStat(String name, FileStat_Block stat_block) {
         isoDirEntry de=new isoDirEntry();
         boolean success = lookup(de, name);
@@ -420,18 +439,22 @@ public class Drive_iso extends Dos_Drive {
         return success;
     }
 
+    @Override
     public /*Bit8u*/short GetMediaByte() {
         return mediaid;
     }
 
+    @Override
     public boolean isRemote() {
         return true;
     }
 
+    @Override
     public boolean isRemovable() {
         return true;
     }
 
+    @Override
     public /*Bits*/int UnMount() {
         if(DosMSCDEX.MSCDEX_RemoveDrive(driveLetter)!=0) {
             return 0;
@@ -510,7 +533,7 @@ public class Drive_iso extends Dos_Drive {
 
         // check if the entry is valid and contains the correct sector
         if (!he.valid || he.sector != sector) {
-            if (!CDROM_Interface_Image.images[subUnit].ReadSector(he.data, 0, false, (int)sector)) {
+            if (!CDROM_Interface_Image.images[subUnit].readSector(he.data, 0, false, (int)sector)) {
                 return false;
             }
             he.valid = true;
@@ -522,10 +545,10 @@ public class Drive_iso extends Dos_Drive {
     }
 
     private boolean readSector(/*Bit8u*/byte[] buffer, /*Bit32u*/int sector) {
-        return CDROM_Interface_Image.images[subUnit].ReadSector(buffer, 0, false, sector);
+        return CDROM_Interface_Image.images[subUnit].readSector(buffer, 0, false, sector);
     }
 
-    private int readDirEntry(isoDirEntry de, /*Bit8u*/byte[] data, int offset) {
+    private static int readDirEntry(isoDirEntry de, /*Bit8u*/byte[] data, int offset) {
         // copy data into isoDirEntry struct, data[0] = length of DirEntry
     //	if (data[0] > sizeof(isoDirEntry)) return -1;//check disabled as isoDirentry is currently 258 bytes large. So it always fits
         de.load(data, offset, data[0]);
@@ -604,7 +627,7 @@ public class Drive_iso extends Dos_Drive {
         byte[] b = new byte[8000];
         readSector(b, ISO_FIRST_VD);
         if (/*pvd.type*/b[0] != 1 || !StringHelper.toString(/*pvd.standardIdent*/b, 1, 5).startsWith("CD001") || /*pvd.version*/b[6] != 1) return false;
-        // :TODO: double check that 156 is the right offset
+        // TODO double check that 156 is the right offset
         if (readDirEntry(this.rootEntry, /*pvd.rootEntry*/b, 156)>0) {
             dataCD = true;
             return true;
@@ -615,13 +638,13 @@ public class Drive_iso extends Dos_Drive {
     boolean lookup(isoDirEntry de, String path) {
         if (!dataCD) return false;
         de.copy(this.rootEntry);
-        if (path.length()==0) return true;
+        if (path.isEmpty()) return true;
 
         String[] isoPath = StringHelper.split(StringHelper.replace(path, "\\", "/"), "/");
 
         // iterate over all path elements (name), and search each of them in the current de
-        for(int i=0;i<isoPath.length;i++) {
-            String name = isoPath[i];
+        for (String s : isoPath) {
+            String name = s;
             boolean found = false;
             // current entry must be a directory, abort otherwise
             if (IS_DIR(de.fileFlags)) {

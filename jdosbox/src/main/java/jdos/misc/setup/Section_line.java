@@ -7,14 +7,17 @@ public class Section_line extends Section {
     public Section_line(String _sectionname) {
         super(_sectionname);
     }
-    public void HandleInputline(String input) {
+    @Override
+    public void handleInputline(String input) {
         data+=input;
         data+="\n";
     }
-    public void PrintData(OutputStream os) throws IOException {
+    @Override
+    public void printData(OutputStream os) throws IOException {
         Config.fputs(data,os);
     }
-    public String GetPropValue(String _property) {
+    @Override
+    public String getPropValue(String _property) {
         return NO_SUCH_PROPERTY;
     }
     public String data="";

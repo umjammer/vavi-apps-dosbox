@@ -8,13 +8,14 @@ import jdos.util.IntRef;
 import jdos.util.LongRef;
 
 import java.io.*;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.Map;
 import java.util.Set;
 
 public class FilePath {
-    static public Hashtable<String, Object> disks = new Hashtable<String, Object>();
-    static Set<String> faked = new HashSet<String>();
+    static public final Map<String, Object> disks = new HashMap<>();
+    static final Set<String> faked = new HashSet<>();
 
     static {
         faked.add("\\windows\\system32\\dsound.vxd");
@@ -124,10 +125,10 @@ public class FilePath {
     private FilePathInterface delagate;
 
     static private class FatPath implements FilePathInterface {
-        String fullPath;
-        String path;
-        Drive_fat drive;
-        DOS_File file;
+        final String fullPath;
+        final String path;
+        final Drive_fat drive;
+        final DOS_File file;
         long length = 0;
 
         public FatPath(Drive_fat drive, String path) {
@@ -144,6 +145,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public FilePath getParentFile() {
             int pos = fullPath.lastIndexOf("\\");
             if (pos>=0)
@@ -151,17 +153,20 @@ public class FilePath {
             return null;
         }
 
+        @Override
         public boolean exists() {
             if (file != null)
                 return true;
             return isDirectory();
         }
 
+        @Override
         public String getName() {
             int pos = fullPath.lastIndexOf("\\");
             return fullPath.substring(pos+1);
         }
 
+        @Override
         public boolean mkdirs() {
             FilePath parent = getParentFile();
             if (parent != null) {
@@ -176,10 +181,12 @@ public class FilePath {
             return true;
         }
 
+        @Override
         public boolean delete() {
             return drive.FileUnlink(path);
         }
 
+        @Override
         public boolean createNewFile() {
             DOS_File file =  drive.FileCreate(path, Dos_system.DOS_ATTR_ARCHIVE);
             if (file == null)
@@ -188,34 +195,42 @@ public class FilePath {
             return true;
         }
 
+        @Override
         public FilePath[] listFiles(FileFilter filter) {
             return new FilePath[0];
         }
 
+        @Override
         public long lastModified() {
             return 0;
         }
 
+        @Override
         public long length() {
             return length;
         }
 
+        @Override
         public boolean isDirectory() {
             return drive.TestDir(path);
         }
 
+        @Override
         public boolean renameTo(FilePath path) {
             return drive.Rename(this.path, path.path);
         }
 
+        @Override
         public String getAbsolutePath() {
             return path;
         }
 
+        @Override
         public InputStream getInputStream() {
             return new InputStream() {
-                byte[] buf = new byte[1];
+                final byte[] buf = new byte[1];
 
+                @Override
                 public int read() throws IOException {
 
                     int result = FatPath.this.read(buf);
@@ -224,16 +239,19 @@ public class FilePath {
                     return result;
                 }
 
+                @Override
                 public void reset() {
                     FatPath.this.seek(0);
                 }
             };
         }
 
+        @Override
         public boolean open(boolean write) {
             return file != null;
         }
 
+        @Override
         public void seek(long pos) {
             if (file != null) {
                 LongRef ref = new LongRef(pos);
@@ -241,6 +259,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public void skipBytes(int count) {
             if (file != null) {
                 LongRef ref = new LongRef(count);
@@ -248,6 +267,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public long getFilePointer() {
             if (file != null) {
                 LongRef ref = new LongRef(0);
@@ -257,6 +277,7 @@ public class FilePath {
             return 0;
         }
 
+        @Override
         public int read(byte[] buffer) {
             if (file != null) {
                 IntRef size = new IntRef(buffer.length);
@@ -267,6 +288,7 @@ public class FilePath {
             return -1;
         }
 
+        @Override
         public void write(byte[] buffer) {
             if (file != null) {
                 IntRef size = new IntRef(buffer.length);
@@ -274,6 +296,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public void close() {
             if (file != null) {
                 file.Close();
@@ -281,9 +304,10 @@ public class FilePath {
         }
     }
     static private class JavaPath implements FilePathInterface {
-        File file;
+        final File file;
         RandomAccessFile openFile;
 
+        @Override
         public boolean open(boolean write) {
             try {
                 openFile = new RandomAccessFile(file, write?"rw":"r");
@@ -293,6 +317,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public void seek(long pos) {
             if (openFile != null) {
                 try {
@@ -302,6 +327,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public void skipBytes(int count) {
             if (openFile != null) {
                 try {
@@ -311,6 +337,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public long getFilePointer() {
             if (openFile != null) {
                 try {
@@ -321,6 +348,7 @@ public class FilePath {
             return 0;
         }
 
+        @Override
         public int read(byte[] buffer) {
             if (openFile != null) {
                 try {
@@ -331,6 +359,7 @@ public class FilePath {
             return 0;
         }
 
+        @Override
         public void write(byte[] buffer) {
             if (openFile != null) {
                 try {
@@ -340,6 +369,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public void close() {
             if (openFile != null) {
                 try {
@@ -353,26 +383,32 @@ public class FilePath {
         public JavaPath(String path) {
             file = new File(path);
         }
+        @Override
         public FilePath getParentFile() {
             return new FilePath(file.getParent());
         }
 
+        @Override
         public boolean exists() {
             return file.exists();
         }
 
+        @Override
         public String getName() {
             return file.getName();
         }
 
+        @Override
         public boolean mkdirs() {
             return file.mkdirs();
         }
 
+        @Override
         public boolean delete() {
             return file.delete();
         }
 
+        @Override
         public boolean createNewFile() {
             try {
                 return file.createNewFile();
@@ -381,6 +417,7 @@ public class FilePath {
             }
         }
 
+        @Override
         public FilePath[] listFiles(FileFilter filter) {
             File[] files = file.listFiles(filter);
             FilePath[] result = new FilePath[files.length];
@@ -389,26 +426,32 @@ public class FilePath {
             return result;
         }
 
+        @Override
         public long lastModified() {
             return file.lastModified();
         }
 
+        @Override
         public long length() {
             return file.length();
         }
 
+        @Override
         public boolean isDirectory() {
             return file.isDirectory();
         }
 
+        @Override
         public boolean renameTo(FilePath path) {
             return file.renameTo(new File(path.path));
         }
 
+        @Override
         public String getAbsolutePath() {
             return file.getAbsolutePath();
         }
 
+        @Override
         public InputStream getInputStream() {
             try {
                 return new FileInputStream(file);
@@ -418,27 +461,27 @@ public class FilePath {
         }
     }
 
-    private static interface FilePathInterface {
-        public FilePath getParentFile();
-        public boolean exists();
-        public String getName();
-        public boolean mkdirs();
-        public boolean delete();
-        public boolean createNewFile();
-        public FilePath[] listFiles(FileFilter filter);
-        public long lastModified();
-        public long length();
-        public boolean isDirectory();
-        public boolean renameTo(FilePath path);
-        public String getAbsolutePath();
-        public InputStream getInputStream();
+    private interface FilePathInterface {
+        FilePath getParentFile();
+        boolean exists();
+        String getName();
+        boolean mkdirs();
+        boolean delete();
+        boolean createNewFile();
+        FilePath[] listFiles(FileFilter filter);
+        long lastModified();
+        long length();
+        boolean isDirectory();
+        boolean renameTo(FilePath path);
+        String getAbsolutePath();
+        InputStream getInputStream();
 
-        public boolean open(boolean write);
-        public void seek(long pos);
-        public void skipBytes(int count);
-        public long getFilePointer();
-        public int read(byte[] buffer);
-        public void write(byte[] buffer);
-        public void close();
+        boolean open(boolean write);
+        void seek(long pos);
+        void skipBytes(int count);
+        long getFilePointer();
+        int read(byte[] buffer);
+        void write(byte[] buffer);
+        void close();
     }
 }

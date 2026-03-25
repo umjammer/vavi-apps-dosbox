@@ -91,14 +91,19 @@ public class Strings extends Core {
                 reg_ecx.dword--;
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -112,14 +117,19 @@ public class Strings extends Core {
             reg_edi.dword+=add_index;
             reg_esi.dword+=add_index;
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -215,14 +225,19 @@ public class Strings extends Core {
                 reg_ecx.word_dec();
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -237,14 +252,19 @@ public class Strings extends Core {
             reg_edi.word(reg_edi.word()+add_index);
             reg_esi.word(reg_esi.word()+add_index);
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -324,14 +344,19 @@ public class Strings extends Core {
                 reg_ecx.dword--;
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -345,14 +370,19 @@ public class Strings extends Core {
             reg_edi.dword+=add_index;
             reg_esi.dword+=add_index;
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -448,14 +478,19 @@ public class Strings extends Core {
                 reg_ecx.word_dec();
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -470,14 +505,19 @@ public class Strings extends Core {
             reg_edi.word(reg_edi.word()+add_index);
             reg_esi.word(reg_esi.word()+add_index);
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -546,14 +586,19 @@ public class Strings extends Core {
                 reg_ecx.dword--;
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
 
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -568,13 +613,18 @@ public class Strings extends Core {
             reg_edi.dword+=add_index;
             reg_esi.dword+=add_index;
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -658,13 +708,18 @@ public class Strings extends Core {
                 reg_ecx.word_dec();
             }
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 
@@ -679,13 +734,18 @@ public class Strings extends Core {
             reg_edi.word(reg_edi.word()+add_index);
             reg_esi.word(reg_esi.word()+add_index);
         }
+        @Override
         public int call() {
             doString();
             CPU_Regs.reg_eip+=eip_count;return next.call();
         }
+        @Override
         public boolean throwsException() {return false;}
+        @Override
         public boolean accessesMemory() {return true;}
+        @Override
         public boolean usesEip() {return false;}
+        @Override
         public boolean setsEip() {return false;}
     }
 }

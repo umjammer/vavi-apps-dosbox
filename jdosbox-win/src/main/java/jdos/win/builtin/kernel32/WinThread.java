@@ -14,9 +14,14 @@ import jdos.win.kernel.WinCallback;
 import jdos.win.system.*;
 import jdos.win.utils.Error;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.*;
 
 public class WinThread extends WaitObject {
+
+    private static final Logger logger = System.getLogger(WinThread.class.getName());
+
     static public WinThread create(WinProcess process, long startAddress, int stackSizeCommit, int stackSizeReserve, boolean primary) {
         return new WinThread(nextObjectId(), process, startAddress, stackSizeCommit, stackSizeReserve, primary);
     }
@@ -55,37 +60,39 @@ public class WinThread extends WaitObject {
     static public final int THREAD_PRIORITY_HIGHEST = 2;
     static public final int THREAD_PRIORITY_TIME_CRITICAL = 15;
 
-    private WinProcess process;
+    private final WinProcess process;
     private int lastError = jdos.win.utils.Error.ERROR_SUCCESS;
-    public CpuState cpuState = new CpuState();
-    private KernelHeap stack;
-    private int stackAddress;
-    private int startAddress;
-    private List<WinMsg> msgQueue = Collections.synchronizedList(new ArrayList<WinMsg>()); // synchronized since the keyboard will post message from another thread
-    private List sendMsgQueue = new ArrayList();
-    public Vector<WinWindow> windows = new Vector<WinWindow>();
-    private Vector<Integer> paintList = new Vector<Integer>();
+    public final CpuState cpuState = new CpuState();
+    private final KernelHeap stack;
+    private final int stackAddress;
+    private final int startAddress;
+    private final List<WinMsg> msgQueue = Collections.synchronizedList(new ArrayList<>()); // synchronized since the keyboard will post message from another thread
+    private final List<String> sendMsgQueue = new ArrayList<>();
+    public final List<WinWindow> windows = new ArrayList<>();
+    private final List<Integer> paintList = new ArrayList<>();
     private boolean quit = false;
-    private WinTimer timer = new WinTimer(0);
+    private final WinTimer timer = new WinTimer(0);
     public int priority = THREAD_PRIORITY_NORMAL;
     public BitSet keyState;
     public int msg_window;
     final private WinEvent msgReady = WinEvent.create(null, true, true);
-    private GuiThreadInfo guiInfo = new GuiThreadInfo();
+    private final GuiThreadInfo guiInfo = new GuiThreadInfo();
     public int waitTime;
     public int waitTimeStart;
     public int currentGetMessageTime = 0;
     public int currentGetMessagePos = 0;
-    public TIB tib;
+    public final TIB tib;
 
     public GuiThreadInfo GetGUIThreadInfo() {
         return guiInfo;
     }
 
-    private Callback.Handler startUp = new HandlerBase() {
+    private final Callback.Handler startUp = new HandlerBase() {
+        @Override
         public String getName() {
             return "WinThread.start";
         }
+        @Override
         public void onCall() {
             process.loader.attachThread();
             CPU_Regs.reg_esp.dword = cpuState.esp;
@@ -109,7 +116,7 @@ public class WinThread extends WaitObject {
         }
         if (stackSizeReserve<stackSizeCommit)
             stackSizeReserve = stackSizeCommit;
-        // :TODO: remove this line once we have a stack that can grow
+        // TODO remove this line once we have a stack that can grow
         stackSizeReserve=(stackSizeReserve+0xFFF) & ~0xFFF;
         stackSizeCommit = stackSizeReserve;
         stackAddress = process.reserveStackAddress(stackSizeReserve+guard*2);
@@ -118,9 +125,9 @@ public class WinThread extends WaitObject {
 
         this.cpuState.esp = end - guard;
         start = end-stackSizeCommit-guard*2;
-        System.out.println("Creating Thread: stack size: "+stackSizeCommit+" ("+Integer.toHexString(start)+"-"+Integer.toHexString(end)+")");
-        // :TODO: implement a page fault handler to grow stack as necessary
-        // :TODO: need a stack heap that grows down
+        logger.log(Level.DEBUG,"Creating Thread: stack size: "+stackSizeCommit+" ("+Integer.toHexString(start)+"-"+Integer.toHexString(end)+")");
+        // TODO implement a page fault handler to grow stack as necessary
+        // TODO need a stack heap that grows down
         this.stack = new KernelHeap(process.kernelMemory, process.page_directory, start, end, end, false, false);
         this.process = process;
         this.startAddress = (int)startAddress;
@@ -130,7 +137,7 @@ public class WinThread extends WaitObject {
         if (primary) {
             this.cpuState.eip = (int)startAddress;
         } else {
-            // :TODO: this will leak
+            // TODO this will leak
             int cb = WinCallback.addCallback(startUp);
             threadStarup = process.loader.registerFunction(cb);
             this.cpuState.eip = threadStarup;
@@ -214,16 +221,15 @@ public class WinThread extends WaitObject {
     private int timeUntilNextTimer() {
         int time = timer.getNextTimerTime();
 
-        for (int i=0;i<windows.size();i++) {
-            WinWindow window = windows.elementAt(i);
+        for (WinWindow window : windows) {
             int t = window.timer.getNextTimerTime();
-            if (t<time)
+            if (t < time)
                 time = t;
         }
         return time;
     }
 
-    private static void buildBackToFrontWindowList(WinWindow window, Vector<Integer> list) {
+    private static void buildBackToFrontWindowList(WinWindow window, List<Integer> list) {
         list.add(window.handle);
         for (int j=window.children.size()-1;j>=0;j--) {
             WinWindow child = window.children.get(j);
@@ -253,12 +259,12 @@ public class WinThread extends WaitObject {
                     return getMessage(msgAddress, i, remove);
             }
         }
-        while (paintList.size() != 0) {
+        while (!paintList.isEmpty()) {
             int h;
             if (remove)
-                h = paintList.remove(0);
+                h = paintList.removeFirst();
             else
-                h = paintList.firstElement();
+                h = paintList.getFirst();
             WinWindow window = WinWindow.get(h);
             if (window != null) {
                 if (remove) {
@@ -268,8 +274,7 @@ public class WinThread extends WaitObject {
                 return WinAPI.TRUE;
             }
         }
-        for (int i=0;i<windows.size();i++) {
-            WinWindow window = windows.elementAt(i);
+        for (WinWindow window : windows) {
             if (window.needsPainting()) {
                 WinWindow parent = window.parent();
                 while (parent != null) {
@@ -288,8 +293,7 @@ public class WinThread extends WaitObject {
         if (timer.getNextTimerMsg(msgAddress, time, remove))
             return WinAPI.TRUE;
 
-        for (int i=0;i<windows.size();i++) {
-            WinWindow window = windows.elementAt(i);
+        for (WinWindow window : windows) {
             if (window.timer.getNextTimerMsg(msgAddress, time, remove))
                 return WinAPI.TRUE;
         }
@@ -312,8 +316,8 @@ public class WinThread extends WaitObject {
 
     public WinMsg getLastMessage() {
         synchronized (msgQueue) {
-            if (msgQueue.size()!=0)
-                return msgQueue.get(msgQueue.size()-1);
+            if (!msgQueue.isEmpty())
+                return msgQueue.getLast();
         }
         return null;
     }
@@ -357,8 +361,8 @@ public class WinThread extends WaitObject {
 
     public int tlsAlloc() {
         WinProcess process = WinSystem.getCurrentProcess();
-        if (process.freeTLS.size()>0)
-            return process.freeTLS.remove(0);
+        if (!process.freeTLS.isEmpty())
+            return process.freeTLS.removeFirst();
         return process.tlsSize++;
     }
 

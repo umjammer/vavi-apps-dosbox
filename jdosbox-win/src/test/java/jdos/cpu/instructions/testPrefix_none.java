@@ -1693,7 +1693,7 @@ public class testPrefix_none extends InstructionsTestCase{
 
     //0x66
     //Operand Size Prefix
-    // :TODO:
+    // TODO
 
     // 0x67
     //Address Size Prefix
@@ -1827,7 +1827,7 @@ public class testPrefix_none extends InstructionsTestCase{
         CPU_Regs.reg_ecx.dword(1);
         CPU_Regs.reg_edi.dword(0);
         CPU_Regs.SegSet16ES(CPU_Regs.reg_dsVal.dword+0x100);
-        IoHandler.IO_ReadHandler handler = new IoHandler.IO_ReadHandler() {public int call(int port, int iolen) {return 0xAB;}};
+        IoHandler.IO_ReadHandler handler = (port, iolen) -> 0xAB;
         IoHandler.IO_RegisterReadHandler(17000, handler, IoHandler.IO_MB);
         decoder.call();        
         assertTrue(RAM.readb(CPU_Regs.reg_esPhys.dword)==0xAB);
@@ -1843,7 +1843,7 @@ public class testPrefix_none extends InstructionsTestCase{
         CPU_Regs.reg_ecx.dword(1);
         CPU_Regs.reg_edi.dword(0);
         CPU_Regs.SegSet16ES(CPU_Regs.reg_dsVal.dword+0x100);
-        IoHandler.IO_ReadHandler handler = new IoHandler.IO_ReadHandler() {public int call(int port, int iolen) {return 0xAB;}};
+        IoHandler.IO_ReadHandler handler = (port, iolen) -> 0xAB;
         IoHandler.IO_RegisterReadHandler(17000, handler, IoHandler.IO_MW);
         decoder.call();
         assertTrue(RAM.readw(CPU_Regs.reg_esPhys.dword)==0xAB);
@@ -1860,7 +1860,7 @@ public class testPrefix_none extends InstructionsTestCase{
         CPU_Regs.reg_ecx.dword(1);
         CPU_Regs.reg_esi.dword(0);
         result = 0;
-        IoHandler.IO_WriteHandler handler = new IoHandler.IO_WriteHandler() {public void call(int port, int val, int iolen) {result=val;}};
+        IoHandler.IO_WriteHandler handler = (port, val, iolen) -> result=val;
         IoHandler.IO_RegisterWriteHandler(17000, handler, IoHandler.IO_MB);
         RAM.writew(CPU_Regs.reg_dsPhys.dword, 0xABCD);
         decoder.call();
@@ -1877,7 +1877,7 @@ public class testPrefix_none extends InstructionsTestCase{
         CPU_Regs.reg_ecx.dword(1);
         CPU_Regs.reg_esi.dword(0);
         result = 0;
-        IoHandler.IO_WriteHandler handler = new IoHandler.IO_WriteHandler() {public void call(int port, int val, int iolen) {result=val;}};
+        IoHandler.IO_WriteHandler handler = (port, val, iolen) -> result=val;
         IoHandler.IO_RegisterWriteHandler(17000, handler, IoHandler.IO_MW);
         RAM.writed(CPU_Regs.reg_dsPhys.dword, 0xABCDEF01);
         decoder.call();

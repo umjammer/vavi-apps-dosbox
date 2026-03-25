@@ -26,42 +26,27 @@ public class Unicode {
     public static final int C2_OTHERNEUTRAL = 0x000B; /* ON */
 
     public static short get_char_directionW(char c) {
-        byte direction = Character.getDirectionality((char)c);
-        switch (direction) {
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT:
-                return C2_LEFTTORIGHT;
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC:
-                return C2_RIGHTTOLEFT;
-            case Character.DIRECTIONALITY_EUROPEAN_NUMBER:
-                return C2_EUROPENUMBER;
-            case Character.DIRECTIONALITY_EUROPEAN_NUMBER_SEPARATOR:
-                return C2_EUROPESEPARATOR;
-            case Character.DIRECTIONALITY_EUROPEAN_NUMBER_TERMINATOR:
-                return C2_EUROPETERMINATOR;
-            case Character.DIRECTIONALITY_ARABIC_NUMBER:
-                return C2_ARABICNUMBER;
-            case Character.DIRECTIONALITY_COMMON_NUMBER_SEPARATOR:
-                return C2_COMMONSEPARATOR;
-            case Character.DIRECTIONALITY_PARAGRAPH_SEPARATOR:
-                return C2_BLOCKSEPARATOR;
-            case Character.DIRECTIONALITY_SEGMENT_SEPARATOR:
-                return C2_SEGMENTSEPARATOR;
-            case Character.DIRECTIONALITY_WHITESPACE:
-                return C2_WHITESPACE;
-            case Character.DIRECTIONALITY_OTHER_NEUTRALS:
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING:
-            case Character.DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING:
-            case Character.DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE:
-            case Character.DIRECTIONALITY_POP_DIRECTIONAL_FORMAT:
-                return C2_OTHERNEUTRAL;
-            case Character.DIRECTIONALITY_NONSPACING_MARK:
-            case Character.DIRECTIONALITY_BOUNDARY_NEUTRAL:
-                return C2_NOTAPPLICABLE;
-
-        }
-        return C2_NOTAPPLICABLE;
+        byte direction = Character.getDirectionality(c);
+        return switch (direction) {
+            case Character.DIRECTIONALITY_LEFT_TO_RIGHT -> C2_LEFTTORIGHT;
+            case Character.DIRECTIONALITY_RIGHT_TO_LEFT, Character.DIRECTIONALITY_RIGHT_TO_LEFT_ARABIC ->
+                    C2_RIGHTTOLEFT;
+            case Character.DIRECTIONALITY_EUROPEAN_NUMBER -> C2_EUROPENUMBER;
+            case Character.DIRECTIONALITY_EUROPEAN_NUMBER_SEPARATOR -> C2_EUROPESEPARATOR;
+            case Character.DIRECTIONALITY_EUROPEAN_NUMBER_TERMINATOR -> C2_EUROPETERMINATOR;
+            case Character.DIRECTIONALITY_ARABIC_NUMBER -> C2_ARABICNUMBER;
+            case Character.DIRECTIONALITY_COMMON_NUMBER_SEPARATOR -> C2_COMMONSEPARATOR;
+            case Character.DIRECTIONALITY_PARAGRAPH_SEPARATOR -> C2_BLOCKSEPARATOR;
+            case Character.DIRECTIONALITY_SEGMENT_SEPARATOR -> C2_SEGMENTSEPARATOR;
+            case Character.DIRECTIONALITY_WHITESPACE -> C2_WHITESPACE;
+            case Character.DIRECTIONALITY_OTHER_NEUTRALS, Character.DIRECTIONALITY_LEFT_TO_RIGHT_EMBEDDING,
+                 Character.DIRECTIONALITY_LEFT_TO_RIGHT_OVERRIDE, Character.DIRECTIONALITY_RIGHT_TO_LEFT_EMBEDDING,
+                 Character.DIRECTIONALITY_RIGHT_TO_LEFT_OVERRIDE, Character.DIRECTIONALITY_POP_DIRECTIONAL_FORMAT ->
+                    C2_OTHERNEUTRAL;
+            case Character.DIRECTIONALITY_NONSPACING_MARK, Character.DIRECTIONALITY_BOUNDARY_NEUTRAL ->
+                    C2_NOTAPPLICABLE;
+            default -> C2_NOTAPPLICABLE;
+        };
     }
     public static short get_char_typeW(char c) {
         switch (c) {

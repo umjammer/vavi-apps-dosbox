@@ -2,11 +2,13 @@ package jdos.cpu.core_switch;
 
 import jdos.cpu.*;
 import jdos.cpu.core_dynamic.*;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 public class Decoder extends Helper {
+
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+
     static protected boolean rep_zero=false;
 
     private static void ea(SwitchBlock block, int rm) {
@@ -1657,8 +1659,7 @@ public class Decoder extends Helper {
                                 done=true;
                                 break;
                             default:
-                                Log.exit("Illegal GRP4 Call " + ((rm >> 3) & 7));
-                                break;
+                                throw new IllegalStateException("Illegal GRP4 Call " + ((rm >> 3) & 7));
                         }
                         break;
                     }
@@ -1734,7 +1735,7 @@ public class Decoder extends Helper {
                                 }
                                 break;
                             default:
-                                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_ERROR,"CPU:GRP5:Illegal Call "+Integer.toString((rm>>3)&7,16));
+                                LOG_CPU.log(Level.ERROR, "CPU:GRP5:Illegal Call "+Integer.toString((rm>>3)&7,16));
                                 block.instruction = Inst.ILLEGAL;
                                 done = true;
                                 break;
@@ -2424,7 +2425,7 @@ public class Decoder extends Helper {
                                 }
                                 break;
                             default:
-                                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_ERROR,"CPU:GRP5:Illegal Call "+Integer.toString((rm>>3)&7,16));
+                                LOG_CPU.log(Level.ERROR, "CPU:GRP5:Illegal Call "+Integer.toString((rm>>3)&7,16));
                                 block.instruction = Inst.ILLEGAL;
                                 done = true;
                                 break;
@@ -2432,7 +2433,7 @@ public class Decoder extends Helper {
                         break;
                     }
                     default:
-                        Log.exit("Unknown instruction: 0x"+Integer.toHexString(opcode));
+                        throw new IllegalStateException("Unknown instruction: 0x"+Integer.toHexString(opcode));
                 }
                 currentInst++;
                 block.eipCount+=(decode.code - decode.op_start);

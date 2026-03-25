@@ -1,7 +1,7 @@
 package jdos.cpu.core_dynamic;
 
 import jdos.cpu.CPU_Regs;
-import jdos.misc.Log;
+
 
 public class Compiler2 extends Compiler {
     static boolean compile_op(Op op, int setFlags, StringBuilder method, String preException, Seg seg) {
@@ -3102,7 +3102,7 @@ public class Compiler2 extends Compiler {
                     }
                     return true;
                 }
-                // :TODO: implement fast versions
+                // TODO implement fast versions
                 if (op instanceof Grp2.ROLD_mem_cl) {
                     Grp2.ROLD_mem_cl o = (Grp2.ROLD_mem_cl) op;
                     declareVal(method);
@@ -3754,9 +3754,8 @@ public class Compiler2 extends Compiler {
                     method.append("=val;");
                     return true;
                 } else {
-                    Log.exit("[Compiler] Unhandled op: " + op);
+                    throw new IllegalStateException("[Compiler] Unhandled op: " + op);
                 }
-                break;
             case 0x380: // JO
                 if (op instanceof Inst4.JumpCond32_d_o) {
                     Inst4.JumpCond32_d_o o = (Inst4.JumpCond32_d_o) op;
@@ -4598,7 +4597,7 @@ public class Compiler2 extends Compiler {
             default:
                 if (op instanceof Inst1.Illegal) {
                     Inst1.Illegal o = (Inst1.Illegal) op;
-                    method.append("Log.log(LogTypes.LOG_CPU, LogSeverities.LOG_ERROR,");
+                    method.append("LOG_CPU.log(Level.ERROR, ");
                     method.append(o.msg);
                     method.append(");return Constants.BR_Illegal;");
                     return false;
@@ -4617,7 +4616,7 @@ public class Compiler2 extends Compiler {
                     method.append(";return ModifiedDecode.call();");
                     return false;
                 } else {
-                    Log.exit("[Compiler] Unhandled op: " + op);
+                    throw new IllegalStateException("[Compiler] Unhandled op: " + op);
                 }
         }
         return true;

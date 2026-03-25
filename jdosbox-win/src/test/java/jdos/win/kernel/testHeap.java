@@ -11,6 +11,7 @@ public class testHeap extends InstructionsTestCase {
     KernelMemory memory;
     Interrupts interrupts;
 
+    @Override
     protected void setUp() throws Exception {
         super.setUp();
         CPU.cpu.code.big = true;
@@ -32,6 +33,7 @@ public class testHeap extends InstructionsTestCase {
         memory.initialise_paging();
     }
 
+    @Override
     protected void tearDown() throws Exception {
         Callback.inHandler = 0;
     }
@@ -62,14 +64,16 @@ public class testHeap extends InstructionsTestCase {
 
     public void testPageFault() {
         CPU_Regs.reg_esp.dword = memory.kmalloc(1024)+1024;
-        final KernelHeap heap = new KernelHeap(memory, memory.kernel_directory, 0xD0000000, 0xD0001000, 0xD0002000, false, false);
+        KernelHeap heap = new KernelHeap(memory, memory.kernel_directory, 0xD0000000, 0xD0001000, 0xD0002000, false, false);
         Callback.Handler cb = new Callback.Handler() {
+            @Override
             public int call() {
                 int p = heap.alloc(0x1004, false);
                 Memory.mem_writed(p+0x1000, 0x98765432);
                 return 1; // !=0 will exit current loop and return from page fault core
             }
 
+            @Override
             public String getName() {
                 return null;
             }

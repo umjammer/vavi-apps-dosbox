@@ -1,10 +1,16 @@
 package jdos.win.system;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 import jdos.win.kernel.KernelMemory;
 
 public class WinFileMapping extends WinObject {
+
+    private static final Logger logger = System.getLogger(WinFileMapping.class.getName());
+
     static public WinFileMapping create(int hFile, String name, long size) {
         return new WinFileMapping(hFile, name, size, nextObjectId());
     }
@@ -88,12 +94,13 @@ public class WinFileMapping extends WinObject {
         return false;
     }
 
+    @Override
     public void onFree() {
         if (WinAPI.LOG) {
-            System.out.println("Freeing File Mapping: handle="+handle+" name="+name+" fileName="+fileName);
+            logger.log(Level.DEBUG,"Freeing File Mapping: handle="+handle+" name="+name+" fileName="+fileName);
         }
-        for (int i=0;i<frames.length;i++) {
-            WinSystem.memory.freeFrame(frames[i]);
+        for (int frame : frames) {
+            WinSystem.memory.freeFrame(frame);
         }
     }
 
@@ -102,7 +109,7 @@ public class WinFileMapping extends WinObject {
     }
 
     private String fileName;
-    private int fileHandle;
-    private int size;
-    private int[] frames;
+    private final int fileHandle;
+    private final int size;
+    private final int[] frames;
 }

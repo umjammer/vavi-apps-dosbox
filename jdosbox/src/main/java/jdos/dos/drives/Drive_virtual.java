@@ -49,6 +49,7 @@ public class Drive_virtual extends Dos_Drive {
             time=Dos.DOS_PackTime(12,34,56);
             open=true;
         }
+        @Override
         public boolean Read(byte[] data,/*Bit16u*/IntRef size) {
             /*Bit32u*/int left=file_size-file_pos;
             if (left<=size.value) {
@@ -60,10 +61,12 @@ public class Drive_virtual extends Dos_Drive {
             file_pos+=size.value;
             return true;
         }
+        @Override
         public boolean Write(byte[] data,/*Bit16u*/IntRef size) {
             /* Not really writable */
 	        return false;
         }
+        @Override
         public boolean Seek(/*Bit32u*/LongRef new_pos,/*Bit32u*/int type) {
             switch (type) {
             case Dos_files.DOS_SEEK_SET:
@@ -82,22 +85,25 @@ public class Drive_virtual extends Dos_Drive {
             new_pos.value=file_pos;
             return true;
         }
+        @Override
         public boolean Close() {
             return true;
         }        
+        @Override
         public /*Bit16u*/int GetInformation() {
             return 0x40;
         }
 
-        private /*Bit32u*/int file_size;
+        private final /*Bit32u*/int file_size;
         private /*Bit32u*/int file_pos;
-        private byte[] file_data;
+        private final byte[] file_data;
     }
 
 	public Drive_virtual() {
         info="Internal Virtual Drive";
     }
-	public DOS_File FileOpen(String name,/*Bit32u*/int flags) {
+	@Override
+    public DOS_File FileOpen(String name,/*Bit32u*/int flags) {
         /* Scan through the internal list of files */
         VFILE_Block cur_file=first_file;
         while (cur_file!=null) {
@@ -111,28 +117,34 @@ public class Drive_virtual extends Dos_Drive {
         }
         return null;
     }
-	public DOS_File FileCreate(String name,/*Bit16u*/int attributes) {
+	@Override
+    public DOS_File FileCreate(String name,/*Bit16u*/int attributes) {
         return null;
     }
 
-	public boolean FileUnlink(String _name) {
+	@Override
+    public boolean FileUnlink(String _name) {
         return false;
     }
     
-	public boolean RemoveDir(String _dir) {
+	@Override
+    public boolean RemoveDir(String _dir) {
         return false;
     }
     
-	public boolean MakeDir(String _dir) {
+	@Override
+    public boolean MakeDir(String _dir) {
         return false;
     }
     
-	public boolean TestDir(String _dir) {
-        if (_dir.length()==0) return true;		//only valid dir is the empty dir
+	@Override
+    public boolean TestDir(String _dir) {
+        if (_dir.isEmpty()) return true;		//only valid dir is the empty dir
 	    return false;
     }
     
-	public boolean FindFirst(String _dir,Dos_DTA dta,boolean fcb_findfirst/*=false*/) {
+	@Override
+    public boolean FindFirst(String _dir, Dos_DTA dta, boolean fcb_findfirst/*=false*/) {
         search_file=first_file;
         /*Bit8u*/ShortRef attr=new ShortRef();StringRef pattern=new StringRef();
         dta.GetSearchParams(attr,pattern);
@@ -147,7 +159,8 @@ public class Drive_virtual extends Dos_Drive {
         }
         return FindNext(dta);
     }
-	public boolean FindNext(Dos_DTA dta) {
+	@Override
+    public boolean FindNext(Dos_DTA dta) {
         /*Bit8u*/ShortRef attr=new ShortRef();StringRef pattern=new StringRef();
         dta.GetSearchParams(attr,pattern);
         while (search_file!=null) {
@@ -161,7 +174,8 @@ public class Drive_virtual extends Dos_Drive {
         Dos.DOS_SetError(Dos.DOSERR_NO_MORE_FILES);
         return false;
     }
-	public boolean GetFileAttr(String name,/*Bit16u*/IntRef attr) {
+	@Override
+    public boolean GetFileAttr(String name,/*Bit16u*/IntRef attr) {
         VFILE_Block cur_file=first_file;
         while (cur_file!=null) {
             if (name.compareToIgnoreCase(cur_file.name)==0) {
@@ -172,17 +186,20 @@ public class Drive_virtual extends Dos_Drive {
         }
         return false;
     }
-	public boolean Rename(String oldname,String newname) {
+	@Override
+    public boolean Rename(String oldname, String newname) {
         return false;
     }    
-	public boolean AllocationInfo(/*Bit16u*/IntRef _bytes_sector,/*Bit8u*/ShortRef _sectors_cluster,/*Bit16u*/IntRef _total_clusters,/*Bit16u*/IntRef _free_clusters) {
+	@Override
+    public boolean AllocationInfo(/*Bit16u*/IntRef _bytes_sector,/*Bit8u*/ShortRef _sectors_cluster,/*Bit16u*/IntRef _total_clusters,/*Bit16u*/IntRef _free_clusters) {
         _bytes_sector.value=512;
         _sectors_cluster.value=32;
         _total_clusters.value=32765; // total size is always 500 MB
         _free_clusters.value=0; // nothing free here
         return true;
     }
-	public boolean FileExists(String name) {
+	@Override
+    public boolean FileExists(String name) {
         VFILE_Block cur_file=first_file;
         while (cur_file!=null) {
             if (name.compareToIgnoreCase(cur_file.name)==0) return true;
@@ -190,7 +207,8 @@ public class Drive_virtual extends Dos_Drive {
         }
         return false;
     }
-	public boolean FileStat(String name, FileStat_Block stat_block) {
+	@Override
+    public boolean FileStat(String name, FileStat_Block stat_block) {
         VFILE_Block cur_file=first_file;
         while (cur_file!=null) {
             if (name.compareToIgnoreCase(cur_file.name)==0) {
@@ -204,17 +222,22 @@ public class Drive_virtual extends Dos_Drive {
         }
         return false;
     }
-	public /*Bit8u*/short GetMediaByte() {
+	@Override
+    public /*Bit8u*/short GetMediaByte() {
         return 0xF8;
     }
-	public void EmptyCache() {}
-	public boolean isRemote() {
+	@Override
+    public void EmptyCache() {}
+	@Override
+    public boolean isRemote() {
         return false;
     }
-	public boolean isRemovable() {
+	@Override
+    public boolean isRemovable() {
         return false;
     }
-	public /*Bits*/int UnMount() {
+	@Override
+    public /*Bits*/int UnMount() {
         first_file = null;
         return 1;
     }

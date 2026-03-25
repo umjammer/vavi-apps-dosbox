@@ -6,10 +6,10 @@ import jdos.util.StringRef;
 import jdos.win.builtin.WinAPI;
 import jdos.win.loader.winpe.HeaderImageImportDescriptor;
 
-import java.util.Vector;
+import java.util.List;
 
 public abstract class Module extends WinAPI {
-    private int handle;
+    private final int handle;
     public String name;
     protected boolean threadLibraryCalls = true;
 
@@ -31,7 +31,7 @@ public abstract class Module extends WinAPI {
     public static final int DLL_THREAD_DETACH = 3;
 
     abstract public boolean RtlImageDirectoryEntryToData(int dir, LongRef address, LongRef size);
-    abstract public Vector getImportDescriptors(long address);
+    abstract public List<?> getImportDescriptors(long address);
     abstract public String getVirtualString(long address);
     abstract public long[] getImportList(HeaderImageImportDescriptor desc);
     abstract public long findNameExport(long exportAddress, long exportsSize, String name, int hint);

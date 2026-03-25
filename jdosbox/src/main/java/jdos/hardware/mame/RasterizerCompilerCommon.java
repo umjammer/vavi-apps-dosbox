@@ -4,8 +4,13 @@ import jdos.Dosbox;
 
 import java.io.DataInputStream;
 import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 
 public class RasterizerCompilerCommon {
+    private static final Logger logger = System.getLogger(RasterizerCompilerCommon.class.getName());
+
     public static boolean saveClasses = false;
 
     static public void load() {
@@ -24,11 +29,11 @@ public class RasterizerCompilerCommon {
                     info.eff_fbz_mode = dis.readInt();
                     info.eff_tex_mode_0 = dis.readInt();
                     info.eff_tex_mode_1 = dis.readInt();
-                    info.callback = (poly_draw_scanline_func)Class.forName(name).newInstance();
+                    info.callback = (poly_draw_scanline_func)Class.forName(name).getDeclaredConstructor().newInstance();
                     VoodooCommon.voodoo.add_rasterizer(info);
                 }
             } catch (Throwable e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
             }
         }
     }

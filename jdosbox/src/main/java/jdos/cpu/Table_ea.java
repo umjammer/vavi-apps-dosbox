@@ -2,8 +2,8 @@ package jdos.cpu;
 
 public class Table_ea extends Core {
     //typedef PhysPt (*EA_LookupHandler)(void);
-    static public interface GetEAHandler {
-        public /*PhysPt*/int call();
+    public interface GetEAHandler {
+        /*PhysPt*/int call();
     }
     static public boolean EA16 = true;
 

@@ -12,18 +12,23 @@ public class DOS_Device extends DOS_File {
     public DOS_Device() {
     }
 
+    @Override
     public boolean Read(byte[] data,/*Bit16u*/IntRef size) {
         return Dos_devices.Devices[devnum].Read(data,size);
     }
+    @Override
     public boolean Write(byte[] data,/*Bit16u*/IntRef size) {
         return Dos_devices.Devices[devnum].Write(data,size);
     }
+    @Override
     public boolean Seek(/*Bit32u*/LongRef pos,/*Bit32u*/int type) {
         return Dos_devices.Devices[devnum].Seek(pos,type);
     }
+    @Override
     public boolean Close() {
         return Dos_devices.Devices[devnum].Close();
     }
+    @Override
     public /*Bit16u*/int GetInformation() {
         return Dos_devices.Devices[devnum].GetInformation();
     }

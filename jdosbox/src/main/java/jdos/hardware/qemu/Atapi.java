@@ -1,10 +1,15 @@
 package jdos.hardware.qemu;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.util.IntRef;
 
 public class Atapi extends Internal {
-    static void padstr8(byte[] buf, int offset, int buf_size, String src)
-    {
+
+    private static final Logger logger = System.getLogger(Atapi.class.getName());
+
+    static void padstr8(byte[] buf, int offset, int buf_size, String src) {
         int i;
         for(i = 0; i < buf_size; i++) {
             if (i<src.length() && src.charAt(i)!=0)
@@ -131,9 +136,8 @@ public class Atapi extends Internal {
         return 8; /* We wrote to 4 extra bytes from the header */
     }
 
-    // :TODO: this function was written really weirdly, why was packet assigned from buf then the two structures overlapped
-    static private final AtapiCmdCallback cmd_get_event_status_notification = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
+    // TODO this function was written really weirdly, why was packet assigned from buf then the two structures overlapped
+    static private final AtapiCmdCallback cmd_get_event_status_notification = (s, buf) -> {
 //            const uint8_t *packet = buf;
 //
 //            struct {
@@ -151,47 +155,47 @@ public class Atapi extends Internal {
 //                uint8_t notification_class;
 //                uint8_t supported_events;
 //            } QEMU_PACKED *gesn_event_header;
-            int max_len, used_len;
+        int max_len, used_len;
 
 //            gesn_cdb = (void *)packet;
 //            gesn_event_header = (void *)buf;
 //
 //            max_len = be16_to_cpu(gesn_cdb.len);
-            max_len = be_readw(buf, 0);
-            int polled = buf[1] & 0xFF;
-            /* It is fine by the MMC spec to not support async mode operations */
-            if ((/*gesn_cdb.*/polled & 0x01)==0) { /* asynchronous mode */
-                /* Only polling is supported, asynchronous mode is not. */
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                return;
-            }
+        max_len = be_readw(buf, 0);
+        int polled = buf[1] & 0xFF;
+        /* It is fine by the MMC spec to not support async mode operations */
+        if ((/*gesn_cdb.*/polled & 0x01)==0) { /* asynchronous mode */
+            /* Only polling is supported, asynchronous mode is not. */
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+            return;
+        }
 
-            /* polling mode operation */
+        /* polling mode operation */
 
-            /*
-             * These are the supported events.
-             *
-             * We currently only support requests of the 'media' type.
-             * Notification class requests and supported event classes are bitmasks,
-             * but they are build from the same values as the "notification class"
-             * field.
-             */
-             //gesn_event_header.supported_events = 1 << Scsi.GESN_MEDIA;
-            buf[3] = (byte) 1 << Scsi.GESN_MEDIA;
+        /*
+         * These are the supported events.
+         *
+         * We currently only support requests of the 'media' type.
+         * Notification class requests and supported event classes are bitmasks,
+         * but they are build from the same values as the "notification class"
+         * field.
+         */
+         //gesn_event_header.supported_events = 1 << Scsi.GESN_MEDIA;
+        buf[3] = (byte) 1 << Scsi.GESN_MEDIA;
 
-            /*
-             * We use |= below to set the class field; other bits in this byte
-             * are reserved now but this is useful to do if we have to use the
-             * reserved fields later.
-             */
-            //gesn_event_header.notification_class = 0;
-            buf[2] = 0;
+        /*
+         * We use |= below to set the class field; other bits in this byte
+         * are reserved now but this is useful to do if we have to use the
+         * reserved fields later.
+         */
+        //gesn_event_header.notification_class = 0;
+        buf[2] = 0;
 
-            /*
-             * Responses to requests are to be based on request priority.  The
-             * notification_class_request_type enum above specifies the
-             * priority: upper elements are higher prio than lower ones.
-             */
+        /*
+         * Responses to requests are to be based on request priority.  The
+         * notification_class_request_type enum above specifies the
+         * priority: upper elements are higher prio than lower ones.
+         */
 //            if (gesn_cdb.class & (1 << GESN_MEDIA)) {
 //                gesn_event_header.notification_class |= GESN_MEDIA;
 //                used_len = event_status_media(s, buf);
@@ -200,470 +204,435 @@ public class Atapi extends Internal {
 //                used_len = sizeof(*gesn_event_header);
 //            }
 //            gesn_event_header.len = cpu_to_be16(used_len - sizeof(*gesn_event_header));
-            if ((buf[4] & (1 << Scsi.GESN_MEDIA))!=0) {
-                buf[2] |= Scsi.GESN_MEDIA;
-                used_len = event_status_media(s, buf);
-            } else {
-                buf[2] |= 0x80;
-                used_len = 4;
-            }
-            ide_atapi_cmd_reply(s, used_len, max_len);
+        if ((buf[4] & (1 << Scsi.GESN_MEDIA))!=0) {
+            buf[2] |= Scsi.GESN_MEDIA;
+            used_len = event_status_media(s, buf);
+        } else {
+            buf[2] |= 0x80;
+            used_len = 4;
         }
+        ide_atapi_cmd_reply(s, used_len, max_len);
     };
 
-    static private final AtapiCmdCallback cmd_request_sense = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int max_len = buf[4] & 0xFF;
+    static private final AtapiCmdCallback cmd_request_sense = (s, buf) -> {
+        int max_len = buf[4] & 0xFF;
 
-            java.util.Arrays.fill(buf, 0, 18, (byte)0);
-            buf[0] = (byte)(0x70 | (1 << 7));
-            buf[2] = (byte)s.sense_key;
-            buf[7] = 10;
-            buf[12] = (byte)s.asc;
+        java.util.Arrays.fill(buf, 0, 18, (byte)0);
+        buf[0] = (byte)(0x70 | (1 << 7));
+        buf[2] = (byte)s.sense_key;
+        buf[7] = 10;
+        buf[12] = (byte)s.asc;
 
-            if (s.sense_key == Scsi.UNIT_ATTENTION) {
-                s.sense_key = Scsi.NO_SENSE;
-            }
-
-            ide_atapi_cmd_reply(s, 18, max_len);
+        if (s.sense_key == Scsi.UNIT_ATTENTION) {
+            s.sense_key = Scsi.NO_SENSE;
         }
+
+        ide_atapi_cmd_reply(s, 18, max_len);
     };
 
-    static private final AtapiCmdCallback cmd_inquiry = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int max_len = buf[4] & 0xFF;
+    static private final AtapiCmdCallback cmd_inquiry = (s, buf) -> {
+        int max_len = buf[4] & 0xFF;
 
-            buf[0] = 0x05; /* CD-ROM */
-            buf[1] = (byte)0x80; /* removable */
-            buf[2] = 0x00; /* ISO */
-            buf[3] = 0x21; /* ATAPI-2 (XXX: put ATAPI-4 ?) */
-            buf[4] = 31; /* additional length */
-            buf[5] = 0; /* reserved */
-            buf[6] = 0; /* reserved */
-            buf[7] = 0; /* reserved */
-            padstr8(buf, 8, 8, "QEMU");
-            padstr8(buf, 16, 16, "QEMU DVD-ROM");
-            padstr8(buf ,32, 4, s.version);
-            ide_atapi_cmd_reply(s, 36, max_len);
-        }
+        buf[0] = 0x05; /* CD-ROM */
+        buf[1] = (byte)0x80; /* removable */
+        buf[2] = 0x00; /* ISO */
+        buf[3] = 0x21; /* ATAPI-2 (XXX: put ATAPI-4 ?) */
+        buf[4] = 31; /* additional length */
+        buf[5] = 0; /* reserved */
+        buf[6] = 0; /* reserved */
+        buf[7] = 0; /* reserved */
+        padstr8(buf, 8, 8, "QEMU");
+        padstr8(buf, 16, 16, "QEMU DVD-ROM");
+        padstr8(buf ,32, 4, s.version);
+        ide_atapi_cmd_reply(s, 36, max_len);
     };
 
-    static private final AtapiCmdCallback cmd_get_configuration = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int len;
-            int max_len;
+    static private final AtapiCmdCallback cmd_get_configuration = (s, buf) -> {
+        int len;
+        int max_len;
 
-            /* only feature 0 is supported */
-            if (buf[2] != 0 || buf[3] != 0) {
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                return;
-            }
-
-            /* XXX: could result in alignment problems in some architectures */
-            max_len = be_readw(buf, 7);
-
-            /*
-             * XXX: avoid overflow for io_buffer if max_len is bigger than
-             *      the size of that buffer (dimensioned to max number of
-             *      sectors to transfer at once)
-             *
-             *      Only a problem if the feature/profiles grow.
-             */
-            if (max_len > 512) {
-                /* XXX: assume 1 sector */
-                max_len = 512;
-            }
-            java.util.Arrays.fill(buf, 0, max_len, (byte) 0);
-            /*
-             * the number of sectors from the media tells us which profile
-             * to use as current.  0 means there is no media
-             */
-            if (media_is_dvd(s)) {
-                be_writew(buf, 6, Scsi.MMC_PROFILE_DVD_ROM);
-            } else if (media_is_cd(s)) {
-                be_writew(buf, 6, Scsi.MMC_PROFILE_CD_ROM);
-            }
-
-            buf[10] = 0x02 | 0x01; /* persistent and current */
-            len = 12; /* headers: 8 + 4 */
-            IntRef index = new IntRef(0);
-            len += ide_atapi_set_profile(buf, index, Scsi.MMC_PROFILE_DVD_ROM);
-            len += ide_atapi_set_profile(buf, index, Scsi.MMC_PROFILE_CD_ROM);
-            be_writed(buf, 0, len - 4); /* data length */
-
-            ide_atapi_cmd_reply(s, len, max_len);
+        /* only feature 0 is supported */
+        if (buf[2] != 0 || buf[3] != 0) {
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+            return;
         }
+
+        /* XXX: could result in alignment problems in some architectures */
+        max_len = be_readw(buf, 7);
+
+        /*
+         * XXX: avoid overflow for io_buffer if max_len is bigger than
+         *      the size of that buffer (dimensioned to max number of
+         *      sectors to transfer at once)
+         *
+         *      Only a problem if the feature/profiles grow.
+         */
+        if (max_len > 512) {
+            /* XXX: assume 1 sector */
+            max_len = 512;
+        }
+        java.util.Arrays.fill(buf, 0, max_len, (byte) 0);
+        /*
+         * the number of sectors from the media tells us which profile
+         * to use as current.  0 means there is no media
+         */
+        if (media_is_dvd(s)) {
+            be_writew(buf, 6, Scsi.MMC_PROFILE_DVD_ROM);
+        } else if (media_is_cd(s)) {
+            be_writew(buf, 6, Scsi.MMC_PROFILE_CD_ROM);
+        }
+
+        buf[10] = 0x02 | 0x01; /* persistent and current */
+        len = 12; /* headers: 8 + 4 */
+        IntRef index = new IntRef(0);
+        len += ide_atapi_set_profile(buf, index, Scsi.MMC_PROFILE_DVD_ROM);
+        len += ide_atapi_set_profile(buf, index, Scsi.MMC_PROFILE_CD_ROM);
+        be_writed(buf, 0, len - 4); /* data length */
+
+        ide_atapi_cmd_reply(s, len, max_len);
     };
 
-    static private final AtapiCmdCallback cmd_mode_sense = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int action, code;
-            int max_len;
+    static private final AtapiCmdCallback cmd_mode_sense = (s, buf) -> {
+        int action, code;
+        int max_len;
 
-            max_len = be_readw(buf, 7);
-            action = buf[2] >>> 6;
-            code = buf[2] & 0x3f;
+        max_len = be_readw(buf, 7);
+        action = buf[2] >>> 6;
+        code = buf[2] & 0x3f;
 
-            switch(action) {
-            case 0: /* current values */
-                switch(code) {
-                case Scsi.MODE_PAGE_R_W_ERROR: /* error recovery */
-                    be_writew(buf, 0, 16 - 2);
-                    buf[2] = 0x70;
-                    buf[3] = 0;
-                    buf[4] = 0;
-                    buf[5] = 0;
-                    buf[6] = 0;
-                    buf[7] = 0;
+        switch(action) {
+        case 0: /* current values */
+            switch(code) {
+            case Scsi.MODE_PAGE_R_W_ERROR: /* error recovery */
+                be_writew(buf, 0, 16 - 2);
+                buf[2] = 0x70;
+                buf[3] = 0;
+                buf[4] = 0;
+                buf[5] = 0;
+                buf[6] = 0;
+                buf[7] = 0;
 
-                    buf[8] = Scsi.MODE_PAGE_R_W_ERROR;
-                    buf[9] = 16 - 10;
-                    buf[10] = 0x00;
-                    buf[11] = 0x05;
-                    buf[12] = 0x00;
-                    buf[13] = 0x00;
-                    buf[14] = 0x00;
-                    buf[15] = 0x00;
-                    ide_atapi_cmd_reply(s, 16, max_len);
-                    break;
-                case Scsi.MODE_PAGE_AUDIO_CTL:
-                    be_writew(buf, 0, 24 - 2);
-                    buf[2] = 0x70;
-                    buf[3] = 0;
-                    buf[4] = 0;
-                    buf[5] = 0;
-                    buf[6] = 0;
-                    buf[7] = 0;
+                buf[8] = Scsi.MODE_PAGE_R_W_ERROR;
+                buf[9] = 16 - 10;
+                buf[10] = 0x00;
+                buf[11] = 0x05;
+                buf[12] = 0x00;
+                buf[13] = 0x00;
+                buf[14] = 0x00;
+                buf[15] = 0x00;
+                ide_atapi_cmd_reply(s, 16, max_len);
+                break;
+            case Scsi.MODE_PAGE_AUDIO_CTL:
+                be_writew(buf, 0, 24 - 2);
+                buf[2] = 0x70;
+                buf[3] = 0;
+                buf[4] = 0;
+                buf[5] = 0;
+                buf[6] = 0;
+                buf[7] = 0;
 
-                    buf[8] = Scsi.MODE_PAGE_AUDIO_CTL;
-                    buf[9] = 24 - 10;
-                    /* Fill with CDROM audio volume */
-                    buf[17] = 0;
-                    buf[19] = 0;
-                    buf[21] = 0;
-                    buf[23] = 0;
+                buf[8] = Scsi.MODE_PAGE_AUDIO_CTL;
+                buf[9] = 24 - 10;
+                /* Fill with CDROM audio volume */
+                buf[17] = 0;
+                buf[19] = 0;
+                buf[21] = 0;
+                buf[23] = 0;
 
-                    ide_atapi_cmd_reply(s, 24, max_len);
-                    break;
-                case Scsi.MODE_PAGE_CAPABILITIES:
-                    be_writew(buf, 0, 30 - 2);
-                    buf[2] = 0x70;
-                    buf[3] = 0;
-                    buf[4] = 0;
-                    buf[5] = 0;
-                    buf[6] = 0;
-                    buf[7] = 0;
+                ide_atapi_cmd_reply(s, 24, max_len);
+                break;
+            case Scsi.MODE_PAGE_CAPABILITIES:
+                be_writew(buf, 0, 30 - 2);
+                buf[2] = 0x70;
+                buf[3] = 0;
+                buf[4] = 0;
+                buf[5] = 0;
+                buf[6] = 0;
+                buf[7] = 0;
 
-                    buf[8] = Scsi.MODE_PAGE_CAPABILITIES;
-                    buf[9] = 30 - 10;
-                    buf[10] = 0x3b; /* read CDR/CDRW/DVDROM/DVDR/DVDRAM */
-                    buf[11] = 0x00;
+                buf[8] = Scsi.MODE_PAGE_CAPABILITIES;
+                buf[9] = 30 - 10;
+                buf[10] = 0x3b; /* read CDR/CDRW/DVDROM/DVDR/DVDRAM */
+                buf[11] = 0x00;
 
-                    /* Claim PLAY_AUDIO capability (0x01) since some Linux
-                       code checks for this to automount media. */
-                    buf[12] = 0x71;
-                    buf[13] = 3 << 5;
-                    buf[14] = (1 << 0) | (1 << 3) | (1 << 5);
-                    if (s.tray_locked) {
-                        buf[14] |= 1 << 1;
-                    }
-                    buf[15] = 0x00; /* No volume & mute control, no changer */
-                    be_writew(buf, 16, 704); /* 4x read speed */
-                    buf[18] = 0; /* Two volume levels */
-                    buf[19] = 2;
-                    be_writew(buf, 20, 512); /* 512k buffer */
-                    be_writew(buf, 22, 704); /* 4x read speed current */
-                    buf[24] = 0;
-                    buf[25] = 0;
-                    buf[26] = 0;
-                    buf[27] = 0;
-                    buf[28] = 0;
-                    buf[29] = 0;
-                    ide_atapi_cmd_reply(s, 30, max_len);
-                    break;
-                default:
-                    ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                    return;
+                /* Claim PLAY_AUDIO capability (0x01) since some Linux
+                   code checks for this to automount media. */
+                buf[12] = 0x71;
+                buf[13] = 3 << 5;
+                buf[14] = (1 << 0) | (1 << 3) | (1 << 5);
+                if (s.tray_locked) {
+                    buf[14] |= 1 << 1;
                 }
+                buf[15] = 0x00; /* No volume & mute control, no changer */
+                be_writew(buf, 16, 704); /* 4x read speed */
+                buf[18] = 0; /* Two volume levels */
+                buf[19] = 2;
+                be_writew(buf, 20, 512); /* 512k buffer */
+                be_writew(buf, 22, 704); /* 4x read speed current */
+                buf[24] = 0;
+                buf[25] = 0;
+                buf[26] = 0;
+                buf[27] = 0;
+                buf[28] = 0;
+                buf[29] = 0;
+                ide_atapi_cmd_reply(s, 30, max_len);
                 break;
-            case 1: /* changeable values */
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                return;
-            case 2: /* default values */
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                return;
             default:
-            case 3: /* saved values */
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_SAVING_PARAMETERS_NOT_SUPPORTED);
-                break;
-            }
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_test_unit_ready = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            /* Not Ready Conditions are already handled in ide_atapi_cmd(), so if we
-             * come here, we know that it's ready. */
-            ide_atapi_cmd_ok(s);
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_prevent_allow_medium_removal = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            s.tray_locked = (buf[4] & 1) !=0;
-            Block.bdrv_lock_medium(s.bs, (buf[4] & 1)!=0);
-            ide_atapi_cmd_ok(s);
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_read = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int nb_sectors;
-            long lba;
-
-            if ((buf[0] & 0xFF) == GPCMD_READ_10) {
-                nb_sectors = be_readw(buf, 7);
-            } else {
-                nb_sectors = (int)be_readd(buf, 6);
-            }
-
-            lba = be_readd(buf, 2);
-            if (nb_sectors == 0) {
-                ide_atapi_cmd_ok(s);
+                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
                 return;
             }
+            break;
+        case 1: /* changeable values */
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+            return;
+        case 2: /* default values */
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+            return;
+        default:
+        case 3: /* saved values */
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_SAVING_PARAMETERS_NOT_SUPPORTED);
+            break;
+        }
+    };
 
+    static private final AtapiCmdCallback cmd_test_unit_ready = (s, buf) -> {
+        /* Not Ready Conditions are already handled in ide_atapi_cmd(), so if we
+         * come here, we know that it's ready. */
+        ide_atapi_cmd_ok(s);
+    };
+
+    static private final AtapiCmdCallback cmd_prevent_allow_medium_removal = (s, buf) -> {
+        s.tray_locked = (buf[4] & 1) !=0;
+        Block.bdrv_lock_medium(s.bs, (buf[4] & 1)!=0);
+        ide_atapi_cmd_ok(s);
+    };
+
+    static private final AtapiCmdCallback cmd_read = (s, buf) -> {
+        int nb_sectors;
+        long lba;
+
+        if ((buf[0] & 0xFF) == GPCMD_READ_10) {
+            nb_sectors = be_readw(buf, 7);
+        } else {
+            nb_sectors = (int)be_readd(buf, 6);
+        }
+
+        lba = be_readd(buf, 2);
+        if (nb_sectors == 0) {
+            ide_atapi_cmd_ok(s);
+            return;
+        }
+
+        ide_atapi_cmd_read(s, lba, nb_sectors, 2048);
+    };
+
+    static private final AtapiCmdCallback cmd_read_cd = (s, buf) -> {
+        int nb_sectors, transfer_request;
+        long lba;
+
+        nb_sectors = ((buf[6] & 0xFF) << 16) | ((buf[7] & 0xFF) << 8) | (buf[8] & 0xFF);
+        lba = be_readd(buf, 2);
+
+        if (nb_sectors == 0) {
+            ide_atapi_cmd_ok(s);
+            return;
+        }
+
+        transfer_request = buf[9] & 0xFF;
+        switch(transfer_request & 0xf8) {
+        case 0x00:
+            /* nothing */
+            ide_atapi_cmd_ok(s);
+            break;
+        case 0x10:
+            /* normal read */
             ide_atapi_cmd_read(s, lba, nb_sectors, 2048);
+            break;
+        case 0xf8:
+            /* read all data */
+            ide_atapi_cmd_read(s, lba, nb_sectors, 2352);
+            break;
+        default:
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST,
+                                ASC_INV_FIELD_IN_CMD_PACKET);
+            break;
         }
     };
 
-    static private final AtapiCmdCallback cmd_read_cd = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int nb_sectors, transfer_request;
-            long lba;
+    static private final AtapiCmdCallback cmd_seek = (s, buf) -> {
+        long lba;
+        long total_sectors = s.nb_sectors >> 2;
 
-            nb_sectors = ((buf[6] & 0xFF) << 16) | ((buf[7] & 0xFF) << 8) | (buf[8] & 0xFF);
-            lba = be_readd(buf, 2);
+        lba = be_readd(buf, 2);
+        if (lba >= total_sectors) {
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR);
+            return;
+        }
 
-            if (nb_sectors == 0) {
-                ide_atapi_cmd_ok(s);
+        ide_atapi_cmd_ok(s);
+    };
+
+    static private final AtapiCmdCallback cmd_start_stop_unit = (s, buf) -> {
+        int sense;
+        boolean start = (buf[4] & 1) != 0;
+        boolean loej = (buf[4] & 2) != 0;     /* load on start, eject on !start */
+
+        if (loej) {
+            if (!start && !s.tray_open && s.tray_locked) {
+                sense = Block.bdrv_is_inserted(s.bs) ? Scsi.NOT_READY : Scsi.ILLEGAL_REQUEST;
+                ide_atapi_cmd_error(s, sense, ASC_MEDIA_REMOVAL_PREVENTED);
                 return;
             }
 
-            transfer_request = buf[9] & 0xFF;
-            switch(transfer_request & 0xf8) {
-            case 0x00:
-                /* nothing */
-                ide_atapi_cmd_ok(s);
-                break;
-            case 0x10:
-                /* normal read */
-                ide_atapi_cmd_read(s, lba, nb_sectors, 2048);
-                break;
-            case 0xf8:
-                /* read all data */
-                ide_atapi_cmd_read(s, lba, nb_sectors, 2352);
-                break;
-            default:
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST,
-                                    ASC_INV_FIELD_IN_CMD_PACKET);
-                break;
+            if (s.tray_open != !start) {
+                Block.bdrv_eject(s.bs, !start);
+                s.tray_open = !start;
             }
         }
+
+        ide_atapi_cmd_ok(s);
     };
 
-    static private final AtapiCmdCallback cmd_seek = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            long lba;
-            long total_sectors = s.nb_sectors >> 2;
+    static private final AtapiCmdCallback cmd_mechanism_status = (s, buf) -> {
+        int max_len = be_readw(buf, 8);
 
-            lba = be_readd(buf, 2);
-            if (lba >= total_sectors) {
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_LOGICAL_BLOCK_OOR);
-                return;
-            }
-
-            ide_atapi_cmd_ok(s);
-        }
+        be_writew(buf, 0, 0);
+        /* no current LBA */
+        buf[2] = 0;
+        buf[3] = 0;
+        buf[4] = 0;
+        buf[5] = 1;
+        be_writew(buf, 6, 0);
+        ide_atapi_cmd_reply(s, 8, max_len);
     };
 
-    static private final AtapiCmdCallback cmd_start_stop_unit = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int sense;
-            boolean start = (buf[4] & 1) != 0;
-            boolean loej = (buf[4] & 2) != 0;     /* load on start, eject on !start */
+    static private final AtapiCmdCallback cmd_read_toc_pma_atip = (s, buf) -> {
+        int format, msf, start_track, len;
+        int max_len;
+        long total_sectors = s.nb_sectors >> 2;
 
-            if (loej) {
-                if (!start && !s.tray_open && s.tray_locked) {
-                    sense = Block.bdrv_is_inserted(s.bs) ? Scsi.NOT_READY : Scsi.ILLEGAL_REQUEST;
-                    ide_atapi_cmd_error(s, sense, ASC_MEDIA_REMOVAL_PREVENTED);
-                    return;
-                }
+        max_len = be_readw(buf, 7);
+        format = (buf[9] & 0xFF) >> 6;
+        msf = ((buf[1] & 0xFF) >> 1) & 1;
+        start_track = buf[6] & 0xFF;
 
-                if (s.tray_open != !start) {
-                    Block.bdrv_eject(s.bs, !start);
-                    s.tray_open = !start;
-                }
-            }
-
-            ide_atapi_cmd_ok(s);
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_mechanism_status = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int max_len = be_readw(buf, 8);
-
-            be_writew(buf, 0, 0);
-            /* no current LBA */
-            buf[2] = 0;
-            buf[3] = 0;
-            buf[4] = 0;
-            buf[5] = 1;
-            be_writew(buf, 6, 0);
-            ide_atapi_cmd_reply(s, 8, max_len);
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_read_toc_pma_atip = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int format, msf, start_track, len;
-            int max_len;
-            long total_sectors = s.nb_sectors >> 2;
-
-            max_len = be_readw(buf, 7);
-            format = (buf[9] & 0xFF) >> 6;
-            msf = ((buf[1] & 0xFF) >> 1) & 1;
-            start_track = buf[6] & 0xFF;
-
-            switch(format) {
-            case 0:
-                len = Cdrom.cdrom_read_toc(total_sectors, buf, msf, start_track);
-                if (len < 0) {
-                    ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                    return;
-                }
-                ide_atapi_cmd_reply(s, len, max_len);
-                break;
-            case 1:
-                /* multi session : only a single session defined */
-                java.util.Arrays.fill(buf, 0, 12, (byte)0);
-                buf[1] = 0x0a;
-                buf[2] = 0x01;
-                buf[3] = 0x01;
-                ide_atapi_cmd_reply(s, 12, max_len);
-                break;
-            case 2:
-                len = Cdrom.cdrom_read_toc_raw(total_sectors, buf, msf, start_track);
-                if (len < 0) {
-                    ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                    return;
-                }
-                ide_atapi_cmd_reply(s, len, max_len);
-                break;
-            default:
-                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-            }
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_read_cdvd_capacity = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            long total_sectors = s.nb_sectors >> 2;
-
-            /* NOTE: it is really the number of sectors minus 1 */
-            be_writed(buf, 0, total_sectors - 1);
-            be_writed(buf, 4, 2048);
-            ide_atapi_cmd_reply(s, 8, 8);
-        }
-    };
-
-    static private final AtapiCmdCallback cmd_read_disc_information = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int type = buf[1] & 7;
-            int max_len = be_readw(buf, 7);
-
-            /* Types 1/2 are only defined for Blu-Ray.  */
-            if (type != 0) {
+        switch(format) {
+        case 0:
+            len = Cdrom.cdrom_read_toc(total_sectors, buf, msf, start_track);
+            if (len < 0) {
                 ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
                 return;
             }
-
-            java.util.Arrays.fill(buf, 0, 34, (byte)0);
-            buf[1] = 32;
-            buf[2] = 0xe; /* last session complete, disc finalized */
-            buf[3] = 1;   /* first track on disc */
-            buf[4] = 1;   /* # of sessions */
-            buf[5] = 1;   /* first track of last session */
-            buf[6] = 1;   /* last track of last session */
-            buf[7] = 0x20; /* unrestricted use */
-            buf[8] = 0x00; /* CD-ROM or DVD-ROM */
-            /* 9-10-11: most significant byte corresponding bytes 4-5-6 */
-            /* 12-23: not meaningful for CD-ROM or DVD-ROM */
-            /* 24-31: disc bar code */
-            /* 32: disc application code */
-            /* 33: number of OPC tables */
-
-            ide_atapi_cmd_reply(s, 34, max_len);
+            ide_atapi_cmd_reply(s, len, max_len);
+            break;
+        case 1:
+            /* multi session : only a single session defined */
+            java.util.Arrays.fill(buf, 0, 12, (byte)0);
+            buf[1] = 0x0a;
+            buf[2] = 0x01;
+            buf[3] = 0x01;
+            ide_atapi_cmd_reply(s, 12, max_len);
+            break;
+        case 2:
+            len = Cdrom.cdrom_read_toc_raw(total_sectors, buf, msf, start_track);
+            if (len < 0) {
+                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+                return;
+            }
+            ide_atapi_cmd_reply(s, len, max_len);
+            break;
+        default:
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
         }
     };
 
-    static private final AtapiCmdCallback cmd_read_dvd_structure = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            int max_len;
-            int media = buf[1] & 0xFF;
-            int format = buf[7] & 0xFF;
-            int ret;
+    static private final AtapiCmdCallback cmd_read_cdvd_capacity = (s, buf) -> {
+        long total_sectors = s.nb_sectors >> 2;
 
-            max_len = be_readw(buf, 8);
+        /* NOTE: it is really the number of sectors minus 1 */
+        be_writed(buf, 0, total_sectors - 1);
+        be_writed(buf, 4, 2048);
+        ide_atapi_cmd_reply(s, 8, 8);
+    };
 
-            if (format < 0xff) {
-                if (media_is_cd(s)) {
-                    ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT);
-                    return;
-                } else if (!media_present(s)) {
-                    ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                    return;
-                }
+    static private final AtapiCmdCallback cmd_read_disc_information = (s, buf) -> {
+        int type = buf[1] & 7;
+        int max_len = be_readw(buf, 7);
+
+        /* Types 1/2 are only defined for Blu-Ray.  */
+        if (type != 0) {
+            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+            return;
+        }
+
+        java.util.Arrays.fill(buf, 0, 34, (byte)0);
+        buf[1] = 32;
+        buf[2] = 0xe; /* last session complete, disc finalized */
+        buf[3] = 1;   /* first track on disc */
+        buf[4] = 1;   /* # of sessions */
+        buf[5] = 1;   /* first track of last session */
+        buf[6] = 1;   /* last track of last session */
+        buf[7] = 0x20; /* unrestricted use */
+        buf[8] = 0x00; /* CD-ROM or DVD-ROM */
+        /* 9-10-11: most significant byte corresponding bytes 4-5-6 */
+        /* 12-23: not meaningful for CD-ROM or DVD-ROM */
+        /* 24-31: disc bar code */
+        /* 32: disc application code */
+        /* 33: number of OPC tables */
+
+        ide_atapi_cmd_reply(s, 34, max_len);
+    };
+
+    static private final AtapiCmdCallback cmd_read_dvd_structure = (s, buf) -> {
+        int max_len;
+        int media = buf[1] & 0xFF;
+        int format = buf[7] & 0xFF;
+        int ret;
+
+        max_len = be_readw(buf, 8);
+
+        if (format < 0xff) {
+            if (media_is_cd(s)) {
+                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INCOMPATIBLE_FORMAT);
+                return;
+            } else if (!media_present(s)) {
+                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+                return;
             }
+        }
 
-            java.util.Arrays.fill(buf, 0, max_len > IDE_DMA_BUF_SECTORS * 512 + 4 ? IDE_DMA_BUF_SECTORS * 512 + 4 : max_len, (byte)0);
+        java.util.Arrays.fill(buf, 0, Math.min(max_len, IDE_DMA_BUF_SECTORS * 512 + 4), (byte)0);
 
-            if ((format>=0 && format<=0x7f) || format == 0xff) {
-                    if (media == 0) {
-                        ret = ide_dvd_read_structure(s, format, buf, buf);
+        if ((format>=0 && format<=0x7f) || format == 0xff) {
+                if (media == 0) {
+                    ret = ide_dvd_read_structure(s, format, buf, buf);
 
-                        if (ret < 0) {
-                            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, -ret);
-                        } else {
-                            ide_atapi_cmd_reply(s, ret, max_len);
-                        }
+                    if (ret < 0) {
+                        ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, -ret);
                     } else {
-                        /* TODO: BD support, fall through for now */
-                        ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+                        ide_atapi_cmd_reply(s, ret, max_len);
                     }
-            } else {
-                switch (format) {
-                /* Generic disk structures */
-                case 0x80: /* TODO: AACS volume identifier */
-                case 0x81: /* TODO: AACS media serial number */
-                case 0x82: /* TODO: AACS media identifier */
-                case 0x83: /* TODO: AACS media key block */
-                case 0x90: /* TODO: List of recognized format layers */
-                case 0xc0: /* TODO: Write protection status */
-                default:
+                } else {
+                    /* TODO: BD support, fall through for now */
                     ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
-                    break;
                 }
+        } else {
+            switch (format) {
+            /* Generic disk structures */
+            case 0x80: /* TODO: AACS volume identifier */
+            case 0x81: /* TODO: AACS media serial number */
+            case 0x82: /* TODO: AACS media identifier */
+            case 0x83: /* TODO: AACS media key block */
+            case 0x90: /* TODO: List of recognized format layers */
+            case 0xc0: /* TODO: Write protection status */
+            default:
+                ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_INV_FIELD_IN_CMD_PACKET);
+                break;
             }
         }
     };
 
-    static private final AtapiCmdCallback cmd_set_speed = new AtapiCmdCallback() {
-        public void call(IDEState s, byte[] buf) {
-            ide_atapi_cmd_ok(s);
-        }
-    };
+    static private final AtapiCmdCallback cmd_set_speed = (s, buf) -> ide_atapi_cmd_ok(s);
 
     /*
      * Only commands flagged as ALLOW_UA are allowed to run under a
@@ -678,16 +647,16 @@ public class Atapi extends Internal {
      */
     static private final int CHECK_READY = 0x02;
 
-    static private interface AtapiCmdCallback {
-        public void call(IDEState s, byte[] buf);
+    private interface AtapiCmdCallback {
+        void call(IDEState s, byte[] buf);
     }
     static private final class AtapiCmd {
         public AtapiCmd(AtapiCmdCallback cb, int flags) {
             this.handler = cb;
             this.flags = flags;
         }
-        AtapiCmdCallback handler;
-        int flags;
+        final AtapiCmdCallback handler;
+        final int flags;
     }
 
     static private final AtapiCmd[] atapi_cmd_table = new AtapiCmd[0x100];
@@ -779,7 +748,7 @@ public class Atapi extends Internal {
     
     static private void ide_atapi_cmd_error(IDEState s, int sense_key, int asc) {
         if (DEBUG_IDE_ATAPI)
-            System.out.println("atapi_cmd_error: sense=0x"+Integer.toHexString(sense_key)+" asc=0x"+Integer.toHexString(asc));
+            logger.log(Level.DEBUG,"atapi_cmd_error: sense=0x"+Integer.toHexString(sense_key)+" asc=0x"+Integer.toHexString(asc));
         s.error = sense_key << 4;
         s.status = READY_STAT | ERR_STAT;
         s.nsector = (s.nsector & ~7) | ATAPI_INT_REASON_IO | ATAPI_INT_REASON_CD;
@@ -798,11 +767,12 @@ public class Atapi extends Internal {
     }
 
 /* The whole ATAPI transfer logic is handled in this function */
-    static public Internal.EndTransferFunc ide_atapi_cmd_reply_end = new Internal.EndTransferFunc() {
+    static public final Internal.EndTransferFunc ide_atapi_cmd_reply_end = new Internal.EndTransferFunc() {
+        @Override
         public void call(Internal.IDEState s) {
         int byte_count_limit, size, ret;
         if (DEBUG_IDE_ATAPI)
-            System.out.println("reply: tx_size="+s.packet_transfer_size+" elem_tx_size="+s.elementary_transfer_size+" index="+s.io_buffer_index);
+            logger.log(Level.DEBUG,"reply: tx_size="+s.packet_transfer_size+" elem_tx_size="+s.elementary_transfer_size+" index="+s.io_buffer_index);
         if (s.packet_transfer_size <= 0) {
             /* end of transfer */
             IDE.ide_transfer_stop(s);
@@ -810,7 +780,7 @@ public class Atapi extends Internal {
             s.nsector = (s.nsector & ~7) | ATAPI_INT_REASON_IO | ATAPI_INT_REASON_CD;
             ide_set_irq(s.bus);
             if (DEBUG_IDE_ATAPI)
-                System.out.println("status=0x"+Integer.toHexString(s.status));
+                logger.log(Level.DEBUG,"status=0x"+Integer.toHexString(s.status));
         } else {
             /* see if a new sector must be read */
             if (s.lba != -1 && s.io_buffer_index >= s.cd_sector_size) {
@@ -839,7 +809,7 @@ public class Atapi extends Internal {
                 s.nsector = (s.nsector & ~7) | ATAPI_INT_REASON_IO;
                 byte_count_limit = s.lcyl | (s.hcyl << 8);
                 if (DEBUG_IDE_ATAPI)
-                    System.out.println("byte_count_limit="+byte_count_limit);
+                    logger.log(Level.DEBUG,"byte_count_limit="+byte_count_limit);
                 if (byte_count_limit == 0xffff)
                     byte_count_limit--;
                 size = s.packet_transfer_size;
@@ -863,7 +833,7 @@ public class Atapi extends Internal {
                 IDE.ide_transfer_start(s, s.io_buffer, s.io_buffer_index - size, size, ide_atapi_cmd_reply_end);
                 ide_set_irq(s.bus);
                 if (DEBUG_IDE_ATAPI)
-                    System.out.println("status=0x"+Integer.toHexString(s.status));
+                    logger.log(Level.DEBUG,"status=0x"+Integer.toHexString(s.status));
             }
         }
     }};
@@ -903,8 +873,7 @@ public class Atapi extends Internal {
     }
 
     
-    static public Internal.EndTransferFunc ide_atapi_cmd = new Internal.EndTransferFunc() {
-        public void call(Internal.IDEState s) {
+    static public final Internal.EndTransferFunc ide_atapi_cmd = s -> {
 //        #ifdef DEBUG_IDE_ATAPI
 //            {
 //                int i;
@@ -915,53 +884,52 @@ public class Atapi extends Internal {
 //                printf("\n");
 //            }
 //        #endif
-            /*
-             * If there's a UNIT_ATTENTION condition pending, only command flagged with
-             * ALLOW_UA are allowed to complete. with other commands getting a CHECK
-             * condition response unless a higher priority status, defined by the drive
-             * here, is pending.
-             */
-            if (s.sense_key == Scsi.UNIT_ATTENTION && (atapi_cmd_table[s.io_buffer[0] & 0xFF].flags & ALLOW_UA)==0) {
-                ide_atapi_cmd_check_status(s);
-                return;
-            }
-            /*
-             * When a CD gets changed, we have to report an ejected state and
-             * then a loaded state to guests so that they detect tray
-             * open/close and media change events.  Guests that do not use
-             * GET_EVENT_STATUS_NOTIFICATION to detect such tray open/close
-             * states rely on this behavior.
-             */
-            if (!s.tray_open && Block.bdrv_is_inserted(s.bs) && s.cdrom_changed) {
-                ide_atapi_cmd_error(s, Scsi.NOT_READY, ASC_MEDIUM_NOT_PRESENT);
-
-                s.cdrom_changed = false;
-                s.sense_key = Scsi.UNIT_ATTENTION;
-                s.asc = ASC_MEDIUM_MAY_HAVE_CHANGED;
-                return;
-            }
-
-            /* Report a Not Ready condition if appropriate for the command */
-            if ((atapi_cmd_table[s.io_buffer[0] & 0xFF].flags & CHECK_READY)!=0 &&
-                (!media_present(s) || !Block.bdrv_is_inserted(s.bs)))
-            {
-                ide_atapi_cmd_error(s, Scsi.NOT_READY, ASC_MEDIUM_NOT_PRESENT);
-                return;
-            }
-
-            /* Execute the command */
-            if (atapi_cmd_table[s.io_buffer[0] & 0xFF].handler!=null) {
-                atapi_cmd_table[s.io_buffer[0] & 0xFF].handler.call(s, s.io_buffer);
-                return;
-            }
-
-            ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE);
+        /*
+         * If there's a UNIT_ATTENTION condition pending, only command flagged with
+         * ALLOW_UA are allowed to complete. with other commands getting a CHECK
+         * condition response unless a higher priority status, defined by the drive
+         * here, is pending.
+         */
+        if (s.sense_key == Scsi.UNIT_ATTENTION && (atapi_cmd_table[s.io_buffer[0] & 0xFF].flags & ALLOW_UA)==0) {
+            ide_atapi_cmd_check_status(s);
+            return;
         }
+        /*
+         * When a CD gets changed, we have to report an ejected state and
+         * then a loaded state to guests so that they detect tray
+         * open/close and media change events.  Guests that do not use
+         * GET_EVENT_STATUS_NOTIFICATION to detect such tray open/close
+         * states rely on this behavior.
+         */
+        if (!s.tray_open && Block.bdrv_is_inserted(s.bs) && s.cdrom_changed) {
+            ide_atapi_cmd_error(s, Scsi.NOT_READY, ASC_MEDIUM_NOT_PRESENT);
+
+            s.cdrom_changed = false;
+            s.sense_key = Scsi.UNIT_ATTENTION;
+            s.asc = ASC_MEDIUM_MAY_HAVE_CHANGED;
+            return;
+        }
+
+        /* Report a Not Ready condition if appropriate for the command */
+        if ((atapi_cmd_table[s.io_buffer[0] & 0xFF].flags & CHECK_READY)!=0 &&
+            (!media_present(s) || !Block.bdrv_is_inserted(s.bs)))
+        {
+            ide_atapi_cmd_error(s, Scsi.NOT_READY, ASC_MEDIUM_NOT_PRESENT);
+            return;
+        }
+
+        /* Execute the command */
+        if (atapi_cmd_table[s.io_buffer[0] & 0xFF].handler!=null) {
+            atapi_cmd_table[s.io_buffer[0] & 0xFF].handler.call(s, s.io_buffer);
+            return;
+        }
+
+        ide_atapi_cmd_error(s, Scsi.ILLEGAL_REQUEST, ASC_ILLEGAL_OPCODE);
     };
 
     static private void ide_atapi_cmd_check_status(IDEState s) {
         if (DEBUG_IDE_ATAPI)
-            System.out.println("atapi_cmd_check_status\n");
+            logger.log(Level.DEBUG,"atapi_cmd_check_status\n");
         s.error = MC_ERR | (Scsi.UNIT_ATTENTION << 4);
         s.status = ERR_STAT;
         s.nsector = 0;
@@ -971,6 +939,7 @@ public class Atapi extends Internal {
 
     /* XXX: handle read errors */
     static private final Block.BlockDriverCompletionFunc ide_atapi_cmd_read_dma_cb = new Block.BlockDriverCompletionFunc() {
+        @Override
         public void call(Object opaque, int ret) {
             IDEState s = (IDEState)opaque;
             int data_offset, n;
@@ -1023,14 +992,14 @@ public class Atapi extends Internal {
                     data_offset = 0;
                 }
                 if (DEBUG_AIO)
-                    System.out.println("aio_read_cd: lba="+s.lba+" n="+n);
+                    logger.log(Level.DEBUG,"aio_read_cd: lba="+s.lba+" n="+n);
 
                 s.bus.dma.iov.iov_base = s.io_buffer;
                 s.bus.dma.iov.iov_base_offset = data_offset;
                 s.bus.dma.iov.iov_len = n * 4 * 512;
                 QemuCommon.qemu_iovec_init_external(s.bus.dma.qiov, s.bus.dma.iov, 1);
 
-                s.bus.dma.aiocb = Block.bdrv_aio_readv(s.bs, (long)s.lba << 2, s.bus.dma.qiov, n * 4, ide_atapi_cmd_read_dma_cb, s);
+                s.bus.dma.aiocb = Block.bdrv_aio_readv(s.bs, s.lba << 2, s.bus.dma.qiov, n * 4, ide_atapi_cmd_read_dma_cb, s);
                 return;
 
             }
@@ -1059,7 +1028,7 @@ public class Atapi extends Internal {
 
     private static void ide_atapi_cmd_read(IDEState s, long lba, int nb_sectors, int sector_size) {
         if (DEBUG_IDE_ATAPI)
-            System.out.println("read "+(s.atapi_dma!=0 ? "dma" : "pio")+": LBA="+lba+" nb_sectors="+nb_sectors);
+            logger.log(Level.DEBUG,"read "+(s.atapi_dma!=0 ? "dma" : "pio")+": LBA="+lba+" nb_sectors="+nb_sectors);
         if (s.atapi_dma!=0) {
             ide_atapi_cmd_read_dma(s, lba, nb_sectors, sector_size);
         } else {

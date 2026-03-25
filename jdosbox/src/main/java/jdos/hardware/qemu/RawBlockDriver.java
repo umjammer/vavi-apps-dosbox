@@ -1,39 +1,52 @@
 package jdos.hardware.qemu;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.util.FileIO;
 
 public class RawBlockDriver extends BlockDriver {
-    FileIO file;
-    int sector_size = 512;
+
+    private static final Logger logger = System.getLogger(RawBlockDriver.class.getName());
+
+    final FileIO file;
+    static final int sector_size = 512;
     long current_fpos = -1;
 
     public RawBlockDriver(FileIO file) {
         this.file = file;
     }
+    @Override
     public Object allocOpaque() {
         return null;
     }
 
+    @Override
     public int bdrv_probe(byte[] buf, int buf_size, String filename) {
         return 0;
     }
 
+    @Override
     public boolean has_bdrv_probe() {
         return false;
     }
 
+    @Override
     public int bdrv_open(Block.BlockDriverState bs, int flags) {
         return 0;
     }
 
+    @Override
     public int bdrv_file_open(Block.BlockDriverState bs, String filename, int flags) {
         return 0;
     }
 
+    @Override
     public boolean has_bdrv_file_open() {
         return true;
     }
 
+    @Override
     public int bdrv_read(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors) {
         /*Bit32u*/long bytenum;
 
@@ -50,12 +63,13 @@ public class RawBlockDriver extends BlockDriver {
             }
             current_fpos+=read;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
             return -Error.EIO;
         }
         return 0;
     }
 
+    @Override
     public int bdrv_write(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors) {
         /*Bit32u*/long bytenum;
 
@@ -72,12 +86,13 @@ public class RawBlockDriver extends BlockDriver {
                 bufferOffset+=sector_size;
             }
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
             return -Error.EIO;
         }
         return 0;
     }
 
+    @Override
     public long bdrv_getlength(Block.BlockDriverState bs) {
         try {
             return file.length();
@@ -86,36 +101,45 @@ public class RawBlockDriver extends BlockDriver {
         }
     }
 
+    @Override
     public boolean has_bdrv_getlength() {
         return true;
     }
 
+    @Override
     public boolean bdrv_is_inserted(Block.BlockDriverState bs) {
         return false;
     }
 
+    @Override
     public boolean has_bdrv_is_inserted() {
         return false;
     }
 
+    @Override
     public int bdrv_media_changed(Block.BlockDriverState bs) {
         return 0;
     }
 
+    @Override
     public boolean has_bdrv_media_changed() {
         return false;
     }
 
+    @Override
     public void bdrv_eject(Block.BlockDriverState bs, boolean eject_flag) {
     }
 
+    @Override
     public boolean has_bdrv_eject() {
         return false;
     }
 
+    @Override
     public void bdrv_lock_medium(Block.BlockDriverState bs, boolean locked) {
     }
 
+    @Override
     public boolean has_bdrv_lock_medium() {
         return false;
     }

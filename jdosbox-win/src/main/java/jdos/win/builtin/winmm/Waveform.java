@@ -10,9 +10,15 @@ import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
-import java.util.Vector;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Waveform extends WinAPI {
+
+    private static final Logger logger = System.getLogger(Waveform.class.getName());
+
     static final public int WAVECAPS_PITCH =            0x0001;   /* supports pitch control */
     static final public int WAVECAPS_PLAYBACKRATE =     0x0002;   /* supports playback rate control */
     static final public int WAVECAPS_VOLUME =           0x0004;   /* supports volume control */
@@ -38,7 +44,7 @@ public class Waveform extends WinAPI {
             thread = new WaveOutThread(format);
             thread.start();
         }
-        public WaveOutThread thread;
+        public final WaveOutThread thread;
     }
 
     private static class WaveOutThread extends Thread {
@@ -55,7 +61,7 @@ public class Waveform extends WinAPI {
                 line.open(af, 8192);
                 line.start();
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
                 return false;
             }
             return true;
@@ -65,23 +71,24 @@ public class Waveform extends WinAPI {
             buffers.clear();
         }
 
-        final Vector<WAVEHDR> buffers = new Vector<WAVEHDR>();
-        WAVEFORMATEX format;
+        final List<WAVEHDR> buffers = new ArrayList<>();
+        final WAVEFORMATEX format;
         boolean exit = false;
         SourceDataLine line;
 
+        @Override
         public void run() {
             while (!exit) {
-                while (buffers.size()>0) {
-                    WAVEHDR hdr = buffers.remove(0);
+                while (!buffers.isEmpty()) {
+                    WAVEHDR hdr = buffers.removeFirst();
                     line.write(hdr.data, 0, hdr.data.length);
                     hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
                     hdr.dwFlags |= WAVEHDR.WHDR_DONE;
                     hdr.writeFlags();
                 }
                 synchronized (buffers) {
-                    if (buffers.size()==0 && !exit)
-                        try {buffers.wait();} catch (Exception e){}
+                    if (buffers.isEmpty() && !exit)
+                        try {buffers.wait();} catch (Exception _){}
                 }
             }
             line.stop();

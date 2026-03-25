@@ -9,11 +9,17 @@ import jdos.win.system.*;
 import jdos.win.utils.Error;
 import jdos.win.utils.StringUtil;
 
-import java.util.Hashtable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Iterator;
 import java.util.LinkedList;
 
 public class WinWindow extends WinObject {
+
+    private static final Logger logger = System.getLogger(WinWindow.class.getName());
+
     static public WinWindow create() {
         return new WinWindow(nextObjectId());
     }
@@ -161,11 +167,11 @@ public class WinWindow extends WinObject {
         CREATESTRUCT cs = new CREATESTRUCT(cbcs);
 
         if ((dwStyle & WS_THICKFRAME)!=0 || (dwStyle & (WS_POPUP | WS_CHILD))==0) {
-            // :TODO: min/max stuff
+            // TODO min/max stuff
         }
 
         wndPtr.rectWindow.set(cs.x, cs.y, +cs.x+cs.cx, cs.y+cs.cy);
-        System.out.println(wndPtr.handle+" "+wndPtr.rectWindow);
+        logger.log(Level.DEBUG,wndPtr.handle+" "+wndPtr.rectWindow);
         wndPtr.rectClient=wndPtr.rectWindow.copy();
 
         /* send WM_NCCREATE */
@@ -517,7 +523,7 @@ public class WinWindow extends WinObject {
         case GW_OWNER:
             return wndPtr.owner;
         case GW_CHILD:
-            if (wndPtr.children.size()==0)
+            if (wndPtr.children.isEmpty())
                 return 0;
             return wndPtr.children.getFirst().handle;
         }
@@ -888,8 +894,8 @@ public class WinWindow extends WinObject {
         if (window == null)
             return 0;
 
-        while (window.children.size()>0) {
-            WinWindow child = window.children.get(0);
+        while (!window.children.isEmpty()) {
+            WinWindow child = window.children.getFirst();
             WIN_DestroyWindow(child.handle);
         }
 
@@ -923,7 +929,7 @@ public class WinWindow extends WinObject {
         super(id);
     }
 
-    public WinTimer timer = new WinTimer(handle);
+    public final WinTimer timer = new WinTimer(handle);
 
     public WinRect rectWindow = new WinRect();
     public WinRect rectClient = new WinRect();
@@ -945,12 +951,12 @@ public class WinWindow extends WinObject {
     private int hIconSmall;
     public int hSysMenu;
     public int flags;
-    public WinPoint min_pos = new WinPoint();
-    public WinPoint max_pos = new WinPoint();
-    public WinRect normal_rect = new WinRect(0, 0, 640, 480);
+    public final WinPoint min_pos = new WinPoint();
+    public final WinPoint max_pos = new WinPoint();
+    public final WinRect normal_rect = new WinRect(0, 0, 640, 480);
     public DialogInfo dlgInfo = null;
-    private Hashtable<Integer, Integer> extra = new Hashtable<Integer, Integer>();
-    public Hashtable<String, Integer> props = new Hashtable<String, Integer>();
+    private final Map<Integer, Integer> extra = new HashMap<>();
+    public final Map<String, Integer> props = new HashMap<>();
     public int lastActivePopup;
     private WinDC dc;
     WinClass winClass;
@@ -958,7 +964,7 @@ public class WinWindow extends WinObject {
     public boolean isActive = false;
     public WinRect invalidationRect = null;
 
-    public LinkedList<WinWindow> children = new LinkedList<WinWindow>(); // first one is on top
+    public final LinkedList<WinWindow> children = new LinkedList<>(); // first one is on top
 
     // Used by desktop
     public WinWindow(int id, WinClass winClass, String name) {
@@ -1004,11 +1010,9 @@ public class WinWindow extends WinObject {
     }
 
     public WinWindow findWindowFromPoint(int x, int y) {
-        Iterator<WinWindow> i = children.iterator();
-        while (i.hasNext()) {
-            WinWindow child = i.next();
-            if ((child.dwStyle & WS_VISIBLE)!=0 &&  child.rectWindow.contains(x, y)) {
-                return child.findWindowFromPoint(x-child.rectWindow.left, y-child.rectWindow.top);
+        for (WinWindow child : children) {
+            if ((child.dwStyle & WS_VISIBLE) != 0 && child.rectWindow.contains(x, y)) {
+                return child.findWindowFromPoint(x - child.rectWindow.left, y - child.rectWindow.top);
             }
         }
         return this;
@@ -1017,9 +1021,7 @@ public class WinWindow extends WinObject {
     public int findWindow(String className, String windowName) {
         if (this.winClass.className.equals(className) || this.name.equals(windowName))
             return getHandle();
-        Iterator<WinWindow> i = children.iterator();
-        while (i.hasNext()) {
-            WinWindow child = i.next();
+        for (WinWindow child : children) {
             int result = child.findWindow(className, windowName);
             if (result != 0)
                 return result;

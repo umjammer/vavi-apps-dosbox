@@ -1,10 +1,12 @@
 package jdos.win.builtin.kernel32;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.cpu.CPU_Regs;
 import jdos.win.builtin.HandlerBase;
 import jdos.win.system.WinObject;
 
-import java.util.Vector;
 
 public class WaitObject extends WinObject {
     static public WaitObject create() {
@@ -59,7 +61,7 @@ public class WaitObject extends WinObject {
     public void release() {
         owner = null;
         for (int i=0;i<waiting.size();i++) {
-            if (waiting.elementAt(i).released()) {
+            if (waiting.get(i).released()) {
                 i--; // released will remove the wait object from waiting
             }
         }
@@ -74,5 +76,5 @@ public class WaitObject extends WinObject {
     }
 
     public WinObject owner;
-    public Vector<WaitGroup> waiting = new Vector<WaitGroup>();
+    public final List<WaitGroup> waiting = new ArrayList<>();
 }

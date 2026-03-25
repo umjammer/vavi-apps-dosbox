@@ -1,5 +1,8 @@
 package jdos.cpu.core_dynamic;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.Dosbox;
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
@@ -10,21 +13,28 @@ import jdos.hardware.Memory;
 import jdos.hardware.RAM;
 
 final public class DecodeBlock extends Op {
+
+    private static final Logger logger = System.getLogger(DecodeBlock.class.getName());
+
     public Op op;
-    public boolean active = true;
-    public int codeStart;
-    public int codeLen;
+    public final boolean active = true;
+    public final int codeStart;
+    public final int codeLen;
     public int runCount = 0;
     static public int compileThreshold = 0;
 
     public static boolean smc = false;
     private boolean compiled = false;
-    public CacheBlockDynRec parent;
+    public final CacheBlockDynRec parent;
     public Op compiledOp = null;
 
+    @Override
     public boolean throwsException() {return false;}
+    @Override
     public boolean accessesMemory() {return false;}
+    @Override
     public boolean usesEip() {return false;}
+    @Override
     public boolean setsEip() {return false;}
 
     static private byte[] getOpCode(int start, int len) {
@@ -52,7 +62,8 @@ final public class DecodeBlock extends Op {
             }
         }
     }
-    final public int call() {
+    @Override
+    public int call() {
         if (Compiler.ENABLED) {
             runCount++;
             if (runCount==compileThreshold && !compiled && Dosbox.allPrivileges) {
@@ -72,7 +83,7 @@ final public class DecodeBlock extends Op {
             return op.call();
         } catch (NullPointerException e) {
             if (smc) {
-                System.out.println("SMC");
+                logger.log(Level.DEBUG,"SMC");
                 smc = false;
                 return Constants.BR_Jump;
             }

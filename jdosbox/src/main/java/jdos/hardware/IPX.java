@@ -1,6 +1,5 @@
 package jdos.hardware;
 
-import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.dos.Dos_misc;
@@ -8,14 +7,14 @@ import jdos.dos.Dos_system;
 import jdos.dos.Dos_tables;
 import jdos.dos.drives.Drive_virtual;
 import jdos.gui.Main;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.Program;
 import jdos.misc.setup.Config;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 import jdos.util.IntRef;
-import jdos.util.StringHelper;
 
 import java.io.*;
 import java.net.DatagramPacket;
@@ -23,6 +22,9 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 
 public class IPX extends Module_base {
+
+    private static final Logger logger = System.getLogger(IPX.class.getName());
+
     static final int SOCKETTABLESIZE = 150; // DOS IPX driver was limited to 150 open sockets
     static final int IPXBUFFERSIZE = 1424;
 
@@ -67,7 +69,7 @@ public class IPX extends Module_base {
     }
 
     static public final class nodeType {
-	    public /*Uint8*/byte[] node = new byte[6];
+	    public final /*Uint8*/byte[] node = new byte[6];
     }
 
     static final class IPXHeader {
@@ -80,7 +82,7 @@ public class IPX extends Module_base {
             /*Uint8*/int network;
             static public class addrtype {
                 //nodeType byNode = new nodeType();
-                nodeType byNode = new nodeType();
+                final nodeType byNode = new nodeType();
                 public void setHost(int host) {
                     byNode.node[0] = (byte)(host & 0xFF);
                     byNode.node[1] = (byte)((host >> 8) & 0xFF);
@@ -150,8 +152,8 @@ public class IPX extends Module_base {
     }
 
     final static private class ipxnetaddr {
-        /*Uint8*/byte[] netnum = new byte[4];   // Both are big endian
-        /*Uint8*/byte[] netnode = new byte[6];
+        /*Uint8*/final byte[] netnum = new byte[4];   // Both are big endian
+        /*Uint8*/final byte[] netnode = new byte[6];
 
         public byte[] toByteArray() {
             byte[] result = new byte[10];
@@ -191,7 +193,7 @@ public class IPX extends Module_base {
     static private final packetBuffer incomingPacket = new packetBuffer();
 
     private static /*Bit16u*/int socketCount;
-    private static /*Bit16u*/int[] opensockets = new int[SOCKETTABLESIZE];
+    private static final /*Bit16u*/int[] opensockets = new int[SOCKETTABLESIZE];
 
     private static /*Bit16u*/int swapByte(/*Bit16u*/int sockNum) {
         return (((sockNum >>> 8) & 0xFF) | ((sockNum & 0xFF) << 8));
@@ -206,13 +208,13 @@ public class IPX extends Module_base {
     static private ECBClass ESRList;	// ECBs waiting to be ESR notified
 
     private static class ECBClass {
-        public /*RealPt*/int ECBAddr;
+        public final /*RealPt*/int ECBAddr;
         public boolean isInESRList;
         ECBClass prevECB;	// Linked List
         ECBClass nextECB;
 
         public /*Bit8u*/int iuflag;		// Need to save data since we are not always in
-        public /*Bit16u*/int mysocket;	// real mode
+        public final /*Bit16u*/int mysocket;	// real mode
 
         public /*Bit8u*/byte[] databuffer;	// received data is stored here until we get called
         public /*Bitu*/int buflen;		// by Interrupt
@@ -228,13 +230,12 @@ public class IPX extends Module_base {
                 ECBSerialNumber++;
                 ECBAmount++;
 
-                Log.log_msg(StringHelper.sprintf("ECB: SN%7d created.   Number of ECBs: %3d, ESR %4x:%4x, ECB %4x:%4x",
-                    new Object[] {
-                            new Integer(SerialNumber),
-                            new Integer(ECBAmount),
-                            new Integer(Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+6)),
-                            new Integer(Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+4)),
-                            new Integer(segment),new Integer(offset)}));
+                logger.log(Level.DEBUG, "ECB: SN%7d created.   Number of ECBs: %3d, ESR %4x:%4x, ECB %4x:%4x".formatted(
+                        SerialNumber,
+                        ECBAmount,
+                        Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+6),
+                        Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+4),
+                        segment,offset));
             }
 
             isInESRList = false;
@@ -373,7 +374,7 @@ public class IPX extends Module_base {
         public void close() {
             if (Config.IPX_DEBUGMSG) {
                 ECBAmount--;
-                Log.log_msg(StringHelper.sprintf("ECB: SN%7d destroyed. Remaining ECBs: %3d", new Object[] {new Integer(SerialNumber),new Integer(ECBAmount)}));
+                logger.log(Level.DEBUG, "ECB: SN%7d destroyed. Remaining ECBs: %3d".formatted(SerialNumber,ECBAmount));
             }
 
             if(isInESRList) {
@@ -414,7 +415,7 @@ public class IPX extends Module_base {
             if(sockAlloc > 0x7fff) {
                 // I have no idea how this could happen if the IPX driver
                 // is limited to 150 open sockets at a time
-                Log.log_msg("IPX: Out of dynamic sockets");
+                logger.log(Level.DEBUG, "IPX: Out of dynamic sockets");
             }
             sockNum = sockAlloc;
         } else {
@@ -464,6 +465,7 @@ public class IPX extends Module_base {
     //static RealPt IPXVERpointer;
 
     private static final Dos_system.MultiplexHandler IPX_Multiplex = new Dos_system.MultiplexHandler() {
+        @Override
         public boolean call() {
             if(CPU_Regs.reg_eax.word() != 0x7a00) return false;
             CPU_Regs.reg_eax.low(0xff);
@@ -477,6 +479,7 @@ public class IPX extends Module_base {
     };
 
     private static final Pic.PIC_EventHandler IPX_AES_EventHandler = new Pic.PIC_EventHandler() {
+        @Override
         public void call(/*Bitu*/int param) {
             ECBClass tmpECB = ECBList;
             ECBClass tmp2ECB;
@@ -491,7 +494,7 @@ public class IPX extends Module_base {
                 }
                 tmpECB = tmp2ECB;
             }
-            Log.log_msg("!!!! Rouge AES !!!!" );
+            logger.log(Level.DEBUG, "!!!! Rouge AES !!!!" );
         }
     };
 
@@ -501,10 +504,10 @@ public class IPX extends Module_base {
         switch (CPU_Regs.reg_ebx.word()) {
             case 0x0000:	// Open socket
                 OpenSocket();
-                Log.log_msg(StringHelper.sprintf("IPX: Open socket %4x", new Object[]{new Integer(swapByte(CPU_Regs.reg_edx.word()))}));
+                logger.log(Level.DEBUG, "IPX: Open socket %4x".formatted(swapByte(CPU_Regs.reg_edx.word())));
                 break;
             case 0x0001:	// Close socket
-                Log.log_msg(StringHelper.sprintf("IPX: Close socket %4x", new Object[]{new Integer(swapByte(CPU_Regs.reg_edx.word()))}));
+                logger.log(Level.DEBUG, "IPX: Close socket %4x".formatted(swapByte(CPU_Regs.reg_edx.word())));
                 CloseSocket();
                 break;
             case 0x0002:	// get local target
@@ -512,14 +515,14 @@ public class IPX extends Module_base {
                             // Currently no support for multiple networks
 
                 for(/*Bitu*/int i = 0; i < 6; i++)
-                    Memory.real_writeb((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()+i,Memory.real_readb((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i+4));
+                    Memory.real_writeb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()+i,Memory.real_readb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i+4));
 
                 CPU_Regs.reg_ecx.word(1);		// time ticks expected
                 CPU_Regs.reg_eax.low(0x00);	//success
                 break;
 
             case 0x0003:		// Send packet
-                tmpECB = new ECBClass((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
                 if(!incomingPacket.connected) {
                     tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                     tmpECB.setCompletionFlag(COMP_UNDELIVERABLE);
@@ -534,7 +537,7 @@ public class IPX extends Module_base {
 
                 break;
             case 0x0004:  // Listen for packet
-                tmpECB = new ECBClass((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
                 // LOG_IPX("ECB: SN%7d RECEIVE.", tmpECB.SerialNumber);
                 if(!sockInUse(tmpECB.getSocket())) {  // Socket is not open
                     CPU_Regs.reg_eax.low(0xff);
@@ -554,28 +557,28 @@ public class IPX extends Module_base {
             case 0x0005:	// SCHEDULE IPX EVENT
             case 0x0007:	// SCHEDULE SPECIAL IPX EVENT
             {
-                tmpECB = new ECBClass((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
                 // LOG_IPX("ECB: SN%7d AES. T=%fms.", tmpECB.SerialNumber,
                 //	(1000.0f/(1193182.0f/65536.0f))*(float)CPU_Regs.reg_eax.word();
-                Pic.PIC_AddEvent(IPX_AES_EventHandler, (1000.0f/(1193182.0f/65536.0f))*(float)CPU_Regs.reg_eax.word(),(int)tmpECB.ECBAddr);
+                Pic.PIC_AddEvent(IPX_AES_EventHandler, (1000.0f/(1193182.0f/65536.0f))*(float)CPU_Regs.reg_eax.word(), tmpECB.ECBAddr);
                 tmpECB.setInUseFlag(USEFLAG_AESCOUNT);
                 break;
             }
             case 0x0006:	// cancel operation
             {
-                /*RealPt*/int ecbaddress = Memory.RealMake((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                /*RealPt*/int ecbaddress = Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
                 tmpECB= ECBList;
                 ECBClass tmp2ECB;
                 while (tmpECB!=null) {
                     tmp2ECB=tmpECB.nextECB;
                     if(tmpECB.ECBAddr == ecbaddress) {
                         if(tmpECB.getInUseFlag()==USEFLAG_AESCOUNT)
-                            Pic.PIC_RemoveSpecificEvents(IPX_AES_EventHandler,(int)ecbaddress);
+                            Pic.PIC_RemoveSpecificEvents(IPX_AES_EventHandler, ecbaddress);
                         tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                         tmpECB.setCompletionFlag(COMP_CANCELLED);
                         tmpECB.close();
                         CPU_Regs.reg_eax.low(0);	// Success
-                        Log.log_msg("IPX: ECB canceled.");
+                        logger.log(Level.DEBUG, "IPX: ECB canceled.");
                         return;
                     }
                     tmpECB=tmp2ECB;
@@ -588,15 +591,14 @@ public class IPX extends Module_base {
                 break;
             case 0x0009:		// Get internetwork address
             {
-                Log.log_msg(StringHelper.sprintf("IPX: Get internetwork address %2x:%2x:%2x:%2x:%2x:%2x", new Object[] {
-                    new Integer(localIpxAddr.netnode[5] & 0xFF), new Integer(localIpxAddr.netnode[4] & 0xFF),
-                    new Integer(localIpxAddr.netnode[3] & 0xFF), new Integer(localIpxAddr.netnode[2] & 0xFF),
-                    new Integer(localIpxAddr.netnode[1] & 0xFF), new Integer(localIpxAddr.netnode[0] & 0xFF)}));
+                logger.log(Level.DEBUG, "IPX: Get internetwork address %2x:%2x:%2x:%2x:%2x:%2x".formatted(localIpxAddr.netnode[5] & 0xFF, localIpxAddr.netnode[4] & 0xFF,
+                        localIpxAddr.netnode[3] & 0xFF, localIpxAddr.netnode[2] & 0xFF,
+                        localIpxAddr.netnode[1] & 0xFF, localIpxAddr.netnode[0] & 0xFF));
 
                 //Bit8u * addrptr = (Bit8u *)&localIpxAddr;
                 byte[] addrptr = localIpxAddr.toByteArray();
                 for(/*Bit16u*/int i=0;i<10;i++)
-                    Memory.real_writeb((int)CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i,addrptr[i]);
+                    Memory.real_writeb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i,addrptr[i]);
                 break;
             }
             case 0x000a:		// Relinquish control
@@ -621,17 +623,19 @@ public class IPX extends Module_base {
                 break;
 
             default:
-                Log.log_msg(StringHelper.sprintf("Unhandled IPX function: %4x", new Object[] {new Integer(CPU_Regs.reg_ebx.word())}));
+                logger.log(Level.DEBUG, "Unhandled IPX function: %4x".formatted(CPU_Regs.reg_ebx.word()));
                 break;
         }
     }
 
     // Entrypoint handler
     final static private Callback.Handler IPX_Handler = new Callback.Handler() {
+        @Override
         public /*Bitu*/int call() {
             handleIpxRequest();
             return Callback.CBRET_NONE;
         }
+        @Override
         public String getName() {
             return "IPX";
         }
@@ -639,10 +643,12 @@ public class IPX extends Module_base {
 
     // INT 7A handler
     final static private Callback.Handler IPX_IntHandler = new Callback.Handler() {
+        @Override
         public /*Bitu*/int call() {
             handleIpxRequest();
             return Callback.CBRET_NONE;
         }
+        @Override
         public String getName() {
             return "IPX INT 7A";
         }
@@ -694,7 +700,7 @@ public class IPX extends Module_base {
             DatagramPacket packet = new DatagramPacket(buf, buf.length, ipxServConnIp, udpPort);
             ipxClientSocket.send(packet);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
     }
 
@@ -718,7 +724,7 @@ public class IPX extends Module_base {
             DatagramPacket packet = new DatagramPacket(buf, buf.length, ipxServConnIp, udpPort);
             ipxClientSocket.send(packet);
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
     }
 
@@ -755,18 +761,18 @@ public class IPX extends Module_base {
             useECB = nextECB;
         }
         if (Config.IPX_DEBUGMSG)
-            Log.log_msg("IPX: RX Packet loss!");
+            logger.log(Level.DEBUG, "IPX: RX Packet loss!");
     }
 
     private static ReceiverThread receiverThread;
     static final class ReceiverThread extends Thread {
         boolean exit = false;
-        Object signal = new Object();
+        final Object signal = new Object();
         boolean ready = false;
         DatagramPacket receivePacket;
-        byte[] tmpBuffer = new byte[IPXBUFFERSIZE];
-        DatagramSocket socket;
-        byte[] recvBuffer = new byte[IPXBUFFERSIZE];
+        final byte[] tmpBuffer = new byte[IPXBUFFERSIZE];
+        final DatagramSocket socket;
+        final byte[] recvBuffer = new byte[IPXBUFFERSIZE];
 
         public ReceiverThread(DatagramSocket socket) {
             this.socket = socket;
@@ -787,6 +793,7 @@ public class IPX extends Module_base {
             }
             return 0;
         }
+        @Override
         public void run() {
             exit = false;
             while (!exit) {
@@ -803,6 +810,7 @@ public class IPX extends Module_base {
         }
     }
     private static final Timer.TIMER_TickHandler IPX_ClientLoop = new Timer.TIMER_TickHandler() {
+        @Override
         public void call() {
             int length = receiverThread.next(null);
             if (length>0)
@@ -811,7 +819,7 @@ public class IPX extends Module_base {
     };
 
     static private void DisconnectFromServer(boolean unexpected) {
-        if(unexpected) Log.log_msg("IPX: Server disconnected unexpectedly");
+        if(unexpected) logger.log(Level.DEBUG, "IPX: Server disconnected unexpectedly");
         if(incomingPacket.connected) {
             incomingPacket.connected = false;
             Timer.TIMER_DelTickHandler(IPX_ClientLoop);
@@ -856,7 +864,7 @@ public class IPX extends Module_base {
                 outbuffer[packetsize] = (byte)Memory.real_readb(tmpFrag.segment, tmpFrag.offset + t);
                 packetsize++;
                 if(packetsize>=IPXBUFFERSIZE) {
-                    Log.log_msg("IPX: Packet size to be sent greater than "+IPXBUFFERSIZE+" bytes.");
+                    logger.log(Level.DEBUG, "IPX: Packet size to be sent greater than "+IPXBUFFERSIZE+" bytes.");
                     sendecb.setCompletionFlag(COMP_UNDELIVERABLE);
                     sendecb.NotifyESR();
                     return;
@@ -899,8 +907,8 @@ public class IPX extends Module_base {
             try {
                 ipxClientSocket.send(outPacket);
             } catch (Exception e) {
-                e.printStackTrace();
-                Log.log_msg("IPX: Could not send packet");
+                logger.log(Level.ERROR, e.getMessage(), e);
+                logger.log(Level.DEBUG, "IPX: Could not send packet");
                 sendecb.setCompletionFlag(COMP_HARDWAREERROR);
                 sendecb.NotifyESR();
                 DisconnectFromServer(true);
@@ -908,7 +916,7 @@ public class IPX extends Module_base {
             }
             sendecb.setCompletionFlag(COMP_SUCCESS);
             if (Config.IPX_DEBUGMSG)
-                Log.log_msg("Packet sent: size: "+packetsize);
+                logger.log(Level.DEBUG, "Packet sent: size: "+packetsize);
         } else {
             sendecb.setCompletionFlag(COMP_SUCCESS);
         }
@@ -917,7 +925,7 @@ public class IPX extends Module_base {
             // Send packet back to ourselves.
             receivePacket(outbuffer,packetsize);
             if (Config.IPX_DEBUGMSG)
-                Log.log_msg("Packet back: loopback:"+isloopback+", broadcast:"+islocalbroadcast);
+                logger.log(Level.DEBUG, "Packet back: loopback:"+isloopback+", broadcast:"+islocalbroadcast);
         }
         sendecb.NotifyESR();
     }
@@ -955,8 +963,8 @@ public class IPX extends Module_base {
             try {
                 ipxClientSocket.send(outPacket);
             } catch (Exception e) {
-                e.printStackTrace();
-                Log.log_msg("IPX: Unable to connect to server");
+                logger.log(Level.ERROR, e.getMessage(), e);
+                logger.log(Level.DEBUG, "IPX: Unable to connect to server");
                 try {ipxClientSocket.close();} catch (Exception e1) {}
                 return false;
             }
@@ -970,7 +978,7 @@ public class IPX extends Module_base {
             while(true) {
                 elapsed = Main.GetTicks() - ticks;
                 if(elapsed > 5000) {
-                    Log.log_msg("Timeout connecting to server at "+strAddr);
+                    logger.log(Level.DEBUG, "Timeout connecting to server at "+strAddr);
                     try {ipxClientSocket.close();} catch (Exception e) {}
                     return false;
                 }
@@ -985,13 +993,13 @@ public class IPX extends Module_base {
                 }
             }
 
-            Log.log_msg(StringHelper.sprintf("IPX: Connected to server.  IPX address is %d:%d:%d:%d:%d:%d", new Object[]{new Integer(localIpxAddr.netnode[0] & 0xFF), new Integer(localIpxAddr.netnode[1] & 0xFF), new Integer(localIpxAddr.netnode[2] & 0xFF), new Integer(localIpxAddr.netnode[3] & 0xFF), new Integer(localIpxAddr.netnode[4] & 0xFF), new Integer(localIpxAddr.netnode[5] & 0xFF) } ));
+            logger.log(Level.DEBUG, "IPX: Connected to server.  IPX address is %d:%d:%d:%d:%d:%d".formatted(localIpxAddr.netnode[0] & 0xFF, localIpxAddr.netnode[1] & 0xFF, localIpxAddr.netnode[2] & 0xFF, localIpxAddr.netnode[3] & 0xFF, localIpxAddr.netnode[4] & 0xFF, localIpxAddr.netnode[5] & 0xFF));
 
             incomingPacket.connected = true;
             Timer.TIMER_AddTickHandler(IPX_ClientLoop);
             return true;
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.log(Level.ERROR, e.getMessage(), e);
         }
         return false;
     }
@@ -1017,226 +1025,227 @@ public class IPX extends Module_base {
         void HelpCommand(String helpStr) {
             // Help on connect command
             if("connect".equals(helpStr)) {
-                WriteOut("IPXNET CONNECT opens a connection to an IPX tunneling server running on another\n");
-                WriteOut("DosBox session.  The \"address\" parameter specifies the IP address or host name\n");
-                WriteOut("of the server computer.  One can also specify the UDP port to use.  By default\n");
-                WriteOut("IPXNET uses port 213, the assigned IANA port for IPX tunneling, for its\nconnection.\n\n");
-                WriteOut("The syntax for IPXNET CONNECT is:\n\n");
-                WriteOut("IPXNET CONNECT address <port>\n\n");
+                writeOut("IPXNET CONNECT opens a connection to an IPX tunneling server running on another\n");
+                writeOut("DosBox session.  The \"address\" parameter specifies the IP address or host name\n");
+                writeOut("of the server computer.  One can also specify the UDP port to use.  By default\n");
+                writeOut("IPXNET uses port 213, the assigned IANA port for IPX tunneling, for its\nconnection.\n\n");
+                writeOut("The syntax for IPXNET CONNECT is:\n\n");
+                writeOut("IPXNET CONNECT address <port>\n\n");
                 return;
             }
             // Help on the disconnect command
             if("disconnect".equals(helpStr)) {
-                WriteOut("IPXNET DISCONNECT closes the connection to the IPX tunneling server.\n\n");
-                WriteOut("The syntax for IPXNET DISCONNECT is:\n\n");
-                WriteOut("IPXNET DISCONNECT\n\n");
+                writeOut("IPXNET DISCONNECT closes the connection to the IPX tunneling server.\n\n");
+                writeOut("The syntax for IPXNET DISCONNECT is:\n\n");
+                writeOut("IPXNET DISCONNECT\n\n");
                 return;
             }
             // Help on the startserver command
             if("startserver".equals(helpStr)) {
-                WriteOut("IPXNET STARTSERVER starts and IPX tunneling server on this DosBox session.  By\n");
-                WriteOut("default, the server will accept connections on UDP port 213, though this can be\n");
-                WriteOut("changed.  Once the server is started, DosBox will automatically start a client\n");
-                WriteOut("connection to the IPX tunneling server.\n\n");
-                WriteOut("The syntax for IPXNET STARTSERVER is:\n\n");
-                WriteOut("IPXNET STARTSERVER <port>\n\n");
+                writeOut("IPXNET STARTSERVER starts and IPX tunneling server on this DosBox session.  By\n");
+                writeOut("default, the server will accept connections on UDP port 213, though this can be\n");
+                writeOut("changed.  Once the server is started, DosBox will automatically start a client\n");
+                writeOut("connection to the IPX tunneling server.\n\n");
+                writeOut("The syntax for IPXNET STARTSERVER is:\n\n");
+                writeOut("IPXNET STARTSERVER <port>\n\n");
                 return;
             }
             // Help on the stop server command
             if("stopserver".equals(helpStr)) {
-                WriteOut("IPXNET STOPSERVER stops the IPX tunneling server running on this DosBox\nsession.");
-                WriteOut("  Care should be taken to ensure that all other connections have\nterminated ");
-                WriteOut("as well sinnce stoping the server may cause lockups on other\nmachines still using ");
-                WriteOut("the IPX tunneling server.\n\n");
-                WriteOut("The syntax for IPXNET STOPSERVER is:\n\n");
-                WriteOut("IPXNET STOPSERVER\n\n");
+                writeOut("IPXNET STOPSERVER stops the IPX tunneling server running on this DosBox\nsession.");
+                writeOut("  Care should be taken to ensure that all other connections have\nterminated ");
+                writeOut("as well sinnce stoping the server may cause lockups on other\nmachines still using ");
+                writeOut("the IPX tunneling server.\n\n");
+                writeOut("The syntax for IPXNET STOPSERVER is:\n\n");
+                writeOut("IPXNET STOPSERVER\n\n");
                 return;
             }
             // Help on the ping command
             if("ping".equals(helpStr)) {
-                WriteOut("IPXNET PING broadcasts a ping request through the IPX tunneled network.  In    \n");
-                WriteOut("response, all other connected computers will respond to the ping and report\n");
-                WriteOut("the time it took to receive and send the ping message.\n\n");
-                WriteOut("The syntax for IPXNET PING is:\n\n");
-                WriteOut("IPXNET PING\n\n");
+                writeOut("IPXNET PING broadcasts a ping request through the IPX tunneled network.  In    \n");
+                writeOut("response, all other connected computers will respond to the ping and report\n");
+                writeOut("the time it took to receive and send the ping message.\n\n");
+                writeOut("The syntax for IPXNET PING is:\n\n");
+                writeOut("IPXNET PING\n\n");
                 return;
             }
             // Help on the status command
             if("status".equals(helpStr)) {
-                WriteOut("IPXNET STATUS reports the current state of this DosBox's sessions IPX tunneling\n");
-                WriteOut("network.  For a list of the computers connected to the network use the IPXNET \n");
-                WriteOut("PING command.\n\n");
-                WriteOut("The syntax for IPXNET STATUS is:\n\n");
-                WriteOut("IPXNET STATUS\n\n");
+                writeOut("IPXNET STATUS reports the current state of this DosBox's sessions IPX tunneling\n");
+                writeOut("network.  For a list of the computers connected to the network use the IPXNET \n");
+                writeOut("PING command.\n\n");
+                writeOut("The syntax for IPXNET STATUS is:\n\n");
+                writeOut("IPXNET STATUS\n\n");
                 return;
             }
         }
 
-        public void Run()
+        @Override
+        public void run()
         {
-            WriteOut("IPX Tunneling utility for DosBox\n\n");
-            if(cmd.GetCount()==0) {
-                WriteOut("The syntax of this command is:\n\n");
-                WriteOut("IPXNET [ CONNECT | DISCONNECT | STARTSERVER | STOPSERVER | PING | HELP |\n         STATUS ]\n\n");
+            writeOut("IPX Tunneling utility for DosBox\n\n");
+            if(cmd.getCount()==0) {
+                writeOut("The syntax of this command is:\n\n");
+                writeOut("IPXNET [ CONNECT | DISCONNECT | STARTSERVER | STOPSERVER | PING | HELP |\n         STATUS ]\n\n");
                 return;
             }
 
-            if((temp_line=cmd.FindCommand(1))!=null) {
+            if((temp_line=cmd.findCommand(1))!=null) {
                 temp_line = temp_line.toLowerCase();
-                if("help".equals(temp_line)) {
-                    if((temp_line=cmd.FindCommand(2))==null) {
-                        WriteOut("The following are valid IPXNET commands:\n\n");
-                        WriteOut("IPXNET CONNECT        IPXNET DISCONNECT       IPXNET STARTSERVER\n");
-                        WriteOut("IPXNET STOPSERVER     IPXNET PING             IPXNET STATUS\n\n");
-                        WriteOut("To get help on a specific command, type:\n\n");
-                        WriteOut("IPXNET HELP command\n\n");
+                switch (temp_line) {
+                    case "help" -> {
+                        if ((temp_line = cmd.findCommand(2)) == null) {
+                            writeOut("The following are valid IPXNET commands:\n\n");
+                            writeOut("IPXNET CONNECT        IPXNET DISCONNECT       IPXNET STARTSERVER\n");
+                            writeOut("IPXNET STOPSERVER     IPXNET PING             IPXNET STATUS\n\n");
+                            writeOut("To get help on a specific command, type:\n\n");
+                            writeOut("IPXNET HELP command\n\n");
 
-                    } else {
-                        HelpCommand(temp_line);
-                        return;
-                    }
-                    return;
-                }
-                if("startserver".equals(temp_line)) {
-                    if(!isIpxServer) {
-                        if(incomingPacket.connected) {
-                            WriteOut("IPX Tunneling Client already connected to another server.  Disconnect first.\n");
+                        } else {
+                            HelpCommand(temp_line);
                             return;
                         }
-                        boolean startsuccess;
+                        return;
+                    }
+                    case "startserver" -> {
+                        if (!isIpxServer) {
+                            if (incomingPacket.connected) {
+                                writeOut("IPX Tunneling Client already connected to another server.  Disconnect first.\n");
+                                return;
+                            }
+                            boolean startsuccess;
+                            udpPort = 213;
+                            if ((temp_line = cmd.findCommand(2)) != null) {
+                                try {
+                                    udpPort = Integer.parseInt(temp_line);
+                                } catch (Exception e) {
+                                    logger.log(Level.ERROR, e.getMessage(), e);
+                                }
+                            }
+                            startsuccess = IPXServer.IPX_StartServer(udpPort);
+                            if (startsuccess) {
+                                writeOut("IPX Tunneling Server started\n");
+                                isIpxServer = true;
+                                ConnectToServer("localhost");
+                            } else {
+                                writeOut("IPX Tunneling Server failed to start.\n");
+                                if (udpPort < 1024)
+                                    writeOut("Try a port number above 1024. See IPXNET HELP CONNECT on how to specify a port.\n");
+                            }
+                        } else {
+                            writeOut("IPX Tunneling Server already started\n");
+                        }
+                        return;
+                    }
+                    case "stopserver" -> {
+                        if (!isIpxServer) {
+                            writeOut("IPX Tunneling Server not running in this DosBox session.\n");
+                        } else {
+                            isIpxServer = false;
+                            DisconnectFromServer(false);
+                            IPXServer.IPX_StopServer();
+                            writeOut("IPX Tunneling Server stopped.");
+                        }
+                        return;
+                    }
+                    case "connect" -> {
+                        String strHost;
+                        if (incomingPacket.connected) {
+                            writeOut("IPX Tunneling Client already connected.\n");
+                            return;
+                        }
+                        if ((temp_line = cmd.findCommand(2)) == null) {
+                            writeOut("IPX Server address not specified.\n");
+                            return;
+                        }
+                        strHost = temp_line;
+
                         udpPort = 213;
-                        if((temp_line=cmd.FindCommand(2))!=null) {
+                        if ((temp_line = cmd.findCommand(3)) != null) {
                             try {
                                 udpPort = Integer.parseInt(temp_line);
                             } catch (Exception e) {
-                                e.printStackTrace();
+                                logger.log(Level.ERROR, e.getMessage(), e);
                             }
                         }
-                        startsuccess = IPXServer.IPX_StartServer(udpPort);
-                        if(startsuccess) {
-                            WriteOut("IPX Tunneling Server started\n");
-                            isIpxServer = true;
-                            ConnectToServer("localhost");
+
+                        if (ConnectToServer(strHost)) {
+                            writeOut("IPX Tunneling Client connected to server at " + strHost + ".\n");
                         } else {
-                            WriteOut("IPX Tunneling Server failed to start.\n");
-                            if(udpPort < 1024) WriteOut("Try a port number above 1024. See IPXNET HELP CONNECT on how to specify a port.\n");
+                            writeOut("IPX Tunneling Client failed to connect to server at " + strHost + ".\n");
                         }
-                    } else {
-                        WriteOut("IPX Tunneling Server already started\n");
+                        return;
                     }
-                    return;
-                }
-                if("stopserver".equals(temp_line)) {
-                    if(!isIpxServer) {
-                        WriteOut("IPX Tunneling Server not running in this DosBox session.\n");
-                    } else {
-                        isIpxServer = false;
+                    case "disconnect" -> {
+                        if (!incomingPacket.connected) {
+                            writeOut("IPX Tunneling Client not connected.\n");
+                            return;
+                        }
+                        // TODO: Send a packet to the server notifying of disconnect
+                        writeOut("IPX Tunneling Client disconnected from server.\n");
                         DisconnectFromServer(false);
-                        IPXServer.IPX_StopServer();
-                        WriteOut("IPX Tunneling Server stopped.");
-                    }
-                    return;
-                }
-                if("connect".equals(temp_line)) {
-                    String strHost;
-                    if(incomingPacket.connected) {
-                        WriteOut("IPX Tunneling Client already connected.\n");
                         return;
                     }
-                    if((temp_line=cmd.FindCommand(2))==null) {
-                        WriteOut("IPX Server address not specified.\n");
-                        return;
-                    }
-                    strHost = temp_line;
-
-                    udpPort = 213;
-                    if((temp_line=cmd.FindCommand(3))!=null) {
-                        try {
-                            udpPort = Integer.parseInt(temp_line);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                    case "status" -> {
+                        writeOut("IPX Tunneling Status:\n\n");
+                        writeOut("Server status: ");
+                        if (isIpxServer) writeOut("ACTIVE\n");
+                        else writeOut("INACTIVE\n");
+                        writeOut("Client status: ");
+                        if (incomingPacket.connected) {
+                            writeOut("CONNECTED -- Server at " + ipxServConnIp.getHostAddress() + " port " + udpPort + "\n");
+                        } else {
+                            writeOut("DISCONNECTED\n");
                         }
-                    }
-
-                    if(ConnectToServer(strHost)) {
-                        WriteOut("IPX Tunneling Client connected to server at "+strHost+".\n");
-                    } else {
-                        WriteOut("IPX Tunneling Client failed to connect to server at "+strHost+".\n");
-                    }
-                    return;
-                }
-
-                if("disconnect".equals(temp_line)) {
-                    if(!incomingPacket.connected) {
-                        WriteOut("IPX Tunneling Client not connected.\n");
+                        if (isIpxServer) {
+                            // TODO
+                            writeOut("List of active connections:\n\n");
+                            int i;
+                            for (i = 0; i < SOCKETTABLESIZE; i++) {
+                                IPXAddress addr = IPXServer.IPX_isConnectedToServer(i);
+                                if (addr != null) {
+                                    writeOut("     " + addr.address.getHostAddress() + " from port " + addr.port + "\n");
+                                }
+                            }
+                            writeOut("\n");
+                        }
                         return;
                     }
-                    // TODO: Send a packet to the server notifying of disconnect
-                    WriteOut("IPX Tunneling Client disconnected from server.\n");
-                    DisconnectFromServer(false);
-                    return;
-                }
+                    case "ping" -> {
+                        /*Bit32u*/
+                        long ticks;
+                        IPXHeader pingHead = new IPXHeader();
 
-                if("status".equals(temp_line)) {
-                    WriteOut("IPX Tunneling Status:\n\n");
-                    WriteOut("Server status: ");
-                    if(isIpxServer) WriteOut("ACTIVE\n"); else WriteOut("INACTIVE\n");
-                    WriteOut("Client status: ");
-                    if(incomingPacket.connected) {
-                        WriteOut("CONNECTED -- Server at "+ipxServConnIp.getHostAddress()+" port "+udpPort+"\n");
-                    } else {
-                        WriteOut("DISCONNECTED\n");
-                    }
-                    if(isIpxServer) {
-                        // :TODO:
-                        WriteOut("List of active connections:\n\n");
-                        int i;
-                        for(i=0;i<SOCKETTABLESIZE;i++) {
-                            IPXAddress addr = IPXServer.IPX_isConnectedToServer(i);
-                            if(addr != null) {
-                                WriteOut("     "+addr.address.getHostAddress()+" from port "+addr.port+"\n");
+                        if (!incomingPacket.connected) {
+                            writeOut("IPX Tunneling Client not connected.\n");
+                            return;
+                        }
+                        Timer.TIMER_DelTickHandler(IPX_ClientLoop);
+                        writeOut("Sending broadcast ping:\n\n");
+                        pingSend();
+                        ticks = Main.GetTicks();
+                        while ((Main.GetTicks() - ticks) < 1500) {
+                            Callback.CALLBACK_Idle();
+                            if (pingCheck(pingHead)) {
+                                writeOut("Response from " + pingHead.src.addr.hostAsString() + ", port " + pingHead.src.addr.port() + " time=" + (Main.GetTicks() - ticks) + "ms\n");
                             }
                         }
-                        WriteOut("\n");
-                    }
-                    return;
-                }
-
-                if("ping".equals(temp_line)) {
-                    /*Bit32u*/long ticks;
-                    IPXHeader pingHead = new IPXHeader();
-
-                    if(!incomingPacket.connected) {
-                        WriteOut("IPX Tunneling Client not connected.\n");
+                        Timer.TIMER_AddTickHandler(IPX_ClientLoop);
                         return;
                     }
-                    Timer.TIMER_DelTickHandler(IPX_ClientLoop);
-                    WriteOut("Sending broadcast ping:\n\n");
-                    pingSend();
-                    ticks = Main.GetTicks();
-                    while((Main.GetTicks() - ticks) < 1500) {
-                        Callback.CALLBACK_Idle();
-                        if(pingCheck(pingHead)) {
-                            WriteOut("Response from "+pingHead.src.addr.hostAsString()+", port "+pingHead.src.addr.port()+" time="+String.valueOf(Main.GetTicks() - ticks)+"ms\n");
-                        }
-                    }
-                    Timer.TIMER_AddTickHandler(IPX_ClientLoop);
-                    return;
                 }
+
             }
         }
     }
 
-    static private Program.PROGRAMS_Main IPXNET_ProgramStart = new Program.PROGRAMS_Main() {
-        public Program call() {
-            return new IPXNET();
-        }
-    };
+    static private final Program.PROGRAMS_Main IPXNET_ProgramStart = IPXNET::new;
 
     private static final Callback.Handler IPX_ESRHandler = new Callback.Handler() {
+        @Override
         public /*Bitu*/int call() {
             if (Config.IPX_DEBUGMSG)
-                Log.log_msg("ESR: >>>>>>>>>>>>>>>" );
+                logger.log(Level.DEBUG, "ESR: >>>>>>>>>>>>>>>" );
             while(ESRList!=null) {
                 // LOG_IPX("ECB: SN%7d notified.", ESRList.SerialNumber);
                 if(ESRList.databuffer!=null) ESRList.writeData();
@@ -1253,20 +1262,21 @@ public class IPX extends Module_base {
             IO.IO_WriteB(0xa0,0x63);	//EOI11
             IO.IO_WriteB(0x20,0x62);	//EOI2
             if (Config.IPX_DEBUGMSG)
-                Log.log_msg("ESR: <<<<<<<<<<<<<<<");
+                logger.log(Level.DEBUG, "ESR: <<<<<<<<<<<<<<<");
             return Callback.CBRET_NONE;
         }
 
+        @Override
         public String getName() {
             return "IPX ESR";
         }
     };
 
 
-    private Callback callback_ipx = new Callback();
-    private Callback callback_esr = new Callback();
-    private Callback callback_ipxint = new Callback();
-    private /*RealPt*/IntRef old_73_vector = new IntRef(0);
+    private final Callback callback_ipx = new Callback();
+    private final Callback callback_esr = new Callback();
+    private final Callback callback_ipxint = new Callback();
+    private final /*RealPt*/IntRef old_73_vector = new IntRef(0);
     private static /*Bit16u*/int dospage;
 
     private IPX(Section configuration) {
@@ -1296,7 +1306,7 @@ public class IPX extends Module_base {
         /*PhysPt*/int phyDospage = Memory.PhysMake(dospage,0);
 
         if (Config.IPX_DEBUGMSG)
-            Log.log_msg("ESR callback address: "+Long.toString(phyDospage, 16)+", HandlerID "+call_ipxesr1);
+            logger.log(Level.DEBUG, "ESR callback address: "+Long.toString(phyDospage, 16)+", HandlerID "+call_ipxesr1);
 
         //save registers
         Memory.phys_writeb(phyDospage+0,0xFA);    // CLI
@@ -1357,16 +1367,18 @@ public class IPX extends Module_base {
 
     private static IPX test;
 
-    public static Section.SectionFunction IPX_ShutDown = new Section.SectionFunction() {
+    public static final Section.SectionFunction IPX_ShutDown = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test.close();
         }
     };
 
-    public static Section.SectionFunction IPX_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction IPX_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = new IPX(section);
-            section.AddDestroyFunction(IPX_ShutDown,true);
+            section.addDestroyFunction(IPX_ShutDown,true);
         }
     };
 }

@@ -12,23 +12,29 @@ import jdos.win.loader.BuiltinModule;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.lang.reflect.Method;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class IUnknown extends WinAPI {
+
+    private static final Logger logger = System.getLogger(IUnknown.class.getName());
+
     // static private final int OFFSET_VTABLE = 0;
     static private final int OFFSET_REF = 4;
     static private final int OFFSET_CLEANUP = 8;
     static public final int OFFSET_DATA_START = 12;
 
-    static private Hashtable vtables = new Hashtable();
-    static private Hashtable names = new Hashtable();
+    static private final Map<String, Integer> vtables = new HashMap<>();
+    static private final Map<Integer, String> names = new HashMap<>();
 
     static protected int getVTable(String name) {
-        Integer result =  (Integer)vtables.get(name);
+        Integer result = vtables.get(name);
         if (result == null)
             return 0;
-        return result.intValue();
+        return result;
     }
 
     static protected int getData(int This, int offset) {
@@ -57,7 +63,7 @@ public class IUnknown extends WinAPI {
         return address+4;
     }
 
-    static protected int add(int address, Class c, String methodName, String[] params) {
+    static protected int add(int address, Class<?> c, String methodName, String[] params) {
         Method[] methods = c.getMethods();
         for (Method method: methods) {
             if (method.getName().equals(methodName)) {
@@ -74,8 +80,8 @@ public class IUnknown extends WinAPI {
 
     static protected int allocateVTable(String name,  int functions) {
         int result = WinSystem.getCurrentProcess().heap.alloc((functions+3)*4, false);
-        vtables.put(name, new Integer(result));
-        names.put(new Integer(result), name);
+        vtables.put(name, result);
+        names.put(result, name);
         return result;
     }
 
@@ -100,10 +106,12 @@ public class IUnknown extends WinAPI {
     }
 
     // HRESULT QueryInterface(this, REFIID riid, void** ppvObject)
-    static private Callback.Handler QueryInterface = new HandlerBase() {
+    static private final Callback.Handler QueryInterface = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IUnknown.QueryInterface";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int riid = CPU.CPU_Pop32();
@@ -123,10 +131,12 @@ public class IUnknown extends WinAPI {
     }
 
     // ULONG AddRef(this)
-    static private Callback.Handler AddRef = new HandlerBase() {
+    static private final Callback.Handler AddRef = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IUnknown.AddRef";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = AddRef(This);
@@ -135,13 +145,13 @@ public class IUnknown extends WinAPI {
 
     static public int Release(int This) {
         if (WinAPI.LOG)
-            System.out.println(names.get(new Integer(getVTable(This)))+".Release");
+            logger.log(Level.DEBUG,names.get(getVTable(This))+".Release");
         int refCount = getRefCount(This);
         refCount--;
         setRefCount(This, refCount);
         if (refCount == 0) {
             if (WinAPI.LOG)
-                System.out.println("    Freed");
+                logger.log(Level.DEBUG,"    Freed");
             int cb = Memory.mem_readd(This+OFFSET_CLEANUP);
             if (cb != 0) {
                 CPU.CPU_Push32(This);
@@ -153,10 +163,12 @@ public class IUnknown extends WinAPI {
     }
 
     // ULONG Release(this)
-    static private Callback.Handler Release = new HandlerBase() {
+    static private final Callback.Handler Release = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IUnknown.Release";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = Release(This);

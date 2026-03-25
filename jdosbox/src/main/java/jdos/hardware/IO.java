@@ -2,7 +2,7 @@ package jdos.hardware;
 
 import jdos.Dosbox;
 import jdos.cpu.*;
-import jdos.misc.Log;
+
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 
@@ -18,20 +18,21 @@ public class IO extends Module_base {
                 entries[i] = new IOF_Entry();
         }
         /*Bitu*/int used;
-        IOF_Entry[] entries = new IOF_Entry[IOF_QUEUESIZE];
+        final IOF_Entry[] entries = new IOF_Entry[IOF_QUEUESIZE];
     }
     private static IOF_Queue iof_queue;
 
-    private static CPU.CPU_Decoder IOFaultCore = new CPU.CPU_Decoder() {
+    private static final CPU.CPU_Decoder IOFaultCore = new CPU.CPU_Decoder() {
+        @Override
         public /*Bits*/int call() {
             CPU.CPU_CycleLeft+=CPU.CPU_Cycles;
             CPU.CPU_Cycles=1;
             /*Bits*/int ret= Core_full.CPU_Core_Full_Run.call();
             CPU.CPU_CycleLeft+=CPU.CPU_Cycles;
-            if (ret<0) Log.exit("Got a dosbox close machine in IO-fault core?");
+            if (ret<0) throw new IllegalStateException("Got a dosbox close machine in IO-fault core?");
             if (ret!=0)
                 return ret;
-            if (iof_queue.used==0) Log.exit("IO-faul Core without IO-faul");
+            if (iof_queue.used==0) throw new IllegalStateException("IO-faul Core without IO-faul");
             IOF_Entry entry=iof_queue.entries[iof_queue.used-1];
             if (entry.cs == CPU_Regs.reg_csVal.dword && entry.eip==CPU_Regs.reg_eip)
                 return -1;
@@ -151,9 +152,9 @@ public class IO extends Module_base {
 //        if (port == 0x3c9 || port == 0x3d4 || port == 0x3d5)
 //            return;
 //        if (write) {
-//            System.out.println("write 0x"+Integer.toHexString(port)+" "+IoHandler.io_writehandlers[width][port]+" val="+val);
+//            logger.log(Level.DEBUG,"write 0x"+Integer.toHexString(port)+" "+IoHandler.io_writehandlers[width][port]+" val="+val);
 //        } else {
-//            System.out.println("read 0x"+Integer.toHexString(port)+" "+IoHandler.io_readhandlers[width][port]+" val="+val);
+//            logger.log(Level.DEBUG,"read 0x"+Integer.toHexString(port)+" "+IoHandler.io_readhandlers[width][port]+" val="+val);
 //        }
     }
 
@@ -165,7 +166,7 @@ public class IO extends Module_base {
             old_cpudecoder=CPU.cpudecoder;
             CPU.cpudecoder=IOFaultCore;
             IOF_Entry entry=iof_queue.entries[iof_queue.used++];
-            entry.cs=(int)CPU_Regs.reg_csVal.dword;
+            entry.cs= CPU_Regs.reg_csVal.dword;
             entry.eip=CPU_Regs.reg_eip;
             CPU.CPU_Push16(CPU_Regs.reg_csVal.dword);
             CPU.CPU_Push16(CPU_Regs.reg_ip());
@@ -370,17 +371,19 @@ public class IO extends Module_base {
 	    IoHandler.IO_FreeWriteHandler(0,IoHandler.IO_MA,IoHandler.IO_MAX);
     }
     static IO test;
-    public static Section.SectionFunction IO_Destroy = new Section.SectionFunction() {
+    public static final Section.SectionFunction IO_Destroy = new Section.SectionFunction() {
+        @Override
         public void call(Section section) {
             test = null;
             iof_queue = null;
         }
     };
-    public static Section.SectionFunction IO_Init = new Section.SectionFunction() {
+    public static final Section.SectionFunction IO_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section sec) {
             iof_queue = new IOF_Queue();
             test = new IO(sec);
-            sec.AddDestroyFunction(IO_Destroy);
+            sec.addDestroyFunction(IO_Destroy);
         }
     };
 }

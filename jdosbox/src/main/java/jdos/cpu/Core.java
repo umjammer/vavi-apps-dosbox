@@ -1,11 +1,13 @@
 package jdos.cpu;
 
 import jdos.hardware.Memory;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 
 public abstract class Core extends CPU_Regs {
+
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+
     static public /*Bitu*/int opcode_index;
     static public /*PhysPt*/int cseip;
     static public int base_val_ds;
@@ -190,7 +192,7 @@ public abstract class Core extends CPU_Regs {
                 break;
         }
 
-        if (Log.level<= LogSeverities.LOG_NORMAL) Log.log(LogTypes.LOG_CPU,LogSeverities.LOG_NORMAL,"illegal lock sequence: eip=0x"+CPU_Regs.reg_eip);
+        LOG_CPU.log(Level.DEBUG, "illegal lock sequence: eip=0x"+CPU_Regs.reg_eip);
         return true;
     }
     final static public int PREFIX_ADDR = 0x1;

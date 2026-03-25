@@ -105,6 +105,7 @@ public class WinBitmap extends WinGDI {
         bitsOwner = true;
     }
 
+    @Override
     protected void onFree() {
         if (bitsOwner) {
             if (address!=0)

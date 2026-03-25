@@ -1,5 +1,8 @@
 package jdos.win.kernel;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.Callback;
 import jdos.hardware.Memory;
@@ -10,12 +13,15 @@ import jdos.win.builtin.kernel32.WinProcess;
 // Based heavily on James Molloy's work at http://www.jamesmolloy.co.uk/tutorial_html/6.-Paging.html
 
 public class KernelMemory {
-    static final private int PLACEMENT_START = 0x100000; // map the first meg for dos  :TODO: research not wasting 1MB per process
+
+    private static final Logger logger = System.getLogger(KernelMemory.class.getName());
+
+    static final private int PLACEMENT_START = 0x100000; // map the first meg for dos  TODO research not wasting 1MB per process
     int placement_address = PLACEMENT_START;
     KernelHeap heap = null;
     static private final int KHEAP_INITIAL_SIZE = 0x10000;
-    private long KHEAP_START = WinProcess.ADDRESS_KHEAP_START;
-    private long KHEAP_END = WinProcess.ADDRESS_KHEAP_END;
+    private static final long KHEAP_START = WinProcess.ADDRESS_KHEAP_START;
+    private static final long KHEAP_END = WinProcess.ADDRESS_KHEAP_END;
 
     public int kmalloc(int sz) {
         return kmalloc(sz, false, null);
@@ -278,7 +284,7 @@ public class KernelMemory {
             alloc_frame(get_page((int)i, true, kernel_directory), false, false);
         }
         if (placement_address>oldPlacement+0x1000) {
-            System.out.println("Kernel Heap padding was not large enough");
+            logger.log(Level.DEBUG,"Kernel Heap padding was not large enough");
             System.exit(0);
         }
         // Now, enable paging!
@@ -319,13 +325,15 @@ public class KernelMemory {
         interrupts.registerHandler(Interrupts.IRQ14, pageFaultHandler);
     }
 
-    Callback.Handler pageFaultHandler = new Callback.Handler() {
+    final Callback.Handler pageFaultHandler = new Callback.Handler() {
+        @Override
         public int call() {
-            System.out.println("Page Fault");
+            logger.log(Level.DEBUG,"Page Fault");
             System.exit(0);
             return 0;
         }
 
+        @Override
         public String getName() {
             return "PageFault";
         }

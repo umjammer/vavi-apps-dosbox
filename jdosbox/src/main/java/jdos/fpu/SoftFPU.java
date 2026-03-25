@@ -4,12 +4,14 @@ import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.debug.Debug;
 import jdos.hardware.Memory;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.util.MicroDouble;
 
 public class SoftFPU {
+
+    private static final Logger LOG_FPU = System.getLogger("LOG_FPU");
+
     static public void log() {
         Debug.log_long(Debug.FPU_REG0, fpu.regs[0].ll());
         Debug.log_long(Debug.FPU_REG1, fpu.regs[1].ll());
@@ -58,7 +60,7 @@ public class SoftFPU {
 //            }
         }
         void ll(int lower, int upper) {
-            ll(lower & 0xFFFFFFFFl | ((upper & 0xFFFFFFFFl) << 32));
+            ll(lower & 0xFFFFFFFFL | ((upper & 0xFFFFFFFFL) << 32));
         }
         long ll() {
             return d;
@@ -67,7 +69,7 @@ public class SoftFPU {
             d = l;
         }
 
-        L l = new L();
+        final L l = new L();
         public long d;
     }
 
@@ -97,9 +99,9 @@ public class SoftFPU {
             for (int i=0;i<p_regs.length;i++)
                 p_regs[i] = new FPU_P_Reg();
         }
-        public FPU_Reg[]		regs=new FPU_Reg[9];
-        public FPU_P_Reg[]	    p_regs=new FPU_P_Reg[9];
-        public int[]		    tags=new int[9];
+        public final FPU_Reg[]		regs=new FPU_Reg[9];
+        public final FPU_P_Reg[]	    p_regs=new FPU_P_Reg[9];
+        public final int[]		    tags=new int[9];
         public /*Bit16u*/int   cw,cw_mask_all;
         public /*Bit16u*/int   sw;
         public /*Bitu*/int	    top;
@@ -123,8 +125,10 @@ public class SoftFPU {
     }
 
     static private void FPU_SetCW(/*Bitu*/int word){
-        fpu.cw = (/*Bit16u*/int)word;
-        fpu.cw_mask_all = (/*Bit16u*/int)(word | 0x3f);
+        /*Bit16u*/
+        fpu.cw = word;
+        /*Bit16u*/
+        fpu.cw_mask_all = word | 0x3f;
         fpu.round = ((word >>> 10) & 3);
     }
 
@@ -226,7 +230,7 @@ public class SoftFPU {
 
     static private class Test {
         /*Bit16s*/short begin;
-        FPU_Reg eind=new FPU_Reg();
+        final FPU_Reg eind=new FPU_Reg();
     }
     static private /*Real64*/long FPU_FLD80(/*PhysPt*/int addr) {
         Test test = new Test();
@@ -238,12 +242,12 @@ public class SoftFPU {
         /*Bit64s*/long exp64final = ((exp64 >0)?blah:-blah) +BIAS64;
 
         // 0x3FFF is for rounding
-        /*Bit64s*/long mant64 = ((test.eind.ll()+0x3FF) >>> 11) & 0xfffffffffffffl;
+        /*Bit64s*/long mant64 = ((test.eind.ll()+0x3FF) >>> 11) & 0xfffffffffffffL;
         /*Bit64s*/long sign = (test.begin&0x8000)!=0?1:0;
         FPU_Reg result=new FPU_Reg();
         result.ll((sign <<63)|(exp64final << 52)| mant64);
 
-        if(test.eind.ll() == 0x8000000000000000l && (test.begin & 0x7fff) == 0x7fff) {
+        if(test.eind.ll() == 0x8000000000000000L && (test.begin & 0x7fff) == 0x7fff) {
 		    //Detect INF and -INF (score 3.11 when drawing a slur.)
 		    result.d = sign!=0?MicroDouble.NEGATIVE_INFINITY:MicroDouble.POSITIVE_INFINITY;
 	    }
@@ -254,14 +258,14 @@ public class SoftFPU {
 
     static private void FPU_ST80(/*PhysPt*/int addr,/*Bitu*/int reg) {
         Test test = new Test();
-        /*Bit64s*/long sign80 = (fpu.regs[reg].ll() & (0x8000000000000000l))!=0?1:0;
-        /*Bit64s*/long exp80 =  fpu.regs[reg].ll() & (0x7ff0000000000000l);
+        /*Bit64s*/long sign80 = (fpu.regs[reg].ll() & (0x8000000000000000L))!=0?1:0;
+        /*Bit64s*/long exp80 =  fpu.regs[reg].ll() & (0x7ff0000000000000L);
         /*Bit64s*/long exp80final = (exp80>>52);
-        /*Bit64s*/long mant80 = fpu.regs[reg].ll() & (0x000fffffffffffffl);
+        /*Bit64s*/long mant80 = fpu.regs[reg].ll() & (0x000fffffffffffffL);
         /*Bit64s*/long mant80final = (mant80 << 11);
         if(fpu.regs[reg].d != 0){ //Zero is a special case
             // Elvira wants the 8 and tcalc doesn't
-            mant80final |= 0x8000000000000000l;
+            mant80final |= 0x8000000000000000L;
             //Ca-cyber doesn't like this when result is zero.
             exp80final += (BIAS80 - BIAS64);
         }
@@ -519,7 +523,7 @@ public class SoftFPU {
     }
 
     static private void FPU_FXAM(){
-        if((fpu.regs[fpu.top].ll() & 0x8000000000000000l)!=0)	//sign
+        if((fpu.regs[fpu.top].ll() & 0x8000000000000000L)!=0)	//sign
         {
             FPU_SET_C1(1);
         }
@@ -586,7 +590,7 @@ public class SoftFPU {
         } else {
             cw     = Memory.mem_readd(addr + 0);
             fpu.sw = Memory.mem_readd(addr + 4);
-            tagbig = Memory.mem_readd(addr + 8) & 0xFFFFFFFFl;
+            tagbig = Memory.mem_readd(addr + 8) & 0xFFFFFFFFL;
             tag    = (int)(tagbig);
         }
         FPU_SetTag(tag);
@@ -619,7 +623,7 @@ public class SoftFPU {
         // if double ever uses a different base please correct this function
 
         FPU_Reg test = new FPU_Reg(fpu.regs[fpu.top]);
-        /*Bit64s*/long exp80 =  test.ll() & 0x7ff0000000000000l;
+        /*Bit64s*/long exp80 =  test.ll() & 0x7ff0000000000000L;
         /*Bit64s*/long exp80final = (exp80>>52) - BIAS64;
         exp80final = MicroDouble.longToDouble(exp80final);
         /*Real64*/long mant = MicroDouble.div(test.d , MicroDouble.pow(MicroDouble.TWO, exp80final));
@@ -699,7 +703,7 @@ public class SoftFPU {
         FPU_FCOM(op1,8);
     }
 
-    public static FPU_rec fpu=new FPU_rec();
+    public static final FPU_rec fpu=new FPU_rec();
 
     static private void FPU_FLDCW(/*PhysPt*/int addr){
         /*Bit16u*/int temp = Memory.mem_readw(addr);
@@ -801,7 +805,7 @@ public class SoftFPU {
             FPU_FLD_F32(addr,fpu.top);
             break;
         case 0x01: /* UNKNOWN */
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU, LogSeverities.LOG_WARN,"ESC EA 1:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC EA 1:Unhandled group "+group+" subfunction "+sub);
             break;
         case 0x02: /* FST float*/
             FPU_FST_F32(addr);
@@ -823,7 +827,7 @@ public class SoftFPU {
             Memory.mem_writew(addr,fpu.cw);
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC EA 1:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC EA 1:Unhandled group "+group+" subfunction "+sub);
             break;
         }
     }
@@ -859,7 +863,7 @@ public class SoftFPU {
                 break;
             case 0x02:       /* UNKNOWN */
             case 0x03:       /* ILLEGAL */
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
                 break;
             case 0x04:       /* FTST */
                 FPU_FTST();
@@ -869,7 +873,7 @@ public class SoftFPU {
                 break;
             case 0x06:       /* FTSTP (cyrix)*/
             case 0x07:       /* UNKNOWN */
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
                 break;
             }
             break;
@@ -897,7 +901,7 @@ public class SoftFPU {
                 FPU_FLDZ();
                 break;
             case 0x07:       /* ILLEGAL */
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
                 break;
             }
             break;
@@ -928,7 +932,7 @@ public class SoftFPU {
                 fpu.top = (fpu.top + 1) & 7;
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
                 break;
             }
             break;
@@ -959,12 +963,12 @@ public class SoftFPU {
                 FPU_FCOS();
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
                 break;
             }
             break;
             default:
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 1:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 1:Unhandled group "+group+" subfunction "+sub);
         }
     }
 
@@ -987,12 +991,12 @@ public class SoftFPU {
                 FPU_FPOP();
                 break;
             default:
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 2:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 2:Unhandled group "+group+" subfunction "+sub);
                 break;
             }
             break;
         default:
-               if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 2:Unhandled group "+group+" subfunction "+sub);
+               LOG_FPU.log(Level.WARNING,"ESC 2:Unhandled group "+group+" subfunction "+sub);
             break;
         }
     }
@@ -1007,7 +1011,7 @@ public class SoftFPU {
             FPU_FLD_I32(addr,fpu.top);
             break;
         case 0x01:	/* FISTTP */
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 3 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 3 EA:Unhandled group "+group+" subfunction "+sub);
             break;
         case 0x02:	/* FIST */
             FPU_FST_I32(addr);
@@ -1025,7 +1029,7 @@ public class SoftFPU {
             FPU_FPOP();
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 3 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 3 EA:Unhandled group "+group+" subfunction "+sub);
         }
     }
 
@@ -1035,27 +1039,27 @@ public class SoftFPU {
         switch (group) {
         case 0x04:
             switch (sub) {
-            case 0x00:				//FNENI
-            case 0x01:				//FNDIS
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_ERROR,"8087 only fpu code used esc 3: group 4: subfuntion :"+sub);
+            case 0x00:				// FNENI
+            case 0x01:				// FNDIS
+                LOG_FPU.log(Level.ERROR,"8087 only fpu code used esc 3: group 4: subfuntion :"+sub);
                 break;
-            case 0x02:				//FNCLEX FCLEX
+            case 0x02:				// FNCLEX FCLEX
                 FPU_FCLEX();
                 break;
-            case 0x03:				//FNINIT FINIT
+            case 0x03:				// FNINIT FINIT
                 FPU_FINIT();
                 break;
-            case 0x04:				//FNSETPM
-            case 0x05:				//FRSTPM
-//			Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_ERROR,"80267 protected mode (un)set. Nothing done");
+            case 0x04:				// FNSETPM
+            case 0x05:				// FRSTPM
+//			LOG_FPU.log(Level.ERROR,"80267 protected mode (un)set. Nothing done");
                 FPU_FNOP();
                 break;
             default:
-                Log.exit("ESC 3:ILLEGAL OPCODE group "+group+" subfunction "+sub);
+                throw new IllegalStateException("ESC 3:ILLEGAL OPCODE group "+group+" subfunction "+sub);
             }
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 3:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 3:Unhandled group "+group+" subfunction "+sub);
             break;
         }
     }
@@ -1111,7 +1115,7 @@ public class SoftFPU {
             FPU_FLD_F64(addr,fpu.top);
             break;
         case 0x01:  /* FISTTP longint*/
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 5 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 5 EA:Unhandled group "+group+" subfunction "+sub);
             break;
         case 0x02:   /* FST double real*/
             FPU_FST_F64(addr);
@@ -1132,7 +1136,7 @@ public class SoftFPU {
             //seems to break all dos4gw games :)
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 5 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 5 EA:Unhandled group "+group+" subfunction "+sub);
         }
     }
 
@@ -1161,7 +1165,7 @@ public class SoftFPU {
             FPU_FPOP();
             break;
         default:
-        if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 5:Unhandled group "+group+" subfunction "+sub);
+        LOG_FPU.log(Level.WARNING,"ESC 5:Unhandled group "+group+" subfunction "+sub);
         break;
         }
     }
@@ -1189,7 +1193,7 @@ public class SoftFPU {
             break;	/* TODO IS THIS ALLRIGHT ????????? */
         case 0x03:  /*FCOMPP*/
             if(sub != 1) {
-                if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 6:Unhandled group "+group+" subfunction "+sub);
+                LOG_FPU.log(Level.WARNING,"ESC 6:Unhandled group "+group+" subfunction "+sub);
                 return;
             }
             FPU_FCOM(fpu.top,STV(1));
@@ -1223,7 +1227,7 @@ public class SoftFPU {
             FPU_FLD_I16(addr,fpu.top);
             break;
         case 0x01:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 7 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 7 EA:Unhandled group "+group+" subfunction "+sub);
             break;
         case 0x02:   /* FIST Bit16s */
             FPU_FST_I16(addr);
@@ -1249,7 +1253,7 @@ public class SoftFPU {
             FPU_FPOP();
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 7 EA:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 7 EA:Unhandled group "+group+" subfunction "+sub);
             break;
         }
     }
@@ -1277,12 +1281,12 @@ public class SoftFPU {
                     CPU_Regs.reg_eax.word(fpu.sw);
                     break;
                 default:
-                    if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 7:Unhandled group "+group+" subfunction "+sub);
+                    LOG_FPU.log(Level.WARNING,"ESC 7:Unhandled group "+group+" subfunction "+sub);
                     break;
             }
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_WARN) Log.log(LogTypes.LOG_FPU,LogSeverities.LOG_WARN,"ESC 7:Unhandled group "+group+" subfunction "+sub);
+            LOG_FPU.log(Level.WARNING,"ESC 7:Unhandled group "+group+" subfunction "+sub);
             break;
         }
     }

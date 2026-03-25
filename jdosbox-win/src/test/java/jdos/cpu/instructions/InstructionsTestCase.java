@@ -13,7 +13,7 @@ import junit.framework.TestCase;
 abstract public class InstructionsTestCase extends TestCase {
     // static CPU.CPU_Decoder decoder = Core_normal.CPU_Core_Normal_Run;
     //static CPU.CPU_Decoder decoder = Core_dynamic.CPU_Core_Dynamic_Run;
-    static CPU.CPU_Decoder decoder = Core_switch.CPU_Core_Switch_Run;
+    static final CPU.CPU_Decoder decoder = Core_switch.CPU_Core_Switch_Run;
     protected int cseip = 0x10000;
     protected final static int MEM_BASE_DS = 0x2000;
     protected final static int MEM_BASE_SS = 0x3000;
@@ -250,7 +250,7 @@ abstract public class InstructionsTestCase extends TestCase {
         rm-=0xC1;
         newInstruction(op);
         pushIb((byte)rm);
-        pushIw((short)value);
+        pushIw(value);
         Memory.mem_writew(MEM_BASE_DS, eb);
         Memory.mem_writew(MEM_BASE_DS-2,0xCDEF);
         Memory.mem_writew(MEM_BASE_DS+2,0xCDEF);
@@ -603,9 +603,10 @@ abstract public class InstructionsTestCase extends TestCase {
         CPU_Regs.reg_esi.dword(0);
         CPU_Regs.reg_edi.dword(0);
     }
-    Section_prop dosbox_prop = new Section_prop("dosbox");
-    Section_prop cpu_prop = new Section_prop("cpu");
+    final Section_prop dosbox_prop = new Section_prop("dosbox");
+    final Section_prop cpu_prop = new Section_prop("cpu");
 
+    @Override
     protected void setUp() throws java.lang.Exception  {
         super.setUp();
 
@@ -656,9 +657,10 @@ abstract public class InstructionsTestCase extends TestCase {
         DecodeBlock.compileThreshold = 1;
         Compiler.min_block_size = 1;
     }
+    @Override
     protected void tearDown() throws java.lang.Exception {
-        dosbox_prop.ExecuteDestroy(true);
-        cpu_prop.ExecuteDestroy(true);
+        dosbox_prop.executeDestroy(true);
+        cpu_prop.executeDestroy(true);
         super.tearDown();
     }
 }

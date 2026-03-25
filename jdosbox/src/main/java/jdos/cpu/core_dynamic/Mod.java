@@ -2,87 +2,87 @@ package jdos.cpu.core_dynamic;
 
 public class Mod extends Helper {
     static public Reg eb(int rm) {
-        switch (rm & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_ah;
-            case 5: return reg_ch;
-            case 6: return reg_dh;
-            case 7: return reg_bh;
-        }
-        return null;
+        return switch (rm & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_ah;
+            case 5 -> reg_ch;
+            case 6 -> reg_dh;
+            case 7 -> reg_bh;
+            default -> null;
+        };
     }
 
     static public Reg gb(int rm) {
-        switch ((rm >> 3) & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_ah;
-            case 5: return reg_ch;
-            case 6: return reg_dh;
-            case 7: return reg_bh;
-        }
-        return null;
+        return switch ((rm >> 3) & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_ah;
+            case 5 -> reg_ch;
+            case 6 -> reg_dh;
+            case 7 -> reg_bh;
+            default -> null;
+        };
     }
 
     static public Reg ew(int rm) {
-        switch (rm & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_esp;
-            case 5: return reg_ebp;
-            case 6: return reg_esi;
-            case 7: return reg_edi;
-        }
-        return null;
+        return switch (rm & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_esp;
+            case 5 -> reg_ebp;
+            case 6 -> reg_esi;
+            case 7 -> reg_edi;
+            default -> null;
+        };
     }
 
     static public Reg gw(int rm) {
-        switch ((rm >> 3) & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_esp;
-            case 5: return reg_ebp;
-            case 6: return reg_esi;
-            case 7: return reg_edi;
-        }
-        return null;
+        return switch ((rm >> 3) & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_esp;
+            case 5 -> reg_ebp;
+            case 6 -> reg_esi;
+            case 7 -> reg_edi;
+            default -> null;
+        };
     }
 
     static public Reg ed(int rm) {
-        switch (rm & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_esp;
-            case 5: return reg_ebp;
-            case 6: return reg_esi;
-            case 7: return reg_edi;
-        }
-        return null;
+        return switch (rm & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_esp;
+            case 5 -> reg_ebp;
+            case 6 -> reg_esi;
+            case 7 -> reg_edi;
+            default -> null;
+        };
     }
 
     static public Reg gd(int rm) {
-        switch ((rm >> 3) & 7) {
-            case 0: return reg_eax;
-            case 1: return reg_ecx;
-            case 2: return reg_edx;
-            case 3: return reg_ebx;
-            case 4: return reg_esp;
-            case 5: return reg_ebp;
-            case 6: return reg_esi;
-            case 7: return reg_edi;
-        }
-        return null;
+        return switch ((rm >> 3) & 7) {
+            case 0 -> reg_eax;
+            case 1 -> reg_ecx;
+            case 2 -> reg_edx;
+            case 3 -> reg_ebx;
+            case 4 -> reg_esp;
+            case 5 -> reg_ebp;
+            case 6 -> reg_esi;
+            case 7 -> reg_edi;
+            default -> null;
+        };
     }
 
     static public EaaBase getEaa32(int rm) {

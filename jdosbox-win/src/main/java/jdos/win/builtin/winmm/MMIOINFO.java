@@ -70,7 +70,7 @@ public class MMIOINFO extends WinAPI {
     public int pchEndWrite;
     public int lBufOffset;
     public int lDiskOffset;
-    public int[] adwInfo = new int[3];
+    public final int[] adwInfo = new int[3];
     public int dwReserved1;
     public int dwReserved2;
     public int hmmio;

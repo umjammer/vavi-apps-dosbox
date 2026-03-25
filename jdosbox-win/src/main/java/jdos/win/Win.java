@@ -1,5 +1,10 @@
 package jdos.win;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.Dosbox;
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
@@ -26,16 +31,17 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.FilePath;
 import jdos.win.utils.Path;
 
-import java.util.Vector;
-
 public class Win extends WinAPI {
+
+    private static final Logger logger = System.getLogger(Win.class.getName());
+
     static private void disable_umb_ems_xms() {
         Section dos_sec = Dosbox.control.GetSection("dos");
-        dos_sec.ExecuteDestroy(false);
-        dos_sec.HandleInputline("umb=false");
-        dos_sec.HandleInputline("xms=false");
-        dos_sec.HandleInputline("ems=false");
-        dos_sec.ExecuteInit(false);
+        dos_sec.executeDestroy(false);
+        dos_sec.handleInputline("umb=false");
+        dos_sec.handleInputline("xms=false");
+        dos_sec.handleInputline("ems=false");
+        dos_sec.executeInit(false);
      }
 
     public static void panic(String msg) {
@@ -46,7 +52,7 @@ public class Win extends WinAPI {
     public static void exit() {
         Console.out("The Windows program has finished.  Rebooting in .. ");
         for (int i=5;i>0;i--) {
-            System.out.println(i);
+            logger.log(Level.DEBUG,i);
             try {Thread.sleep(1000);} catch (Exception e) {}
         }
         throw new Dos_programs.RebootException();
@@ -78,8 +84,8 @@ public class Win extends WinAPI {
         /*Bit8u*/char drive=(char)(Dos_files.DOS_GetDefaultDrive()+'A');
         StringRef dir = new StringRef();
         Dos_files.DOS_GetCurrentDir((short)0,dir);
-        String p = String.valueOf(drive)+":\\";
-        if (dir.value.length()>0) {
+        String p = drive +":\\";
+        if (!dir.value.isEmpty()) {
             p+=dir.value+"\\";
         }
         String winPath = p;
@@ -113,7 +119,7 @@ public class Win extends WinAPI {
     }
 
     static private boolean internalRun(String path, String winPath, String name) {
-        Vector paths = new Vector();
+        List<Path> paths = new ArrayList<>();
         paths.add(new Path(path, winPath));
 
         path = path.substring(0, path.length()-winPath.length()+3);
@@ -135,10 +141,12 @@ public class Win extends WinAPI {
             panic("Video memory needs to be at least 2MB");
         }
         Paging.PageHandler handler = new Paging.PageHandler() {
+            @Override
             public /*HostPt*/int GetHostReadPt(/*Bitu*/int phys_page) {
                 return phys_page << 12;
             }
 
+            @Override
             public /*HostPt*/int GetHostWritePt(/*Bitu*/int phys_page) {
                 return phys_page << 12;
             }

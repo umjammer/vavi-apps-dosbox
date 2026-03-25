@@ -12,7 +12,8 @@ import jdos.win.kernel.WinCallback;
 import jdos.win.system.Scheduler;
 import jdos.win.system.WinSystem;
 
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.Map;
 
 public class MMTime extends WinAPI {
     static final public int MMSYSTIME_MININTERVAL = 1;
@@ -29,12 +30,14 @@ public class MMTime extends WinAPI {
     static final public int TIME_CALLBACK_EVENT_PULSE = 0x0020;	/* callback is event - use PulseEvent */
     static final public int TIME_KILL_SYNCHRONOUS =     0x0100;
 
-    static private Callback.Handler mmTimerThread = new HandlerBase() {
+    static private final Callback.Handler mmTimerThread = new HandlerBase() {
+        @Override
         public String getName() {
             return "mmTimerThread";
         }
         private long lastCall;
 
+        @Override
         public void onCall() {
             int esp = CPU_Regs.reg_esp.dword-4;
             int eip = CPU.CPU_Pop32();
@@ -47,7 +50,7 @@ public class MMTime extends WinAPI {
             CPU_Regs.reg_esp.dword = esp; // protect our variables in the stack
             WinThread thread = WinThread.get(threadHandle);
             long start = System.currentTimeMillis();
-            //System.out.println("last call "+(start-lastCall)+"ms");
+            //logger.log(Level.DEBUG,"last call "+(start-lastCall)+"ms");
             WinSystem.call(callback, id, 0, dwUser, 0, 0);
             //lastCall = System.currentTimeMillis();
             CPU_Regs.reg_eip = eip;
@@ -61,11 +64,11 @@ public class MMTime extends WinAPI {
     };
 
     static private class MMTimer extends Thread {
-        int delay;
-        int callback;
-        int dwUser;
-        int flags;
-        int id;
+        final int delay;
+        final int callback;
+        final int dwUser;
+        final int flags;
+        final int id;
         final WinThread thread;
         boolean bExit = false;
 
@@ -106,6 +109,7 @@ public class MMTime extends WinAPI {
             }
         }
 
+        @Override
         public void run() {
             while(!bExit) {
                 try {sleep(delay);} catch (Exception e) {}
@@ -126,7 +130,7 @@ public class MMTime extends WinAPI {
         }
     }
 
-    static private Hashtable<Integer, MMTimer> timers = new Hashtable<Integer, MMTimer>();
+    static private final Map<Integer, MMTimer> timers = new HashMap<>();
 
     // MMRESULT timeBeginPeriod(UINT uPeriod)
     static public int timeBeginPeriod(int wPeriod) {

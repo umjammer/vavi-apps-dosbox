@@ -1,11 +1,17 @@
 package jdos.hardware;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Paging;
 import jdos.gui.Render;
 import jdos.ints.Int10_vesa;
 
 public class VBE {
+
+    private static final Logger logger = System.getLogger(VBE.class.getName());
+
     static public boolean initialized = false;
     static public int pageCount = 0;
 
@@ -53,11 +59,13 @@ public class VBE {
     }
 
     static final private IoHandler.IO_ReadHandler vbe_read_index = new IoHandler.IO_ReadHandler() {
+        @Override
         public int call(int port, int iolen) {
             return vbeIndex;
         }
     };
     static final private IoHandler.IO_ReadHandler vbe_read_data = new IoHandler.IO_ReadHandler() {
+        @Override
         public int call(int port, int iolen) {
             int val = 0;
             if (vbeIndex<VBE_DISPI_INDEX_NB) {
@@ -73,7 +81,7 @@ public class VBE {
                             val = VBE_DISPI_MAX_BPP;
                             break;
                         default:
-                            System.out.println("Ouch");
+                            logger.log(Level.DEBUG,"Ouch");
                     }
                 } else {
                     switch (vbeIndex) {
@@ -97,20 +105,22 @@ public class VBE {
             } else if (vbeIndex == VBE_DISPI_INDEX_VIDEO_MEMORY_64K) {
                 val = VGA.vga.vmemsize >>> 16;
             }
-            System.out.println("VBE Read "+vbeIndex+" = "+val+" eip=0x"+Integer.toHexString(CPU_Regs.reg_eip));
+            logger.log(Level.DEBUG,"VBE Read "+vbeIndex+" = "+val+" eip=0x"+Integer.toHexString(CPU_Regs.reg_eip));
             return val;
         }
     };
 
     static final private IoHandler.IO_WriteHandler vbe_write_index  = new IoHandler.IO_WriteHandler() {
+        @Override
         public void call(/*Bitu*/int port, /*Bitu*/int val, /*Bitu*/int iolen) {
             vbeIndex = val;
         }
     };
 
     static final private IoHandler.IO_WriteHandler vbe_write_data  = new IoHandler.IO_WriteHandler() {
+        @Override
         public void call(/*Bitu*/int port, /*Bitu*/int data, /*Bitu*/int iolen) {
-            System.out.println("VBE Write "+vbeIndex+"="+data+" eip=0x"+Integer.toHexString(CPU_Regs.reg_eip));
+            logger.log(Level.DEBUG,"VBE Write "+vbeIndex+"="+data+" eip=0x"+Integer.toHexString(CPU_Regs.reg_eip));
             if (vbeIndex <= VBE_DISPI_INDEX_NB) {
                 switch(vbeIndex) {
                     case VBE_DISPI_INDEX_ID:
@@ -220,7 +230,7 @@ public class VBE {
                             //VGA.vga.crtc.read_only = true;
                         } else {
                             /* XXX: the bios should do that */
-                            // :TODO:
+                            // TODO
                             vbeLineOffset = 0;
                         }
                         vbeRegs[vbeIndex] = data;
@@ -249,7 +259,7 @@ public class VBE {
                     case VBE_DISPI_INDEX_Y_OFFSET:
                     {
                         vbeRegs[vbeIndex] = data;
-                        // :TODO:
+                        // TODO
                         /*
                         vbeStartAddress = vbeLineOffset * vbeRegs[VBE_DISPI_INDEX_Y_OFFSET];
                         int x = vbeRegs[VBE_DISPI_INDEX_X_OFFSET];
@@ -272,11 +282,13 @@ public class VBE {
         public Bochs_LFB_Handler() {
             flags=Paging.PFLAG_READABLE|Paging.PFLAG_WRITEABLE|Paging.PFLAG_NOCODE;
         }
+        @Override
         public /*HostPt*/int GetHostReadPt( /*Bitu*/int phys_page ) {
             phys_page -= 0xE0000;
             return VGA.vga.mem.linear+((VGA.vga.svga.bank_read_full+phys_page*4096)&(VGA.vga.vmemwrap-1));
             //return VGA.vga.mem.linear_orgptr + (phys_page << 12);
         }
+        @Override
         public /*HostPt*/int GetHostWritePt( /*Bitu*/int phys_page ) {
             return VGA.vga.mem.linear+((VGA.vga.svga.bank_write_full+phys_page*4096)&(VGA.vga.vmemwrap-1));
             //return GetHostReadPt( phys_page );

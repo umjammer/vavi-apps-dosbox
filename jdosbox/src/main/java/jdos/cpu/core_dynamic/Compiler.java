@@ -7,7 +7,8 @@ import jdos.cpu.Instructions;
 import jdos.cpu.Paging;
 import jdos.hardware.Memory;
 import jdos.hardware.RAM;
-import jdos.misc.Log;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 
@@ -17,6 +18,9 @@ import java.net.URLClassLoader;
 import java.util.LinkedList;
 
 public class Compiler extends Helper {
+
+    private static final Logger logger = System.getLogger(Compiler.class.getName());
+
     public static int compiledMethods = 0;
     public static long compiledOps = 0;
     public static boolean saveClasses = false;
@@ -29,16 +33,17 @@ public class Compiler extends Helper {
     private static Thread[] compilerThread = null;
     private static final LinkedList compilerQueue = new LinkedList();
 
-    // :TODO: update CMPXCHG to update flags like in normal core
+    // TODO update CMPXCHG to update flags like in normal core
 
     // Set to 0 during unit test
-    public static int processorCount = 1; //Runtime.getRuntime().availableProcessors()-1; // :TODO: not sure if the compiler is thread safe
+    public static int processorCount = 1; //Runtime.getRuntime().availableProcessors()-1; // TODO not sure if the compiler is thread safe
     public static boolean thowException = false; // true during unit test
 
     static {
         compilerThread = new Thread[processorCount];
         for (int i = 0; i < compilerThread.length; i++) {
             compilerThread[i] = new Thread(new Runnable() {
+                @Override
                 public void run() {
                     try {
                         while (true) {
@@ -70,9 +75,9 @@ public class Compiler extends Helper {
                             }
                         }
                     } catch (Exception e) {
-                        e.printStackTrace();
+                        logger.log(Level.ERROR, e.getMessage(), e);
                     }
-                    System.out.println("Compiler thread has exited");
+                    logger.log(Level.DEBUG,"Compiler thread has exited");
                 }
             });
             compilerThread[i].start();
@@ -135,7 +140,7 @@ public class Compiler extends Helper {
     static final boolean combineMemoryAccessEIP = false; // less than 1% improvement
 
     static public class Seg {
-        private StringBuilder method;
+        private final StringBuilder method;
 
         private String ds;
         private boolean defaultDS;
@@ -470,7 +475,7 @@ public class Compiler extends Helper {
                         method.append("throw e;}");
                     }
                     if (op.next != null) {
-                        Log.exit("Instruction "+Integer.toHexString(op.c)+" jumped but there was another instruction after it: "+Integer.toHexString(op.next.c));
+                        throw new IllegalStateException("Instruction "+Integer.toHexString(op.c)+" jumped but there was another instruction after it: "+Integer.toHexString(op.next.c));
                     }
                 }
                 if (reset) {
@@ -491,7 +496,7 @@ public class Compiler extends Helper {
                 compiledMethods++;
                 compiledOps+=count;
                 if ((compiledMethods % 250)==0) {
-                    System.out.println("Compiled "+compiledMethods+" blocks ("+compilerQueue.size()+" in queue, ave ops/block: "+((float)compiledOps/compiledMethods));
+                    logger.log(Level.DEBUG,"Compiled "+compiledMethods+" blocks ("+compilerQueue.size()+" in queue, ave ops/block: "+((float)compiledOps/compiledMethods));
                 }
                 return compiled;
             }
@@ -507,7 +512,7 @@ public class Compiler extends Helper {
 
     static void nameGet8(Reg reg, StringBuilder method) {
         if (reg.getParent()==null && reg.getName()==null)
-            method.append(String.valueOf(reg.dword));
+            method.append(reg.dword);
         else {
             method.append("CPU_Regs.reg_");
             if (reg.getParent()==null) {
@@ -526,7 +531,7 @@ public class Compiler extends Helper {
 
     static void nameGet16(Reg reg, StringBuilder method) {
         if (reg.getName()==null)
-            method.append(String.valueOf(reg.dword));
+            method.append(reg.dword);
         else {
             method.append("CPU_Regs.reg_");
             method.append(reg.getName());
@@ -541,7 +546,7 @@ public class Compiler extends Helper {
 
     static void nameGet32(Reg reg, StringBuilder method) {
         if (reg.getName() == null)
-            method.append(String.valueOf(reg.dword));
+            method.append(reg.dword);
         else {
             method.append("CPU_Regs.reg_");
             method.append(reg.getName());
@@ -6909,7 +6914,7 @@ public class Compiler extends Helper {
             case 0x306:
                 if (op instanceof Inst2.Clts) {
                     Inst2.Clts o = (Inst2.Clts) op;
-                    // :TODO: this is a bug in the compiler, ~ and a constant int does not work so I added the (int) cast which fixes it
+                    // TODO this is a bug in the compiler, ~ and a constant int does not work so I added the (int) cast which fixes it
                     method.append("if (CPU.cpu.pmode && CPU.cpu.cpl!=0) {").append(preException).append("return EXCEPTION(CPU.EXCEPTION_GP);}CPU.cpu.cr0=CPU.cpu.cr0 & (~(int)CPU.CR0_TASKSWITCH);");
                     return true;
                 }
@@ -7382,7 +7387,7 @@ public class Compiler extends Helper {
         return true;
     }
 
-    static private ClassPool pool = ClassPool.getDefault();
+    static private final ClassPool pool = ClassPool.getDefault();
     static java.security.MessageDigest md;
 
     static {
@@ -7394,6 +7399,7 @@ public class Compiler extends Helper {
         pool.importPackage("jdos.cpu.core_normal");
         pool.importPackage("jdos.cpu.core_share");
         pool.insertClassPath(new ClassPath() {
+            @Override
             public InputStream openClassfile(String s) throws NotFoundException {
                 if (s.startsWith("jdos.")) {
                     s = "/" + s.replace('.', '/') + ".class";
@@ -7402,6 +7408,7 @@ public class Compiler extends Helper {
                 return null;
             }
 
+            @Override
             public URL find(String s) {
                 if (s.startsWith("jdos.")) {
                     s = "/" + s.replace('.', '/') + ".class";
@@ -7423,16 +7430,16 @@ public class Compiler extends Helper {
     static private int count = 0;
 
     static private Op compileMethod(Op op, StringBuilder method, boolean jump) {
-        //System.out.println(method.toString());
+        //logger.log(Level.DEBUG,method.toString());
         try {
             String className = "jdos.cpu.core_dynamic.CacheBlock" + (count++);
-            // :TODO: research using a new pool for each block since the classes don't need to see each other
+            // TODO research using a new pool for each block since the classes don't need to see each other
             CtClass codeBlock = pool.makeClass(className);
             codeBlock.setSuperclass(pool.getCtClass("jdos.cpu.core_dynamic.Op"));
             if (!jump)
                 method.append("return Constants.BR_Normal;");
             method.append("}");
-            CtMethod m = CtNewMethod.make("public int call() {" + method.toString(), codeBlock);
+            CtMethod m = CtNewMethod.make("public int call() {" + method, codeBlock);
             codeBlock.addMethod(m);
 
             Op o = op;
@@ -7475,13 +7482,13 @@ public class Compiler extends Helper {
                             "}";
                     Loader.add(codeBlock.getName(), codeBlock.toBytecode(), block.codeStart, getOpCode(block.codeStart, block.codeLen), classBody);
                 } else {
-                    Log.exit("Tried to save an incomplete code block");
+                    throw new IllegalStateException("Tried to save an incomplete code block");
                 }
             }
             return compiledCode;
         } catch (Exception e) {
-            System.out.println(method.toString());
-            e.printStackTrace();
+            logger.log(Level.DEBUG,method.toString());
+            logger.log(Level.ERROR, e.getMessage(), e);
             if (thowException)
                 throw new RuntimeException("Failed to compile");
         }
@@ -7489,6 +7496,7 @@ public class Compiler extends Helper {
     }
 
     final public static Section.SectionFunction Compiler_Init = new Section.SectionFunction() {
+        @Override
         public void call(Section newconfig) {
             Section_prop section=(Section_prop)newconfig;
             DecodeBlock.compileThreshold = section.Get_int("threshold");

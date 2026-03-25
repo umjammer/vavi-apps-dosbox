@@ -11,10 +11,10 @@ import jdos.win.builtin.directx.ddraw.IUnknown;
 public class IDirectInput extends IUnknown {
     static final int VTABLE_SIZE = 5;
 
-    static int OFFSET_FLAGS = 0;
+    static final int OFFSET_FLAGS = 0;
     static final int DATA_SIZE = 4;
 
-    static Guid GUID_SysMouse = new Guid(0x6F1D2B60,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
+    static final Guid GUID_SysMouse = new Guid(0x6F1D2B60,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
     static Guid GUID_SysKeyboard = new Guid(0x6F1D2B61,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
     static Guid GUID_Joystick = new Guid(0x6F1D2B70,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
     static Guid GUID_SysMouseEm = new Guid(0x6F1D2B80,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
@@ -52,10 +52,12 @@ public class IDirectInput extends IUnknown {
     }
 
     // HRESULT CreateDevice(this, REFGUID rguid, LPDIRECTINPUTDEVICEA * lplpDirectInputDevice, LPUNKNOWN)
-    static private Callback.Handler CreateDevice = new HandlerBase() {
+    static private final Callback.Handler CreateDevice = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectInput.CreateDevice";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int rguid = CPU.CPU_Pop32();
@@ -70,10 +72,12 @@ public class IDirectInput extends IUnknown {
     };
 
     // HRESULT EnumDevices(this, DWORD dwDevType, LPDIENUMDEVICESCALLBACKA lpCallback, LPVOID pvRef, DWORD dwFlags)
-    static private Callback.Handler EnumDevices = new HandlerBase() {
+    static private final Callback.Handler EnumDevices = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectInput.EnumDevices";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwDevType = CPU.CPU_Pop32();
@@ -85,10 +89,12 @@ public class IDirectInput extends IUnknown {
     };
 
     // HRESULT GetDeviceStatus(this, REFGUID rguid)
-    static private Callback.Handler GetDeviceStatus = new HandlerBase() {
+    static private final Callback.Handler GetDeviceStatus = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectInput.GetDeviceStatus";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int rguid = CPU.CPU_Pop32();
@@ -97,10 +103,12 @@ public class IDirectInput extends IUnknown {
     };
 
     // HRESULT RunControlPanel(this, HWND hwndOwner, DWORD dwFlags)
-    static private Callback.Handler RunControlPanel = new HandlerBase() {
+    static private final Callback.Handler RunControlPanel = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectInput.RunControlPanel";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int hwndOwner = CPU.CPU_Pop32();
@@ -110,10 +118,12 @@ public class IDirectInput extends IUnknown {
     };
 
     // HRESULT Initialize(this, HINSTANCE hinst, DWORD dwVersion)
-    static private Callback.Handler Initialize = new HandlerBase() {
+    static private final Callback.Handler Initialize = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectInput.Initialize";
         }
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int hinst = CPU.CPU_Pop32();

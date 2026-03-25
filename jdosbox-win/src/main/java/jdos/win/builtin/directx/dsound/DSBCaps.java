@@ -21,9 +21,9 @@ public class DSBCaps {
         Memory.mem_writed(address, overhead);
     }
 
-    public int dwSize;
-    public int dwFlags;
-    public int dwBufferBytes;
-    public int dwUnlockTransferRate;
-    public int dwPlayCpuOverhead;
+    public final int dwSize;
+    public final int dwFlags;
+    public final int dwBufferBytes;
+    public final int dwUnlockTransferRate;
+    public final int dwPlayCpuOverhead;
 }

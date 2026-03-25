@@ -1,5 +1,8 @@
 package jdos.win.builtin.winmm;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -17,6 +20,9 @@ import jdos.win.utils.FilePath;
 import jdos.win.utils.Ptr;
 
 public class WinMM extends BuiltinModule {
+
+    private static final Logger logger = System.getLogger(WinMM.class.getName());
+
     public WinMM(Loader loader, int handle) {
         super(loader, "WinMM.dll", handle);
         add(WinJoystick.class, "joyGetNumDevs", LOG_MM?new String[0]:null);
@@ -53,9 +59,9 @@ public class WinMM extends BuiltinModule {
         return 0;
     }
 
-    // :TODO: This code can use a lot of work
+    // TODO This code can use a lot of work
     // MCIERROR mciSendCommand(MCIDEVICEID IDDevice, UINT uMsg, DWORD_PTR fdwCommand, DWORD_PTR dwParam)
-    private Callback.Handler mciSendCommandA = new HandlerBase() {
+    private final Callback.Handler mciSendCommandA = new HandlerBase() {
         static final private int MCI_OPEN_SHAREABLE =            0x00000100;
         static final private int MCI_OPEN_ELEMENT =              0x00000200;
         static final private int MCI_OPEN_ALIAS =                0x00000400;
@@ -81,9 +87,11 @@ public class WinMM extends BuiltinModule {
         static final private int MCI_TO =                        0x00000008;
         static final private int MCI_TRACK =                     0x00000010;
 
+        @Override
         public java.lang.String getName() {
             return "WinMM.mciSendCommandA";
         }
+        @Override
         public void onCall() {
             int IDDevice = CPU.CPU_Pop32();
             int uMsg = CPU.CPU_Pop32();
@@ -201,13 +209,15 @@ public class WinMM extends BuiltinModule {
     };
 
     // UINT mixerGetNumDevs(void)
-    private Callback.Handler mixerGetNumDevs = new HandlerBase() {
+    private final Callback.Handler mixerGetNumDevs = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "WinMM.mixerGetNumDevs";
         }
+        @Override
         public void onCall() {
-            // :TODO:
-            System.out.println(getName()+" faked");
+            // TODO
+            logger.log(Level.DEBUG,getName()+" faked");
             CPU_Regs.reg_eax.dword = 0;
         }
     };

@@ -85,8 +85,11 @@ public class Serial {
         /*Bit8u*/short probeByte() {
             return data[pos];
         }
-        /*Bit8u*/short[] data;
-        /*Bitu*/int maxsize,size,pos,used;
+        /*Bit8u*/final short[] data;
+        /*Bitu*/final int maxsize;
+        int size;
+        int pos;
+        int used;
     }
 
 	FileIO debugfp;
@@ -106,7 +109,7 @@ public class Serial {
 
 	static boolean getBituSubstring(String name,/*Bitu*/IntRef data, CommandLine cmd) {
         String tmpstring;
-        if((tmpstring=cmd.FindStringBegin(name,false))==null) return false;
+        if((tmpstring=cmd.findStringBegin(name,false))==null) return false;
         try {
             data.value = Integer.parseInt(tmpstring);
             return true;

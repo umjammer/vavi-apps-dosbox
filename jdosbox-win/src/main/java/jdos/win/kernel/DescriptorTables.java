@@ -251,12 +251,12 @@ public class DescriptorTables {
 
     // Initialisation routine - zeroes all the interrupt service routines,
     // initialises the GDT and IDT.
-    gdt_entry_t gdt_entries;
-    gdt_ptr_t   gdt_ptr;
-    idt_entry_t idt_entries;
-    idt_ptr_t   idt_ptr;
-    tss_entry_t tss_entry;
-    Interrupts interrupts;
+    final gdt_entry_t gdt_entries;
+    final gdt_ptr_t   gdt_ptr;
+    final idt_entry_t idt_entries;
+    final idt_ptr_t   idt_ptr;
+    final tss_entry_t tss_entry;
+    final Interrupts interrupts;
 
     public DescriptorTables(Interrupts interrupts, KernelMemory memory) {
         gdt_entries = gdt_entry_t.alloc(6, memory);
@@ -292,7 +292,7 @@ public class DescriptorTables {
         tss_flush();
     }
 
-    private void gdt_flush(int value) {
+    private static void gdt_flush(int value) {
         int v1 = (Memory.mem_readd(value + 2) & 0xFFFFFF);
         int v0 = Memory.mem_readw(value);
         CPU.CPU_LGDT(v0, v1);
@@ -306,7 +306,7 @@ public class DescriptorTables {
         CPU_Regs.reg_eip+=8;
     }
 
-    private void tss_flush() {
+    private static void tss_flush() {
         // mov ax, 0x2B
         // ltr ax
         //
@@ -335,7 +335,7 @@ public class DescriptorTables {
     {
         // Firstly, let's compute the base and limit of our entry into the GDT.
         int base = tss_entry.ptr;
-        int limit = base + tss_entry.SIZE;
+        int limit = base + tss_entry_t.SIZE;
 
         // Now, add our TSS descriptor's address to the GDT.
         gdt_set_gate(num, base, limit, 0xE9, 0x00);
@@ -436,7 +436,7 @@ public class DescriptorTables {
         idt_flush(idt_ptr.ptr);
     }
 
-    private void idt_flush(int value) {
+    private static void idt_flush(int value) {
         int v1 = (Memory.mem_readd(value + 2) & 0xFFFFFF);
         int v0 = Memory.mem_readw(value);
         CPU.CPU_LIDT(v0, v1);

@@ -4,10 +4,11 @@ import jdos.util.StringHelper;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Section_prop extends Section {
-    private Vector properties = new Vector();
+    private final List<Property> properties = new ArrayList<>();
     public Section_prop(String _sectionname) {
         super(_sectionname);
     }
@@ -28,7 +29,7 @@ public class Section_prop extends Section {
         return test;
     }
     public Prop_path Add_path(String _propname, int when) {
-        return Add_path(_propname, when);
+        return Add_path(_propname, when, null);
     }
 	public Prop_path Add_path(String _propname, int when, String _value) {
         Prop_path test = new Prop_path(_propname, when, _value);
@@ -63,12 +64,11 @@ public class Section_prop extends Section {
     }
 	public Property Get_prop(int index) {
         if (index>=0 && index<properties.size())
-            return (Property)properties.elementAt(index);
+            return properties.get(index);
         return null;
     }
     public Property byname(String name) {
-        for (int i=0;i<properties.size();i++) {
-            Property p = (Property)properties.elementAt(i);
+        for (Property p : properties) {
             if (p.propname.equals(name))
                 return p;
         }
@@ -128,7 +128,8 @@ public class Section_prop extends Section {
         }
         return null;
     }
-	public void HandleInputline(String aLine) {
+	@Override
+    public void handleInputline(String aLine) {
         String[] parts = StringHelper.split(aLine, "=");
         if (parts.length==2) {
             Property prop = byname(parts[0]);
@@ -136,14 +137,15 @@ public class Section_prop extends Section {
                 prop.SetValue(parts[1]);
         }        
     }
-	public void PrintData(OutputStream os) throws IOException {
-        for (int i=0;i<properties.size();i++) {
-            Property p = (Property)properties.elementAt(i);
-            String line = p.propname+"="+p.GetValue().toString()+"\n";
+	@Override
+    public void printData(OutputStream os) throws IOException {
+        for (Property property : properties) {
+            String line = property.propname + "=" + property.GetValue().toString() + "\n";
             Config.fputs(line, os);
         }
     }
-	public String GetPropValue(String _property) {
+	@Override
+    public String getPropValue(String _property) {
         Property prop = byname(_property);
         if (prop != null)
             return prop.GetValue().toString();

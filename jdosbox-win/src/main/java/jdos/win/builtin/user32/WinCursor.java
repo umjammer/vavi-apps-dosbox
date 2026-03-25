@@ -17,8 +17,10 @@ import jdos.win.utils.StreamHelper;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.InputStream;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.List;
 
 public class WinCursor extends WinObject {
     static public WinCursor create(int instance, int name) {
@@ -70,7 +72,7 @@ public class WinCursor extends WinObject {
         return StaticData.showCursorCount;
     }
 
-    static private Hashtable cursors = new Hashtable();
+    static private final Map<String, Cursor> cursors = new HashMap<>();
 
     Cursor cursor = null;
 
@@ -118,7 +120,7 @@ public class WinCursor extends WinObject {
         return result;
     }
 
-    static public Image[] loadCursorFromStream(InputStream input, Vector hotspots) {
+    static public Image[] loadCursorFromStream(InputStream input, List<Point> hotspots) {
         byte[] buffer = null;
         try {
             buffer = StreamHelper.readStream(input);
@@ -175,7 +177,7 @@ public class WinCursor extends WinObject {
 
     public static Cursor loadCursorFromResource(int instance, int id) {
         String name = "CURSOR"+instance+"-"+id;
-        Cursor cursor = (Cursor)cursors.get(name);
+        Cursor cursor = cursors.get(name);
         if (cursor == null) {
             Module m = WinSystem.getCurrentProcess().getModuleByHandle(instance);
             if (m instanceof BuiltinModule) {
@@ -272,13 +274,13 @@ public class WinCursor extends WinObject {
                 Win.panic("Unknown cursor resource id: "+id);
         }
         if (res != null) {
-            Cursor cursor = (Cursor)cursors.get(res);
+            Cursor cursor = cursors.get(res);
             if (cursor == null) {
                 InputStream is = WinCursor.class.getResourceAsStream("/jdos/win/builtin/res/" + res);
                 Toolkit toolkit = Toolkit.getDefaultToolkit();
-                Vector hotspots = new Vector();
+                List<Point> hotspots = new ArrayList<>();
                 Image[] images = loadCursorFromStream(is, hotspots);
-                cursor = toolkit.createCustomCursor(images[0], (Point)hotspots.elementAt(0), res);
+                cursor = toolkit.createCustomCursor(images[0], hotspots.getFirst(), res);
                 cursors.put(res, cursor);
             }
             return cursor;

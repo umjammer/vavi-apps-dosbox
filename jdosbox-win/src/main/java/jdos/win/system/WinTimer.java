@@ -6,32 +6,35 @@ import jdos.win.builtin.user32.WinWindow;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Hashtable;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class WinTimer {
-    int hWnd;
+    final int hWnd;
 
     public WinTimer(int hWnd) {
         this.hWnd = hWnd;
     }
 
-    ArrayList<TimerItem> itemsByTime = new ArrayList<TimerItem>();
-    Hashtable<Integer, TimerItem> itemsById = new Hashtable<Integer, TimerItem>();
+    final List<TimerItem> itemsByTime = new ArrayList<>();
+    final Map<Integer, TimerItem> itemsById = new HashMap<>();
 
-    static private class TimerItem implements Comparable {
+    static private class TimerItem implements Comparable<TimerItem> {
         public TimerItem(int id, int eip, int elapse) {
             this.id = id;
             this.eip = eip;
             this.elapse = elapse;
             this.nextRun = WinSystem.getTickCount()+elapse;
         }
-        int id;
-        int eip;
+        final int id;
+        final int eip;
         int nextRun;
-        int elapse;
+        final int elapse;
 
-        public int compareTo(Object o) {
-            return nextRun - ((TimerItem)o).nextRun;
+        @Override
+        public int compareTo(TimerItem o) {
+            return nextRun - o.nextRun;
         }
     }
 
@@ -59,7 +62,7 @@ public class WinTimer {
     }
 
     public int killTimer(int id) {
-        TimerItem item = (TimerItem)itemsById.remove(new Integer(id));
+        TimerItem item = itemsById.remove(id);
         if (item != null) {
             itemsByTime.remove(item);
             return WinAPI.TRUE;
@@ -68,14 +71,14 @@ public class WinTimer {
     }
 
     public int getNextTimerTime() {
-        if (itemsByTime.size()>0)
-            return itemsByTime.get(0).nextRun;
+        if (!itemsByTime.isEmpty())
+            return itemsByTime.getFirst().nextRun;
         return Integer.MAX_VALUE;
     }
 
     public boolean getNextTimerMsg(int msgAddress, int time, boolean reset) {
-        if (itemsByTime.size()>0) {
-            TimerItem item = (TimerItem)itemsByTime.get(0);
+        if (!itemsByTime.isEmpty()) {
+            TimerItem item = itemsByTime.getFirst();
             if (item.nextRun<time) {
                 WinThread.setMessage(msgAddress, hWnd, WinWindow.WM_TIMER, item.id, 0, time, StaticData.currentPos.x, StaticData.currentPos.y);
                 if (reset) {

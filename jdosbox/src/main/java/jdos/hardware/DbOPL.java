@@ -1,7 +1,7 @@
 package jdos.hardware;
 
 public class DbOPL {
-    // :TODO: look for ~ and make sure they generate the mask of the right size
+    // TODO look for ~ and make sure they generate the mask of the right size
 
     // Java 1.4 does not have Math.log10
     static private double log10(double d) {
@@ -179,8 +179,8 @@ public class DbOPL {
 //    #if (DBOPL_WAVE == WAVE_HANDLER)
 //    typedef /*Bits*/int ( DB_FASTCALL *WaveHandler) ( /*Bitu*/long i, /*Bitu*/long volume );
 //    #endif
-    static private interface WaveHandler {
-        public /*Bits*/int call(int i, int volume);
+    private interface WaveHandler {
+        /*Bits*/int call(int i, int volume);
     }
 
 //    typedef /*Bits*/int ( DBOPL::Operator::*VolumeHandler) ( );
@@ -507,7 +507,7 @@ public class DbOPL {
                 }
                 //In sustain phase, but not sustaining, do regular release
             case RELEASE:
-                vol += RateForward( releaseAdd );;
+                vol += RateForward( releaseAdd );
                 if (vol >= ENV_MAX) {
                     volume = ENV_MAX;
                     SetState( OFF );
@@ -586,8 +586,8 @@ public class DbOPL {
     }
 
     private static class Channel {
-        int index;
-        Chip chip;
+        final int index;
+        final Chip chip;
 
         Channel(Chip chip, int index) {
             this.chip = chip;
@@ -606,13 +606,13 @@ public class DbOPL {
             }
         }
 
-        Operator[] op = new Operator[2];
+        final Operator[] op = new Operator[2];
         Operator Op(/*Bitu*/int index) {
             return chip.chan[this.index+ (index >> 1) ].op[index & 1];
         }
         int synthHandlerMode;
         /*Bit32u*/int chanData;		//Frequency/octave and derived values
-        /*Bit32s*/int[] old = new int[2];			//Old data for feedback
+        /*Bit32s*/final int[] old = new int[2];			//Old data for feedback
 
         /*Bit8u*/int feedback;			//Feedback shift
         /*Bit8u*/short regB0;			//Register values to check for changes
@@ -775,7 +775,8 @@ public class DbOPL {
             Channel chan = this;
 
             //BassDrum
-            /*Bit32s*/int mod = (/*Bit32u*/int)((old[0] + old[1])) >> feedback;
+            /*Bit32s*//*Bit32u*/
+            int mod = (old[0] + old[1]) >> feedback;
             old[0] = old[1];
             old[1] = Op(0).GetSample( mod );
 
@@ -888,7 +889,8 @@ public class DbOPL {
                 }
 
                 //Do unsigned shift so we can shift out all bits but still stay in 10 bit range otherwise
-                /*Bit32s*/int mod = (/*Bit32u*/int)((old[0] + old[1])) >>> feedback;
+                /*Bit32s*//*Bit32u*/
+                int mod = (old[0] + old[1]) >>> feedback;
                 old[0] = old[1];
                 old[1] = Op(0).GetSample( mod );
                 /*Bit32s*/int sample=0;
@@ -932,22 +934,12 @@ public class DbOPL {
                     break;
                 }
             }
-            switch( mode ) {
-            case sm2AM:
-            case sm2FM:
-            case sm3AM:
-            case sm3FM:
-                return chip.chan[index+1];
-            case sm3FMFM:
-            case sm3AMFM:
-            case sm3FMAM:
-            case sm3AMAM:
-                return chip.chan[index+2];
-            case sm2Percussion:
-            case sm3Percussion:
-                return chip.chan[index+3];
-            }
-            return null;
+            return switch (mode) {
+                case sm2AM, sm2FM, sm3AM, sm3FM -> chip.chan[index + 1];
+                case sm3FMFM, sm3AMFM, sm3FMAM, sm3AMAM -> chip.chan[index + 2];
+                case sm2Percussion, sm3Percussion -> chip.chan[index + 3];
+                default -> null;
+            };
         }
     }
 
@@ -973,18 +965,18 @@ public class DbOPL {
         /*Bit32u*/int noiseValue;
 
         //Frequency scales for the different multiplications
-        /*Bit32u*/int[] freqMul = new int[16];
+        /*Bit32u*/final int[] freqMul = new int[16];
         //Rates for decay and release for rate of this chip
-        /*Bit32u*/int[] linearRates = new int[76];
+        /*Bit32u*/final int[] linearRates = new int[76];
         //Best match attack rates for the rate of this chip
-        /*Bit32u*/int[] attackRates = new int[76];
+        /*Bit32u*/final int[] attackRates = new int[76];
 
         //18 channels with 2 operators each
-        Channel[] chan = new Channel[19]; // last one is null
+        final Channel[] chan = new Channel[19]; // last one is null
 
         /*Bit8u*/short reg104;
         /*Bit8u*/short reg08;
-        /*Bit8u*/short reg04;
+        /*Bit8u*/final short reg04;
         /*Bit8u*/short regBD;
         /*Bit8u*/short vibratoIndex;
         /*Bit8u*/short tremoloIndex;
@@ -1409,17 +1401,20 @@ public class DbOPL {
     }
 
     final public static class Handler implements Adlib.Handler {
-        Chip chip = new Chip();
+        final Chip chip = new Chip();
+        @Override
         public /*Bit32u*/long WriteAddr( /*Bit32u*/int port, /*Bit8u*/short val ) {
             return chip.WriteAddr( port, val );
 
         }
+        @Override
         public void WriteReg( /*Bit32u*/int addr, /*Bit8u*/short val ) {
             chip.WriteReg( addr, val );
         }
 
-        /*Bit32s*/int[] buffer = new int[512*2];
-        public void Generate( Mixer.MixerChannel chan, /*Bitu*/int samples ) {
+        /*Bit32s*/final int[] buffer = new int[512*2];
+        @Override
+        public void Generate(Mixer.MixerChannel chan, /*Bitu*/int samples ) {
             if (samples > 512)
                 samples = 512;
             if (chip.opl3Active==0) {
@@ -1431,6 +1426,7 @@ public class DbOPL {
             }
         }
 
+        @Override
         public void Init( /*Bitu*/long rate ) {
             InitTables();
             chip.Setup( rate );
@@ -1459,6 +1455,7 @@ public class DbOPL {
     }
 
     static private final WaveHandler WaveForm0 = new WaveHandler() {
+        @Override
         public /*Bits*/int call(int i, int volume)  {
             /*Bits*/int neg = 0 - (( i >> 9) & 1);//Create ~0 or 0
             /*Bitu*/int wave = SinTable[i & 511];
@@ -1467,6 +1464,7 @@ public class DbOPL {
     };
 
     static private final WaveHandler WaveForm1 = new WaveHandler() {
+            @Override
             public /*Bits*/int call(int i, int volume)  {
             /*Bit32u*/int wave = SinTable[i & 511];
             wave |= ( ( (i ^ 512 ) & 512) - 1) >> ( 32 - 12 );
@@ -1475,6 +1473,7 @@ public class DbOPL {
     };
 
     static private final WaveHandler WaveForm2 = new WaveHandler() {
+        @Override
         public /*Bits*/int call(int i, int volume)  {
             /*Bitu*/int wave = SinTable[i & 511];
             return MakeVolume( wave, volume );
@@ -1482,6 +1481,7 @@ public class DbOPL {
     };
 
     static private final WaveHandler WaveForm3 = new WaveHandler() {
+        @Override
         public /*Bits*/int call(int i, int volume)  {
             /*Bitu*/int wave = SinTable[i & 255];
             wave |= ( ( (i ^ 256 ) & 256) - 1) >> ( 32 - 12 );
@@ -1490,6 +1490,7 @@ public class DbOPL {
     };
 
     static private final WaveHandler WaveForm4 = new WaveHandler() {
+        @Override
         public /*Bits*/int call(int i, int volume)  {
             //Twice as fast
             i <<= 1;
@@ -1501,6 +1502,7 @@ public class DbOPL {
     };
 
     static private final WaveHandler WaveForm5 = new WaveHandler() {
+        @Override
         public /*Bits*/int call(int i, int volume)  {
             //Twice as fast
             i <<= 1;
@@ -1510,23 +1512,21 @@ public class DbOPL {
         }
     };
 
-    static private final WaveHandler WaveForm6 = new WaveHandler() {
-        public /*Bits*/int call(int i, int volume)  {
-            /*Bits*/int neg = 0 - (( i >> 9) & 1);//Create ~0 or 0
-            return (MakeVolume( 0, volume ) ^ neg) - neg;
-        }
+    /*Bits*/
+    static private final WaveHandler WaveForm6 = (i, volume) -> {
+        /*Bits*/int neg = 0 - (( i >> 9) & 1);//Create ~0 or 0
+        return (MakeVolume( 0, volume ) ^ neg) - neg;
     };
 
-    static private final WaveHandler WaveForm7 = new WaveHandler() {
-            public /*Bits*/int call(int i, int volume)  {
-            //Negative is reversed here
-            /*Bits*/int neg = (( i >> 9) & 1) - 1;
-            /*Bitu*/int wave = (i << 3);
-            //When negative the volume also runs backwards
-            wave = ((wave ^ neg) - neg) & 4095;
-            return (MakeVolume( wave, volume ) ^ neg) - neg;
-        }
-    };
+    /*Bits*/
+    static private final WaveHandler WaveForm7 = (i, volume) -> {
+    //Negative is reversed here
+    /*Bits*/int neg = (( i >> 9) & 1) - 1;
+    /*Bitu*/int wave = (i << 3);
+    //When negative the volume also runs backwards
+    wave = ((wave ^ neg) - neg) & 4095;
+    return (MakeVolume( wave, volume ) ^ neg) - neg;
+};
 
     static final private WaveHandler[] WaveHandlerTable = {
         WaveForm0, WaveForm1, WaveForm2, WaveForm3,

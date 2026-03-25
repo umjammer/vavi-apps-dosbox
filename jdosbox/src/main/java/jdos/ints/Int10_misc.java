@@ -3,12 +3,14 @@ package jdos.ints;
 import jdos.hardware.IoHandler;
 import jdos.hardware.Memory;
 import jdos.hardware.VGA;
-import jdos.misc.Log;
-import jdos.types.LogSeverities;
-import jdos.types.LogTypes;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import jdos.util.IntRef;
 
 public class Int10_misc {
+
+    private static final Logger LOG_INT10 = System.getLogger("LOG_INT10");
+
     static public void INT10_GetFuncStateInformation(/*PhysPt*/int save) {
         /* set static state pointer */
         Memory.mem_writed(save,Int10.int10.rom.static_state);
@@ -61,7 +63,7 @@ public class Int10_misc {
         case VGA.M_VGA:
             col_count=256;break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10, LogSeverities.LOG_ERROR,"Get Func State illegal mode type "+Int10_modes.CurMode.type);
+            LOG_INT10.log(Level.ERROR, "Get Func State illegal mode type "+Int10_modes.CurMode.type);
         }
         /* Colour count */
         Memory.mem_writew(save+0x27,col_count);
@@ -124,7 +126,7 @@ public class Int10_misc {
             port.value = 0x3CA;
             break;
         default:
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"unknown RIL port selection "+Integer.toString(dx,16));
+            LOG_INT10.log(Level.ERROR, "unknown RIL port selection "+Integer.toString(dx,16));
             break;
         }
     }
@@ -140,7 +142,7 @@ public class Int10_misc {
             IoHandler.IO_Write(port.value,bl);
             bl = IoHandler.IO_Read(port.value+1);
             if(port.value == 0x3c0) IoHandler.IO_Read(Memory.real_readw(Int10.BIOSMEM_SEG,Int10.BIOSMEM_CRTC_ADDRESS) + 6);
-            Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_NORMAL,"EGA RIL read used with multi-reg");
+            LOG_INT10.log(Level.DEBUG, "EGA RIL read used with multi-reg");
         }
         return bl;
     }
@@ -161,7 +163,7 @@ public class Int10_misc {
                 IoHandler.IO_Write(port.value+1,bh);
             }
             bl = bh;//Not sure
-            Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_NORMAL,"EGA RIL write used with multi-reg");
+            LOG_INT10.log(Level.DEBUG, "EGA RIL write used with multi-reg");
         }
         return bl;
     }
@@ -171,7 +173,7 @@ public class Int10_misc {
         /*Bitu*/IntRef regs = new IntRef(0);
         EGA_RIL(dx,port,regs);
         if(regs.value == 0) {
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"EGA RIL range read with port "+Integer.toString(port.value, 16)+" called");
+            LOG_INT10.log(Level.ERROR, "EGA RIL range read with port "+Integer.toString(port.value, 16)+" called");
         } else {
             if(ch<regs.value) {
                 if (ch+cl>regs.value) cl=(short)(regs.value-ch);
@@ -182,7 +184,7 @@ public class Int10_misc {
                 }
                 if(port.value == 0x3c0) IoHandler.IO_Read(Memory.real_readw(Int10.BIOSMEM_SEG,Int10.BIOSMEM_CRTC_ADDRESS) + 6);
             } else {
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"EGA RIL range read from "+Integer.toString(port.value, 16)+" for invalid register "+Integer.toString(ch,16));
+                LOG_INT10.log(Level.ERROR, "EGA RIL range read from "+Integer.toString(port.value, 16)+" for invalid register "+Integer.toString(ch,16));
             }
         }
     }
@@ -192,7 +194,7 @@ public class Int10_misc {
         /*Bitu*/IntRef regs = new IntRef(0);
         EGA_RIL(dx,port,regs);
         if(regs.value == 0) {
-            if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"EGA RIL range write called with port "+Integer.toString(port.value, 16));
+            LOG_INT10.log(Level.ERROR, "EGA RIL range write called with port "+Integer.toString(port.value, 16));
         } else {
             if(ch<regs.value) {
                 if (ch+cl>regs.value) cl=(short)(regs.value-ch);
@@ -209,7 +211,7 @@ public class Int10_misc {
                     }
                 }
             } else {
-                if (Log.level<=LogSeverities.LOG_ERROR) Log.log(LogTypes.LOG_INT10,LogSeverities.LOG_ERROR,"EGA RIL range write to "+Integer.toString(port.value, 16)+" with invalid register "+Integer.toString(ch,16));
+                LOG_INT10.log(Level.ERROR, "EGA RIL range write to "+Integer.toString(port.value, 16)+" with invalid register "+Integer.toString(ch,16));
             }
         }
     }

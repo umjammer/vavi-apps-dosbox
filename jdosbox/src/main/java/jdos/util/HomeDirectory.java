@@ -26,7 +26,7 @@ public class HomeDirectory {
         if (result.endsWith("\\") || result.endsWith("/")) {
             result = result.substring(0, result.length()-1);
         }
-        if (result.length()==0)
+        if (result.isEmpty())
             result=".";
         return result;
     }
@@ -38,12 +38,12 @@ public class HomeDirectory {
             file = file.getParentFile();
         }
         FileSystemView v = FileSystemView.getFileSystemView();
-        final String full = v.getSystemDisplayName(file);
-        final int length = full.length();
+        String full = v.getSystemDisplayName(file);
+        int length = full.length();
         // Remove the trailing _(X:)
-        final String chopped;
+        String chopped;
 
-        final Matcher m = p.matcher( full );
+        Matcher m = p.matcher( full );
         if ( m.find() ) {
             chopped = full.substring( 0, m.start() ).trim();
         }

@@ -5,7 +5,7 @@ import junit.framework.TestCase;
 
 public class testHeap extends TestCase {
     public void testAlloc() {
-        Heap heap = new Heap(0x01000000l, 0xFFFF0000l);
+        Heap heap = new Heap(0x01000000L, 0xFFFF0000L);
         long a = heap.alloc(0x100, false);
         assertTrue(a==0x01000000);
         long b = heap.alloc(0x100, false);
@@ -15,19 +15,19 @@ public class testHeap extends TestCase {
     }
 
     public void testAllocAt() {
-        Heap heap = new Heap(0x01000000l, 0xFFFF0000l);
+        Heap heap = new Heap(0x01000000L, 0xFFFF0000L);
         long a = heap.alloc(0x40000000, 0x01000000);
         assertTrue(a==0x40000000);
-        long b = heap.alloc(0xE0000000l, 0x01000000);
-        assertTrue(b==0xE0000000l);
-        long c = heap.alloc(0xE0001000l, 0x01000000);
+        long b = heap.alloc(0xE0000000L, 0x01000000);
+        assertTrue(b== 0xE0000000L);
+        long c = heap.alloc(0xE0001000L, 0x01000000);
         assertTrue(c==0);
-        long d = heap.alloc(0x10000000l, 0x01000000);
-        assertTrue(d==0x10000000l);
+        long d = heap.alloc(0x10000000L, 0x01000000);
+        assertTrue(d== 0x10000000L);
     }
 
     public void testGetNext() {
-        Heap heap = new Heap(0x01000000l, 0xFFFF0000l);
+        Heap heap = new Heap(0x01000000L, 0xFFFF0000L);
         long a = heap.alloc(0x40000000, 0x01000000);
         assertTrue(a==0x40000000);
         long b = heap.alloc(0x42000000, 0x01000000);

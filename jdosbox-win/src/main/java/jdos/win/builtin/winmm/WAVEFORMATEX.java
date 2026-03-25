@@ -33,11 +33,11 @@ public class WAVEFORMATEX extends WinAPI {
         writew(address, wBitsPerSample);address+=2;
         writew(address, cbSize);address+=2;
     }
-    public int  wFormatTag;
-    public int  nChannels;
+    public final int  wFormatTag;
+    public final int  nChannels;
     public int nSamplesPerSec;
-    public int nAvgBytesPerSec;
-    public int  nBlockAlign;
-    public int  wBitsPerSample;
-    public int  cbSize;
+    public final int nAvgBytesPerSec;
+    public final int  nBlockAlign;
+    public final int  wBitsPerSample;
+    public final int  cbSize;
 }

@@ -1,5 +1,8 @@
 package jdos.win.builtin.directx.dsound;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -23,6 +26,9 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.SourceDataLine;
 
 public class IDirectSoundBuffer extends IUnknown {
+
+    private static final Logger logger = System.getLogger(IDirectSoundBuffer.class.getName());
+
     static final int VTABLE_SIZE = 18;
 
     final static int DSBSIZE_MIN = 4;
@@ -190,11 +196,13 @@ public class IDirectSoundBuffer extends IUnknown {
         return address;
     }
 
-    static private Callback.Handler CleanUp = new DirectCallback() {
+    static private final Callback.Handler CleanUp = new DirectCallback() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.CleanUp";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int refCount = decrementMemoryRef(This);
@@ -280,11 +288,13 @@ public class IDirectSoundBuffer extends IUnknown {
     }
 
     // HRESULT GetCaps(this, LPDSBCAPS lpDSBufferCaps)
-    static private Callback.Handler GetCaps = new HandlerBase() {
+    static private final Callback.Handler GetCaps = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetCaps";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDSBufferCaps = CPU.CPU_Pop32();
@@ -298,11 +308,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetCurrentPosition(this, LPDWORD lpdwCurrentPlayCursor, LPDWORD lpdwCurrentWriteCursor)
-    static private Callback.Handler GetCurrentPosition = new HandlerBase() {
+    static private final Callback.Handler GetCurrentPosition = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetCurrentPosition";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpdwCurrentPlayCursor = CPU.CPU_Pop32();
@@ -315,11 +327,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetFormat(this, LPWAVEFORMATEX lpwfxFormat, DWORD dwSizeAllocated, LPDWORD lpdwSizeWritten)
-    static private Callback.Handler GetFormat = new HandlerBase() {
+    static private final Callback.Handler GetFormat = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetFormat";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpwfxFormat = CPU.CPU_Pop32();
@@ -330,11 +344,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetVolume(this, LPLONG lplVolume)
-    static private Callback.Handler GetVolume = new HandlerBase() {
+    static private final Callback.Handler GetVolume = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetVolume";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lplVolume = CPU.CPU_Pop32();
@@ -343,11 +359,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetPan(this, LPLONG lplpan)
-    static private Callback.Handler GetPan = new HandlerBase() {
+    static private final Callback.Handler GetPan = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetPan";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lplpan = CPU.CPU_Pop32();
@@ -356,11 +374,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetFrequency(this, LPDWORD lpdwFrequency)
-    static private Callback.Handler GetFrequency = new HandlerBase() {
+    static private final Callback.Handler GetFrequency = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetFrequency";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpdwFrequency = CPU.CPU_Pop32();
@@ -373,7 +393,7 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT GetStatus(this, LPDWORD lpdwStatus)
-    static private Callback.Handler GetStatus = new HandlerBase() {
+    static private final Callback.Handler GetStatus = new HandlerBase() {
         static public final int DSBSTATUS_PLAYING = 0x00000001;
         static public final int DSBSTATUS_BUFFERLOST = 0x00000002;
         static public final int DSBSTATUS_LOOPING = 0x00000004;
@@ -381,10 +401,12 @@ public class IDirectSoundBuffer extends IUnknown {
         static public final int DSBSTATUS_LOCSOFTWARE = 0x00000010;
         static public final int DSBSTATUS_TERMINATED = 0x00000020;
 
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.GetStatus";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpdwStatus = CPU.CPU_Pop32();
@@ -403,11 +425,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Initialize(this, LPDIRECTSOUND lpDirectSound, LPCDSBUFFERDESC lpcDSBufferDesc)
-    static private Callback.Handler Initialize = new HandlerBase() {
+    static private final Callback.Handler Initialize = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Initialize";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpDirectSound = CPU.CPU_Pop32();
@@ -417,14 +441,16 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Lock(this, DWORD dwOffset, DWORD dwBytes, LPVOID *ppvAudioPtr1, LPDWORD pdwAudioBytes1, LPVOID *ppvAudioPtr2, LPDWORD pdwAudioBytes2, DWORD dwFlags)
-    static private Callback.Handler Lock = new HandlerBase() {
+    static private final Callback.Handler Lock = new HandlerBase() {
         static final int DSBLOCK_FROMWRITECURSOR = 0x00000001;
         static final int DSBLOCK_ENTIREBUFFER = 0x00000002;
 
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Lock";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwOffset = CPU.CPU_Pop32();
@@ -462,7 +488,7 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Play(this, DWORD dwReserved1, DWORD dwReserved2, DWORD dwFlags)
-    static private Callback.Handler Play = new HandlerBase() {
+    static private final Callback.Handler Play = new HandlerBase() {
         static public final int DSBPLAY_LOOPING = 0x00000001;
         static public final int DSBPLAY_LOCHARDWARE = 0x00000002;
         static public final int DSBPLAY_LOCSOFTWARE = 0x00000004;
@@ -470,10 +496,12 @@ public class IDirectSoundBuffer extends IUnknown {
         static public final int DSBPLAY_TERMINATEBY_DISTANCE = 0x000000010;
         static public final int DSBPLAY_TERMINATEBY_PRIORITY = 0x000000020;
 
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Play";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwReserved1 = CPU.CPU_Pop32();
@@ -487,11 +515,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT SetCurrentPosition(this, DWORD dwNewPosition)
-    static private Callback.Handler SetCurrentPosition = new HandlerBase() {
+    static private final Callback.Handler SetCurrentPosition = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.SetCurrentPosition";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int dwNewPosition = CPU.CPU_Pop32();
@@ -502,11 +532,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT SetFormat(this, LPCWAVEFORMATEX lpcfxFormat)
-    static private Callback.Handler SetFormat = new HandlerBase() {
+    static private final Callback.Handler SetFormat = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.SetFormat";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int lpcfxFormat = CPU.CPU_Pop32();
@@ -516,11 +548,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT SetVolume(this, LONG lVolume)
-    static private Callback.Handler SetVolume = new ReturnHandlerBase() {
+    static private final Callback.Handler SetVolume = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.SetVolume";
         }
 
+        @Override
         public int processReturn() {
             int This = CPU.CPU_Pop32();
             int vol = CPU.CPU_Pop32();
@@ -546,11 +580,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT SetPan(this, LONG lPan)
-    static private Callback.Handler SetPan = new ReturnHandlerBase() {
+    static private final Callback.Handler SetPan = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.SetPan";
         }
 
+        @Override
         public int processReturn() {
             int This = CPU.CPU_Pop32();
             int pan = CPU.CPU_Pop32();
@@ -578,11 +614,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT SetFrequency(this, DWORD dwFrequency)
-    static private Callback.Handler SetFrequency = new ReturnHandlerBase() {
+    static private final Callback.Handler SetFrequency = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.SetFrequency";
         }
 
+        @Override
         public int processReturn() {
             int This = CPU.CPU_Pop32();
             int freq = CPU.CPU_Pop32();
@@ -621,11 +659,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Stop(this)
-    static private Callback.Handler Stop = new HandlerBase() {
+    static private final Callback.Handler Stop = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Stop";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             Data data = Data.get(This);
@@ -635,11 +675,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Unlock(this, LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioPtr2)
-    static private Callback.Handler Unlock = new ReturnHandlerBase() {
+    static private final Callback.Handler Unlock = new ReturnHandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Unlock";
         }
 
+        @Override
         public int processReturn() {
             int This = CPU.CPU_Pop32();
             int p1 = CPU.CPU_Pop32();
@@ -667,11 +709,13 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Restore(this)
-    static private Callback.Handler Restore = new HandlerBase() {
+    static private final Callback.Handler Restore = new HandlerBase() {
+        @Override
         public java.lang.String getName() {
             return "IDirectSoundBuffer.Restore";
         }
 
+        @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             CPU_Regs.reg_eax.dword = Error.S_OK;
@@ -694,13 +738,13 @@ public class IDirectSoundBuffer extends IUnknown {
                 line.open(af, LINE_SIZE);
                 line.start();
             } catch (Exception e) {
-                e.printStackTrace();
+                logger.log(Level.ERROR, e.getMessage(), e);
                 return false;
             }
             return true;
         }
 
-        WAVEFORMATEX format;
+        final WAVEFORMATEX format;
         SourceDataLine line;
         final Data data;
         boolean playing = false;
@@ -717,12 +761,13 @@ public class IDirectSoundBuffer extends IUnknown {
                 try {
                     line.write(buffer, i, length);
                 } catch (Exception e) {
-                    e.printStackTrace();
+                    logger.log(Level.ERROR, e.getMessage(), e);
                 }
                 data.startPos = ((int) ((long) (i + length) * data.buflen / data.tmp_buffer_len) + 3) & ~3;
             }
         }
 
+        @Override
         public void run() {
             while (!bExit) {
                 playing = true;

@@ -34,6 +34,6 @@ public class DRAWITEMSTRUCT extends WinAPI {
     public int     itemState;  /* Item state (ODS_* flags from "winuser.h") */
     public int     hwndItem;   /* Control window */
     public int     hDC;        /* Device context to draw to */
-    public WinRect rcItem;     /* Position of the control in hDC */
+    public final WinRect rcItem;     /* Position of the control in hDC */
     public int     itemData;   /* Extra data added by the application, if any */
 }

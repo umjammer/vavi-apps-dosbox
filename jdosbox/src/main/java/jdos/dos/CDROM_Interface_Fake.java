@@ -6,25 +6,30 @@ import jdos.util.ShortRef;
 import jdos.util.StringRef;
 
 public class CDROM_Interface_Fake implements Dos_cdrom.CDROM_Interface {
+    @Override
     public void close() {
     }
 
-    public boolean SetDevice(String path, int forceCD) {
+    @Override
+    public boolean setDevice(String path, int forceCD) {
         return true;
     }
 
-    public boolean GetUPC(ShortRef attr, StringRef upc) {
+    @Override
+    public boolean getUPC(ShortRef attr, StringRef upc) {
         attr.value = 0; upc.value="UPC"; return true;
     }
 
-    public boolean GetAudioTracks(IntRef stTrack, IntRef end, Dos_cdrom.TMSF leadOut) {
+    @Override
+    public boolean getAudioTracks(IntRef stTrack, IntRef end, Dos_cdrom.TMSF leadOut) {
         stTrack.value = end.value = 1;
         leadOut.min	= 60;
         leadOut.sec = leadOut.fr = 0;
         return true;
     }
 
-    public boolean GetAudioTrackInfo(int track, Dos_cdrom.TMSF start, ShortRef attr) {
+    @Override
+    public boolean getAudioTrackInfo(int track, Dos_cdrom.TMSF start, ShortRef attr) {
         if (track>1) return false;
         start.min = start.fr = 0;
         start.sec = 2;
@@ -32,7 +37,8 @@ public class CDROM_Interface_Fake implements Dos_cdrom.CDROM_Interface {
         return true;
     }
 
-    public boolean GetAudioSub(ShortRef attr, ShortRef track, ShortRef index, Dos_cdrom.TMSF relPos, Dos_cdrom.TMSF absPos) {
+    @Override
+    public boolean getAudioSub(ShortRef attr, ShortRef track, ShortRef index, Dos_cdrom.TMSF relPos, Dos_cdrom.TMSF absPos) {
         attr.value = 0;
         track.value = index.value = 1;
         relPos.min = relPos.fr = 0; relPos.sec = 2;
@@ -40,41 +46,50 @@ public class CDROM_Interface_Fake implements Dos_cdrom.CDROM_Interface {
         return true;
     }
 
-    public boolean GetAudioStatus(BooleanRef playing, BooleanRef pause) {
+    @Override
+    public boolean getAudioStatus(BooleanRef playing, BooleanRef pause) {
         playing.value = pause.value = false;
 	    return true;
     }
 
-    public boolean GetMediaTrayStatus(BooleanRef mediaPresent, BooleanRef mediaChanged, BooleanRef trayOpen) {
+    @Override
+    public boolean getMediaTrayStatus(BooleanRef mediaPresent, BooleanRef mediaChanged, BooleanRef trayOpen) {
         mediaPresent.value = true;
         mediaChanged.value = false;
         trayOpen.value     = false;
         return true;
     }
 
-    public boolean PlayAudioSector(long start, long len) {
+    @Override
+    public boolean playAudioSector(long start, long len) {
         return true;
     }
 
-    public boolean PauseAudio(boolean resume) {
+    @Override
+    public boolean pauseAudio(boolean resume) {
         return true;
     }
 
-    public boolean StopAudio() {
+    @Override
+    public boolean stopAudio() {
         return true;
     }
 
-    public void ChannelControl(Dos_cdrom.TCtrl ctrl) {
+    @Override
+    public void channelControl(Dos_cdrom.TCtrl ctrl) {
     }
 
-    public boolean ReadSectors(int buffer, boolean raw, long sector, long num) {
+    @Override
+    public boolean readSectors(int buffer, boolean raw, long sector, long num) {
         return true;
     }
 
-    public boolean LoadUnloadMedia(boolean unload) {
+    @Override
+    public boolean loadUnloadMedia(boolean unload) {
         return true;
     }
 
-    public void InitNewMedia() {
+    @Override
+    public void initNewMedia() {
     }
 }

@@ -87,10 +87,12 @@ public class WinSystem {
         return (int)(System.currentTimeMillis() - startTime);
     }
 
-    static private Callback.Handler returnCallback = new Callback.Handler() {
+    static private final Callback.Handler returnCallback = new Callback.Handler() {
+        @Override
         public String getName() {
             return "WinProc";
         }
+        @Override
         public int call() {
             return 1; // return from SendMessage
         }

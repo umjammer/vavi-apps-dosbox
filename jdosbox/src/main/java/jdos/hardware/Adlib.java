@@ -1,10 +1,16 @@
 package jdos.hardware;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 
 public class Adlib {
+
+    private static final Logger logger = System.getLogger(Adlib.class.getName());
+
     static private final int HW_OPL2 = 0;
     static private final int HW_DUALOPL2 = 1;
     static private final int HW_OPL3 = 2;
@@ -288,7 +294,7 @@ public class Adlib {
 
     private static final class Chip {
         //Last selected register
-        Timer[] timer = new Timer[2];
+        final Timer[] timer = new Timer[2];
         public Chip() {
             for (int i=0;i<timer.length;i++) {
                 timer[i] = new Timer();
@@ -357,24 +363,24 @@ public class Adlib {
     static final private int MODE_DUALOPL2 = 1;
     static final private int MODE_OPL3 = 2;
 
-    static public interface Handler {
+    public interface Handler {
         //Write an address to a chip, returns the address the chip sets
-        public /*Bit32u*/long WriteAddr( /*Bit32u*/int port, /*Bit8u*/short val );
+        /*Bit32u*/long WriteAddr( /*Bit32u*/int port, /*Bit8u*/short val);
         //Write to a specific register in the chip
-        public void WriteReg( /*Bit32u*/int addr, /*Bit8u*/short val );
+        void WriteReg( /*Bit32u*/int addr, /*Bit8u*/short val);
         //Generate a certain amount of samples
-        public void Generate( Mixer.MixerChannel chan, /*Bitu*/int samples );
+        void Generate(Mixer.MixerChannel chan, /*Bitu*/int samples);
         //Initialize at a specific sample rate and mode
-        public void Init( /*Bitu*/long rate );
+        void Init( /*Bitu*/long rate);
     }
 
 //The cache for 2 chips or an opl3
 //    typedef /*Bit8u*/short RegisterCache[512];
 
     static private class Module extends Module_base {
-        private IoHandler.IO_ReadHandleObject[] ReadHandler = new IoHandler.IO_ReadHandleObject[3];
-        private IoHandler.IO_WriteHandleObject[] WriteHandler = new IoHandler.IO_WriteHandleObject[3];
-        private Mixer.MixerObject mixerObject = new Mixer.MixerObject();
+        private final IoHandler.IO_ReadHandleObject[] ReadHandler = new IoHandler.IO_ReadHandleObject[3];
+        private final IoHandler.IO_WriteHandleObject[] WriteHandler = new IoHandler.IO_WriteHandleObject[3];
+        private final Mixer.MixerObject mixerObject = new Mixer.MixerObject();
 
         public Module(Section configuration) {
             super(configuration);
@@ -401,7 +407,7 @@ public class Adlib {
             if (oplemu.equals("fast")) {
                 handler = new DbOPL.Handler();
             } else if (oplemu.equals("compat")) {
-                System.out.println("OPLEMU compat not implemented");
+                logger.log(Level.DEBUG,"OPLEMU compat not implemented");
 //                if ( oplmode == OPL_opl2 ) {
 //                    handler = new OPL2::Handler();
 //                } else {
@@ -461,7 +467,7 @@ public class Adlib {
                 }
             }
         }
-        static private Reg reg = new Reg();
+        static private final Reg reg = new Reg();
         private void CacheWrite( /*Bit32u*/int reg, /*Bit8u*/short val ) {
             //capturing?
 //            if ( capture ) {
@@ -493,14 +499,14 @@ public class Adlib {
             CacheWrite( fullReg, val );
         }
         public static int oplmode = Hardware.OPL_none;
-        public Mixer.MixerChannel mixerChan;
+        public final Mixer.MixerChannel mixerChan;
         public /*Bit32u*/long lastUsed;				//Ticks when adlib was last used to turn of mixing after a few second
 
-        public Handler handler;				//Handler that will generate the sound
+        public final Handler handler;				//Handler that will generate the sound
 //        public RegisterCache cache;
-        public short[] cache = new short[512];
+        public final short[] cache = new short[512];
 //        public Capture capture;
-        public Chip[] chip = new Chip[2];
+        public final Chip[] chip = new Chip[2];
 
         //Handle port writes
         public void PortWrite(/*Bitu*/int port, /*Bitu*/short val, /*Bitu*/int iolen) {
@@ -600,30 +606,23 @@ public class Adlib {
 
     private static Module module = null;
 
-    static private final Mixer.MIXER_Handler OPL_CallBack = new Mixer.MIXER_Handler() {
-        public void call(/*Bitu*/int len) {
-            module.handler.Generate( module.mixerChan, len );
-            //Disable the sound generation after 30 seconds of silence
-            if ((Pic.PIC_Ticks - module.lastUsed) > 30000) {
-                /*Bitu*/int i;
-                for (i=0xb0;i<0xb9;i++) if ((module.cache[i] &0x20)!=0 || (module.cache[i+0x100] & 0x20)!=0) break;
-                if (i==0xb9) module.mixerChan.Enable(false);
-                else module.lastUsed = Pic.PIC_Ticks;
-            }
+    /*Bitu*/
+    static private final Mixer.MIXER_Handler OPL_CallBack = len -> {
+        module.handler.Generate( module.mixerChan, len );
+        //Disable the sound generation after 30 seconds of silence
+        if ((Pic.PIC_Ticks - module.lastUsed) > 30000) {
+            /*Bitu*/int i;
+            for (i=0xb0;i<0xb9;i++) if ((module.cache[i] &0x20)!=0 || (module.cache[i+0x100] & 0x20)!=0) break;
+            if (i==0xb9) module.mixerChan.Enable(false);
+            else module.lastUsed = Pic.PIC_Ticks;
         }
     };
 
-    static final private IoHandler.IO_ReadHandler OPL_Read = new IoHandler.IO_ReadHandler() {
-        public /*Bitu*/int call(/*Bitu*/int port, /*Bitu*/int iolen) {
-            return module.PortRead( port, iolen );
-        }
-    };
+    /*Bitu*//*Bitu*//*Bitu*/
+    static final private IoHandler.IO_ReadHandler OPL_Read = (port, iolen) -> module.PortRead( port, iolen );
 
-    static final private IoHandler.IO_WriteHandler OPL_Write = new IoHandler.IO_WriteHandler() {
-        public void call(/*Bitu*/int port, /*Bitu*/int val, /*Bitu*/int iolen) {
-            module.PortWrite( port, (short)val, iolen );
-        }
-    };
+    /*Bitu*//*Bitu*//*Bitu*/
+    static final private IoHandler.IO_WriteHandler OPL_Write = (port, val, iolen) -> module.PortWrite( port, (short)val, iolen );
 
 /*
 	Save the current state of the operators as instruments in an reality adlib tracker file
