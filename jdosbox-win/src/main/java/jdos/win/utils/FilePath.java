@@ -35,6 +35,10 @@ public class FilePath {
 
     public FilePath(String path) {
         this.path = path;
+        if (path.length() < 2 || path.charAt(1) != ':') {
+            this.delagate = new JavaPath(path);
+            return;
+        }
         String driveLetter = path.substring(0, 1).toUpperCase();
         Object drive = disks.get(driveLetter);
         if (drive instanceof String)
