@@ -306,6 +306,13 @@ public class MainFrame implements GUI {
                 }
             }
         });
+        panel.addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                Main.screen_width = panel.getWidth();
+                Main.screen_height = panel.getHeight();
+            }
+        });
         Container contentPane = frame.getContentPane();
         contentPane.setLayout(new BorderLayout());
         frame.getContentPane().add(panel, BorderLayout.CENTER);
