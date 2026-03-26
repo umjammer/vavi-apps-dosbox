@@ -3,6 +3,8 @@ package jdos.gui;
 import java.awt.event.KeyEvent;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.HashMap;
+import java.util.Map;
 
 import jdos.sdl.JavaMapper;
 import jdos.sdl.JavaMapper.DefaultKey;
@@ -83,14 +85,135 @@ public class KeyboardKey {
 
     static boolean ctrAltDel = false;
 
+    static class KeyMapping {
+
+        final int targetScancode;
+        final Boolean requireShift; // true for +shift, false for -shift, null for no change
+
+        public KeyMapping(int targetScancode, Boolean requireShift) {
+            this.targetScancode = targetScancode;
+            this.requireShift = requireShift;
+        }
+    }
+
+    static class ActiveKey {
+
+        final int targetScancode;
+        final int shiftAdjustment; // 1 if +shift, -1 if -shift, 0 if none
+
+        public ActiveKey(int scancode, int shiftAdj) {
+            this.targetScancode = scancode;
+            this.shiftAdjustment = shiftAdj;
+        }
+    }
+
+    static final Map<Integer, KeyMapping> unshiftedMap = new HashMap<>();
+    static final Map<Integer, KeyMapping> shiftedMap = new HashMap<>();
+    static final Map<Integer, ActiveKey> activeKeys = new HashMap<>();
+    static boolean hostShiftDown = false;
+
+    static boolean isJISEnabled() {
+        return "jpn".equals(System.getProperty("jdosbox.keyboard.layout"));
+    }
+
+    static {
+        loadJISMappings();
+    }
+
+    static void loadJISMappings() {
+        if (!isJISEnabled()) return;
+
+        try {
+            java.io.InputStream is = KeyboardKey.class.getClassLoader().getResourceAsStream("keyboard_jpn.properties");
+            if (is != null) {
+                java.util.Properties props = new java.util.Properties();
+                props.load(is);
+                for (String key : props.stringPropertyNames()) {
+                    String value = props.getProperty(key).trim();
+                    String[] parts = value.split(",");
+                    int scancode = Integer.parseInt(parts[0].trim(), 16);
+
+                    Boolean requireShift = null;
+                    if (parts.length > 1) {
+                        if ("+shift".equals(parts[1].trim())) requireShift = true;
+                        else if ("-shift".equals(parts[1].trim())) requireShift = false;
+                    }
+
+                    boolean isShifted = key.endsWith(",+shift");
+                    int vk;
+                    if (isShifted) {
+                        vk = Integer.parseInt(key.substring(0, key.indexOf(',')).trim(), 16);
+                        shiftedMap.put(vk, new KeyMapping(scancode, requireShift));
+                    } else {
+                        vk = Integer.parseInt(key.trim(), 16);
+                        unshiftedMap.put(vk, new KeyMapping(scancode, requireShift));
+                    }
+                }
+                is.close();
+            }
+        } catch (Exception e) {
+            // Ignore if we can't load the file
+        }
+        logger.log(Level.INFO, "jpn: " + "jpn".equals(System.getProperty("jdosbox.keyboard.layout")));
+    }
+
+    static boolean interceptJIS(KeyEvent event) {
+        if (!isJISEnabled()) {
+            return false;
+        }
+
+        int keyCode = event.getKeyCode();
+        if (keyCode == KeyEvent.VK_SHIFT) {
+            hostShiftDown = (event.getID() == KeyEvent.KEY_PRESSED);
+            return false;
+        }
+//logger.log(Level.INFO, "keyCode: " + keyCode + ", " + event.paramString());
+        if (event.getID() == KeyEvent.KEY_PRESSED) {
+            KeyMapping mapping = hostShiftDown ? shiftedMap.get(keyCode) : unshiftedMap.get(keyCode);
+            if (mapping != null) {
+                int shiftAdj = 0;
+                if (mapping.requireShift != null) {
+                    if (mapping.requireShift && !hostShiftDown) {
+                        jdos.hardware.Keyboard.KEYBOARD_AddBuffer(0x2A);
+                        shiftAdj = 1;
+                    } else if (!mapping.requireShift && hostShiftDown) {
+                        jdos.hardware.Keyboard.KEYBOARD_AddBuffer(0xAA);
+                        shiftAdj = -1;
+                    }
+                }
+
+                jdos.hardware.Keyboard.KEYBOARD_AddBuffer(mapping.targetScancode);
+                activeKeys.put(keyCode, new ActiveKey(mapping.targetScancode, shiftAdj));
+                return true;
+            }
+        } else if (event.getID() == KeyEvent.KEY_RELEASED) {
+            ActiveKey active = activeKeys.remove(keyCode);
+            if (active != null) {
+                jdos.hardware.Keyboard.KEYBOARD_AddBuffer(active.targetScancode | 0x80);
+
+                if (active.shiftAdjustment == 1) {
+                    jdos.hardware.Keyboard.KEYBOARD_AddBuffer(0xAA);
+                } else if (active.shiftAdjustment == -1) {
+                    jdos.hardware.Keyboard.KEYBOARD_AddBuffer(0x2A);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
     static public void checkEvent(Object e) {
         KeyEvent event = (KeyEvent) e;
+        if (interceptJIS(event)) {
+            return;
+        }
         if (JavaMapper.mapper.mods == 3 && event.getKeyCode() == KeyEvent.VK_INSERT && event.getID() == KeyEvent.KEY_PRESSED) {
             ctrAltDel = true;
         }
         if (ctrAltDel && event.getKeyCode() == KeyEvent.VK_INSERT) {
             event.setKeyCode(KeyEvent.VK_DELETE);
         }
+//logger.log(Level.INFO, "keyCode: " + event.getKeyCode() + ", " + event.paramString());
         JavaMapper.MAPPER_CheckEvent(e);
 
         if (ctrAltDel && event.getKeyCode() == KeyEvent.VK_INSERT && event.getID() == KeyEvent.KEY_RELEASED) {
