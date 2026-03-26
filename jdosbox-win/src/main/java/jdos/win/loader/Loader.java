@@ -18,6 +18,7 @@ import jdos.win.builtin.Comdlg32;
 import jdos.win.builtin.Crtdll;
 import jdos.win.builtin.Imm32;
 import jdos.win.builtin.Lz32;
+import jdos.win.builtin.Msvcrt;
 import jdos.win.builtin.Msacm32.Msacm32;
 import jdos.win.builtin.Msvfw32;
 import jdos.win.builtin.Ole32;
@@ -155,6 +156,8 @@ public class Loader {
             module = new Version(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("crtdll.dll")) {
             module = new Crtdll(this, getNextModuleHandle());
+        } else if (name.equalsIgnoreCase("msvcrt.dll")) {
+            module = new Msvcrt(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("ddraw.dll")) {
             module = new DDraw(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("winmm.dll")) {

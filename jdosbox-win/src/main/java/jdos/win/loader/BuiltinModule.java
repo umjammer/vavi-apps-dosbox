@@ -332,7 +332,7 @@ public class BuiltinModule extends Module {
             try {
                 if (LOG && params != null)
                     preLog(name, args, params);
-                Integer result = (Integer) method.invoke(null, (Object) args);
+                Integer result = (Integer) method.invoke(null, (Object[]) args);
                 if (LOG && params != null)
                     postLog(name, result, (params != null && params.length > args.length) ? params[args.length] : null, args, params);
                 return result;
@@ -376,7 +376,7 @@ public class BuiltinModule extends Module {
             try {
                 if (LOG && params != null)
                     preLog(name, args, params);
-                method.invoke(null, (Object) args);
+                method.invoke(null, (Object[]) args);
                 if (LOG && params != null)
                     postLog(name, null, null, args, params);
             } catch (Exception e) {
@@ -428,7 +428,7 @@ public class BuiltinModule extends Module {
                 wait = false;
                 if (LOG && params != null)
                     preLog(name, args, params);
-                Integer result = (Integer) method.invoke(null, (Object) args);
+                Integer result = (Integer) method.invoke(null, (Object[]) args);
                 if (wait) {
                     if (LOG && params != null) {
                         System.out.print(" THREAD PUT TO SLEEP, WILL TRY AGAIN LATER");
@@ -464,18 +464,16 @@ public class BuiltinModule extends Module {
     }
 
     protected void add(Class<?> c, String methodName, String[] params) {
-        Method[] methods = c.getMethods();
-        for (Method method : methods) {
-            if (method.getName().equals(methodName)) {
-                if (method.getReturnType() == Integer.TYPE) {
-                    add(new ReturnHandler(methodName, method, true, params));
-                } else {
-                    add(new NoReturnHandler(methodName, method, true, params));
-                }
-                return;
-            }
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
         }
-        Win.panic("Failed to find " + methodName);
+        if (method.getReturnType() == Integer.TYPE) {
+            add(new ReturnHandler(methodName, method, true, params));
+        } else {
+            add(new NoReturnHandler(methodName, method, true, params));
+        }
     }
 
     protected void add_wait(Class<?> c, String methodName) {
@@ -483,19 +481,17 @@ public class BuiltinModule extends Module {
     }
 
     protected void add_wait(Class<?> c, String methodName, String[] params) {
-        Method[] methods = c.getMethods();
-        for (Method method : methods) {
-            if (method.getName().equals(methodName)) {
-                if (method.getReturnType() == Integer.TYPE) {
-                    add(new WaitReturnHandler(methodName, method, true, params));
-                } else {
-                    Win.panic("WaitNoReturnHandler not implemented");
-                    //add(new WaitNoReturnHandler(methodName, method, true));
-                }
-                return;
-            }
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
         }
-        Win.panic("Failed to find " + methodName);
+        if (method.getReturnType() == Integer.TYPE) {
+            add(new WaitReturnHandler(methodName, method, true, params));
+        } else {
+            Win.panic("WaitNoReturnHandler not implemented");
+            //add(new WaitNoReturnHandler(methodName, method, true));
+        }
     }
 
     protected void add_cdecl(Class<?> c, String methodName) {
@@ -503,18 +499,30 @@ public class BuiltinModule extends Module {
     }
 
     protected void add_cdecl(Class<?> c, String methodName, String[] params) {
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
+        }
+        if (method.getReturnType() == Integer.TYPE) {
+            add(new ReturnHandler(methodName, method, false, params));
+        } else {
+            add(new NoReturnHandler(methodName, method, false, params));
+        }
+    }
+
+    private Method findMethod(Class<?> c, String methodName) {
         Method[] methods = c.getMethods();
+        Method caseInsensitiveMatch = null;
         for (Method method : methods) {
             if (method.getName().equals(methodName)) {
-                if (method.getReturnType() == Integer.TYPE) {
-                    add(new ReturnHandler(methodName, method, false, params));
-                } else {
-                    add(new NoReturnHandler(methodName, method, false, params));
-                }
-                return;
+                return method;
+            }
+            if (caseInsensitiveMatch == null && method.getName().equalsIgnoreCase(methodName)) {
+                caseInsensitiveMatch = method;
             }
         }
-        Win.panic("Failed to find " + methodName);
+        return caseInsensitiveMatch;
     }
 
     protected void add(Callback.Handler handler) {

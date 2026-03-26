@@ -285,9 +285,15 @@ public class WinCursor extends WinObject {
             Cursor cursor = cursors.get(res);
             if (cursor == null) {
                 InputStream is = WinCursor.class.getResourceAsStream("/jdos/win/builtin/res/" + res);
+                if (is == null) {
+                    return Cursor.getDefaultCursor();
+                }
                 Toolkit toolkit = Toolkit.getDefaultToolkit();
                 List<Point> hotspots = new ArrayList<>();
                 Image[] images = loadCursorFromStream(is, hotspots);
+                if (images == null || images.length == 0 || hotspots.isEmpty()) {
+                    return Cursor.getDefaultCursor();
+                }
                 cursor = toolkit.createCustomCursor(images[0], hotspots.getFirst(), res);
                 cursors.put(res, cursor);
             }
