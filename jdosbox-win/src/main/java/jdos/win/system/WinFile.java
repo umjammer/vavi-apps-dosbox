@@ -1,13 +1,15 @@
 package jdos.win.system;
 
+import java.io.File;
+import java.io.FileFilter;
+
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.utils.FilePath;
 
-import java.io.File;
-import java.io.FileFilter;
 
 public class WinFile extends WinObject {
+
     static public WinFile create(FilePath file, boolean write, int shareMode, int attributes) {
         if (file.open(write))
             return new WinFile(nextObjectId(), file, write, shareMode, attributes);
@@ -24,7 +26,7 @@ public class WinFile extends WinObject {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof WinFile))
             return null;
-        return (WinFile)object;
+        return (WinFile) object;
     }
 
     public final static int FILE_SHARE_NONE = 0x0;
@@ -33,6 +35,7 @@ public class WinFile extends WinObject {
     public final static int FILE_SHARE_DELETE = 0x4;
 
     public static class WildCardFileFilter implements FileFilter {
+
         String begin;
         String end;
 
@@ -41,9 +44,9 @@ public class WinFile extends WinObject {
                 Win.panic("WildCardFileFilter to not support ? yet");
             }
             int pos = filter.indexOf("*");
-            if (pos>=0) {
+            if (pos >= 0) {
                 begin = filter.substring(0, pos);
-                end = filter.substring(pos+1);
+                end = filter.substring(pos + 1);
             } else {
                 begin = filter;
                 end = "";
@@ -60,6 +63,7 @@ public class WinFile extends WinObject {
             return false;
         }
     }
+
     public static final int STD_OUT = 1;
     public static final int STD_IN = 2;
     public static final int STD_ERROR = 3;
@@ -86,20 +90,21 @@ public class WinFile extends WinObject {
     }
 
     public static void writeFileTime(int address, long time) {
-        int low = (int)time;
-        int high = (int)(time >> 32);
+        int low = (int) time;
+        int high = (int) (time >> 32);
         Memory.mem_writed(address, low);
-        Memory.mem_writed(address+4, high);
+        Memory.mem_writed(address + 4, high);
     }
 
     public static long readFileTime(int address) {
-        return (Memory.mem_readd(address) & 0xFFFFFFFFL) | ((Memory.mem_readd(address+4)  & 0xFFFFFFFFL) << 32);
+        return (Memory.mem_readd(address) & 0xFFFFFFFFL) | ((Memory.mem_readd(address + 4) & 0xFFFFFFFFL) << 32);
     }
 
     public WinFile(int type, int handle) {
         super(handle);
         this.type = type;
     }
+
     public WinFile(int handle, FilePath file, boolean write, int shareMode, int attributes) {
         super(handle);
         this.name = file.getName();
@@ -127,11 +132,11 @@ public class WinFile extends WinObject {
             if (from == SEEK_SET)
                 file.seek(pos);
             else if (from == SEEK_CUR)
-                file.skipBytes((int)pos);
+                file.skipBytes((int) pos);
             else if (from == SEEK_END)
-                file.seek(file.length()-pos);
+                file.seek(file.length() - pos);
             else
-                Win.panic("WinFile.seek unknown from: "+from);
+                Win.panic("WinFile.seek unknown from: " + from);
             return file.getFilePointer();
         } catch (Exception e) {
             return -1;
@@ -142,7 +147,7 @@ public class WinFile extends WinObject {
         try {
             byte[] buf = new byte[size];
             int result = file.read(buf);
-            Memory.mem_memcpy(buffer, buf,  0, size);
+            Memory.mem_memcpy(buffer, buf, 0, size);
             return result;
         } catch (Exception e) {
             return 0;

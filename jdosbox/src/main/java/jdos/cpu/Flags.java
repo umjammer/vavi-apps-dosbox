@@ -1,18 +1,33 @@
 package jdos.cpu;
 
 public class Flags {
+
     // needs to come before creating LazyFlags
     static public final GetFlags t_UNKNOWN = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return CPU_Regs.GETFLAG(CPU_Regs.AF) != 0;}
+        public boolean AF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.AF) != 0;
+        }
+
         @Override
-        public boolean ZF() {return CPU_Regs.GETFLAG(CPU_Regs.ZF) != 0;}
+        public boolean ZF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.ZF) != 0;
+        }
+
         @Override
-        public boolean SF() {return CPU_Regs.GETFLAG(CPU_Regs.SF) != 0;}
+        public boolean SF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.SF) != 0;
+        }
+
         @Override
-        public boolean OF() {return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;}
+        public boolean OF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;
+        }
     };
 
     public static int var1;
@@ -24,7 +39,7 @@ public class Flags {
     static public void copy(LazyFlags in) {
         var1 = in.var1;
         var2 = in.var2;
-        res=in.res;
+        res = in.res;
         type = in.type;
         oldcf = in.oldcf;
     }
@@ -34,7 +49,7 @@ public class Flags {
     }
 
     public static void lf_var1b(int b) {
-        var1=b & 0xFF;
+        var1 = b & 0xFF;
     }
 
     public static int lf_var2b() {
@@ -42,7 +57,7 @@ public class Flags {
     }
 
     public static void lf_var2b(int b) {
-        var2=b & 0xFF;
+        var2 = b & 0xFF;
     }
 
     public static int lf_resb() {
@@ -58,7 +73,7 @@ public class Flags {
     }
 
     public static void lf_var1w(int s) {
-        var1=s & 0xFFFF;
+        var1 = s & 0xFFFF;
     }
 
     public static int lf_var2w() {
@@ -83,7 +98,7 @@ public class Flags {
     }
 
     public static void lf_var1d(int v) {
-        var1=v;
+        var1 = v;
     }
 
     public static int lf_var2d() {
@@ -91,7 +106,7 @@ public class Flags {
     }
 
     public static void lf_var2d(int v) {
-        var2=v;
+        var2 = v;
     }
 
     public static int lf_resd() {
@@ -99,701 +114,1425 @@ public class Flags {
     }
 
     public static void lf_resd(int v) {
-        res=v;
+        res = v;
     }
 
     public static void SETFLAGSb(int FLAGB) {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.OF,get_OF());
-        type=t_UNKNOWN;
-        CPU.CPU_SetFlags(FLAGB,CPU_Regs.FMASK_NORMAL & 0xff);
+        CPU_Regs.SETFLAGBIT(CPU_Regs.OF, get_OF());
+        type = t_UNKNOWN;
+        CPU.CPU_SetFlags(FLAGB, CPU_Regs.FMASK_NORMAL & 0xff);
     }
 
     static public void LoadCF() {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.CF,get_CF());
+        CPU_Regs.SETFLAGBIT(CPU_Regs.CF, get_CF());
     }
+
     static public void LoadZF() {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.ZF,get_ZF());
+        CPU_Regs.SETFLAGBIT(CPU_Regs.ZF, get_ZF());
     }
+
     static public void LoadSF() {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.SF,get_SF());
+        CPU_Regs.SETFLAGBIT(CPU_Regs.SF, get_SF());
     }
+
     static public void LoadOF() {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.OF,get_OF());
+        CPU_Regs.SETFLAGBIT(CPU_Regs.OF, get_OF());
     }
+
     static public void LoadAF() {
-        CPU_Regs.SETFLAGBIT(CPU_Regs.AF,get_AF());
+        CPU_Regs.SETFLAGBIT(CPU_Regs.AF, get_AF());
     }
 
     public interface GetFlags {
+
         boolean CF();
+
         boolean AF();
+
         boolean ZF();
+
         boolean SF();
+
         boolean OF();
     }
 
     final static public GetFlags t_INCb = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resb() & 0x0f) == 0;}
+        public boolean AF() {
+            return (lf_resb() & 0x0f) == 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resb() == 0x80);}
+        public boolean OF() {
+            return (lf_resb() == 0x80);
+        }
     };
 
     final static public GetFlags t_INCw = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resw() & 0x0f) == 0;}
+        public boolean AF() {
+            return (lf_resw() & 0x0f) == 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resw() == 0x8000);}
+        public boolean OF() {
+            return (lf_resw() == 0x8000);
+        }
     };
 
     final static public GetFlags t_INCd = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resd() & 0x0f) == 0;}
+        public boolean AF() {
+            return (lf_resd() & 0x0f) == 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resd() == 0x80000000);}
+        public boolean OF() {
+            return (lf_resd() == 0x80000000);
+        }
     };
 
     final static public GetFlags t_DECb = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resb() & 0x0f) == 0x0f;}
+        public boolean AF() {
+            return (lf_resb() & 0x0f) == 0x0f;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resb() == 0x7f);}
+        public boolean OF() {
+            return (lf_resb() == 0x7f);
+        }
     };
 
     final static public GetFlags t_DECw = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resw() & 0x0f) == 0x0f;}
+        public boolean AF() {
+            return (lf_resw() & 0x0f) == 0x0f;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resw() == 0x7fff);}
+        public boolean OF() {
+            return (lf_resw() == 0x7fff);
+        }
     };
 
     final static public GetFlags t_DECd = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_resd() & 0x0f) == 0x0f;}
+        public boolean AF() {
+            return (lf_resd() & 0x0f) == 0x0f;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()& 0x80000000L)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000L) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_resd() == 0x7fffffff);}
+        public boolean OF() {
+            return (lf_resd() == 0x7fffffff);
+        }
     };
 
     final static public GetFlags t_ADDb = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_resb()<lf_var1b());}
+        public boolean CF() {
+            return (lf_resb() < lf_var1b());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) !=0;}
+        public boolean AF() {
+            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;}
+        public boolean OF() {
+            return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_ADDw = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_resw()<lf_var1w());}
+        public boolean CF() {
+            return (lf_resw() < lf_var1w());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;}
+        public boolean OF() {
+            return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_ADDd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_resd() & 0xFFFFFFFFL)<(lf_var1d() & 0xFFFFFFFFL));}
+        public boolean CF() {
+            return ((lf_resd() & 0xFFFFFFFFL) < (lf_var1d() & 0xFFFFFFFFL));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;}
+        public boolean OF() {
+            return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_ADCb = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_resb() < lf_var1b()) || (oldcf && (lf_resb() == lf_var1b()));}
+        public boolean CF() {
+            return (lf_resb() < lf_var1b()) || (oldcf && (lf_resb() == lf_var1b()));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) !=0;}
+        public boolean AF() {
+            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;}
+        public boolean OF() {
+            return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_ADCw = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_resw() < lf_var1w()) || (oldcf && (lf_resw() == lf_var1w()));}
+        public boolean CF() {
+            return (lf_resw() < lf_var1w()) || (oldcf && (lf_resw() == lf_var1w()));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;}
+        public boolean OF() {
+            return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_ADCd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_resd() & 0xFFFFFFFFL) < (lf_var1d() & 0xFFFFFFFFL)) || (oldcf && (lf_resd() == lf_var1d()));}
+        public boolean CF() {
+            return ((lf_resd() & 0xFFFFFFFFL) < (lf_var1d() & 0xFFFFFFFFL)) || (oldcf && (lf_resd() == lf_var1d()));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;}
+        public boolean OF() {
+            return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_ORb = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_ORw = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_ORd = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_ANDb = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_ANDw = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_ANDd = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_TESTb = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_TESTw = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_TESTd = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_XORb = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_XORw = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_XORd = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_SUBb = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1b()<lf_var2b());}
+        public boolean CF() {
+            return (lf_var1b() < lf_var2b());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) !=0;}
+        public boolean AF() {
+            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;}
+        public boolean OF() {
+            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_SUBw = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1w()<lf_var2w());}
+        public boolean CF() {
+            return (lf_var1w() < lf_var2w());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;}
+        public boolean OF() {
+            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_SUBd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() & 0xFFFFFFFFL)<(lf_var2d() & 0xFFFFFFFFL));}
+        public boolean CF() {
+            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_var2d() & 0xFFFFFFFFL));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;}
+        public boolean OF() {
+            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_CMPb = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1b()<lf_var2b());}
+        public boolean CF() {
+            return (lf_var1b() < lf_var2b());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) !=0;}
+        public boolean AF() {
+            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;}
+        public boolean OF() {
+            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_CMPw = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1w()<lf_var2w());}
+        public boolean CF() {
+            return (lf_var1w() < lf_var2w());
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;}
+        public boolean OF() {
+            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_CMPd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() & 0xFFFFFFFFL)<(lf_var2d() & 0xFFFFFFFFL));}
+        public boolean CF() {
+            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_var2d() & 0xFFFFFFFFL));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;}
+        public boolean OF() {
+            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_SBBb = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1b() < lf_resb()) || (oldcf && (lf_var2b()==0xff));}
+        public boolean CF() {
+            return (lf_var1b() < lf_resb()) || (oldcf && (lf_var2b() == 0xff));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) !=0;}
+        public boolean AF() {
+            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;}
+        public boolean OF() {
+            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_SBBw = new GetFlags() {
         @Override
-        public boolean CF() {return (lf_var1w() < lf_resw()) || (oldcf && (lf_var2w()==0xffff));}
+        public boolean CF() {
+            return (lf_var1w() < lf_resw()) || (oldcf && (lf_var2w() == 0xffff));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;}
+        public boolean OF() {
+            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_SBBd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() & 0xFFFFFFFFL) < (lf_resd() & 0xFFFFFFFFL)) || (oldcf && (lf_var2d()==0xffffffff));}
+        public boolean CF() {
+            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_resd() & 0xFFFFFFFFL)) || (oldcf && (lf_var2d() == 0xffffffff));
+        }
+
         @Override
-        public boolean AF() {return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;}
+        public boolean AF() {
+            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;}
+        public boolean OF() {
+            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_MUL = new GetFlags() {
         @Override
-        public boolean CF() {return CPU_Regs.GETFLAG(CPU_Regs.CF)!=0;}
+        public boolean CF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return false;}
+        public boolean ZF() {
+            return false;
+        }
+
         @Override
-        public boolean SF() {return false;}
+        public boolean SF() {
+            return false;
+        }
+
         @Override
-        public boolean OF() {return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;}
+        public boolean OF() {
+            return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;
+        }
     };
 
     final static public GetFlags t_SHLb = new GetFlags() {
         @Override
-        public boolean CF() {return lf_var2b()<=8 && ((lf_var1b() >> (8-lf_var2b())) & 1)!=0;}
+        public boolean CF() {
+            return lf_var2b() <= 8 && ((lf_var1b() >> (8 - lf_var2b())) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2b() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2b() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resb() ^ lf_var1b()) & 0x80) != 0;}
+        public boolean OF() {
+            return ((lf_resb() ^ lf_var1b()) & 0x80) != 0;
+        }
     };
 
     final static public GetFlags t_SHLw = new GetFlags() {
         @Override
-        public boolean CF() {return lf_var2b()<=16 && ((lf_var1w()) >> (16-lf_var2b()) & 1)!=0;}
+        public boolean CF() {
+            return lf_var2b() <= 16 && ((lf_var1w()) >> (16 - lf_var2b()) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2w() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2w() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;}
+        public boolean OF() {
+            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_SHLd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;}
+        public boolean CF() {
+            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2d() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2d() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;}
+        public boolean OF() {
+            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_SHRb = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1b() >> (lf_var2b() - 1)) & 1) !=0;}
+        public boolean CF() {
+            return ((lf_var1b() >> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2b() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2b() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var2b()&0x1f)==1 && lf_var1b() > 0x80;}
+        public boolean OF() {
+            return (lf_var2b() & 0x1f) == 1 && lf_var1b() > 0x80;
+        }
     };
 
     final static public GetFlags t_SHRw = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1w() >> (lf_var2b() - 1)) & 1) !=0;}
+        public boolean CF() {
+            return ((lf_var1w() >> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2w() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2w() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var2b()&0x1f)==1 && lf_var1w() > 0x8000;}
+        public boolean OF() {
+            return (lf_var2b() & 0x1f) == 1 && lf_var1w() > 0x8000;
+        }
     };
 
     final static public GetFlags t_SHRd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;}
+        public boolean CF() {
+            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2d() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2d() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var2b()&0x1f)==1 && (lf_var1d() & 0xFFFFFFFFL) > 0x80000000L;}
+        public boolean OF() {
+            return (lf_var2b() & 0x1f) == 1 && (lf_var1d() & 0xFFFFFFFFL) > 0x80000000L;
+        }
     };
 
     final static public GetFlags t_SARb = new GetFlags() {
         @Override
-        public boolean CF() {return (((lf_var1b()) >> (lf_var2b() - 1)) & 1) != 0;}
+        public boolean CF() {
+            return (((lf_var1b()) >> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2b() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2b() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_SARw = new GetFlags() {
         @Override
-        public boolean CF() {return (((lf_var1w()) >> (lf_var2b() - 1)) & 1) != 0;}
+        public boolean CF() {
+            return (((lf_var1w()) >> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2w() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2w() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_SARd = new GetFlags() {
         @Override
-        public boolean CF() {return (((lf_var1d()) >> (lf_var2b() - 1)) & 1) != 0;}
+        public boolean CF() {
+            return (((lf_var1d()) >> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var2d() & 0x1f) != 0;}
+        public boolean AF() {
+            return (lf_var2d() & 0x1f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_DSHLw = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;} /* Hmm this is not correct for shift higher than 16 */
+        public boolean CF() {
+            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
+        } /* Hmm this is not correct for shift higher than 16 */
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;}
+        public boolean OF() {
+            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_DSHLd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;}
+        public boolean CF() {
+            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;}
+        public boolean OF() {
+            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_DSHRw = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;} /* Hmm this is not correct for shift higher than 16 */
+        public boolean CF() {
+            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
+        } /* Hmm this is not correct for shift higher than 16 */
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;}
+        public boolean OF() {
+            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
+        }
     };
 
     final static public GetFlags t_DSHRd = new GetFlags() {
         @Override
-        public boolean CF() {return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;}
+        public boolean CF() {
+            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;}
+        public boolean OF() {
+            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
+        }
     };
 
     final static public GetFlags t_DIV = new GetFlags() {
         @Override
-        public boolean CF() {return false;}
+        public boolean CF() {
+            return false;
+        }
+
         @Override
-        public boolean AF() {return false;}
+        public boolean AF() {
+            return false;
+        }
+
         @Override
-        public boolean ZF() {return false;}
+        public boolean ZF() {
+            return false;
+        }
+
         @Override
-        public boolean SF() {return false;}
+        public boolean SF() {
+            return false;
+        }
+
         @Override
-        public boolean OF() {return false;}
+        public boolean OF() {
+            return false;
+        }
     };
 
     final static public GetFlags t_NEGb = new GetFlags() {
         @Override
-        public boolean CF() {return lf_var1b() != 0;}
+        public boolean CF() {
+            return lf_var1b() != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var1b() & 0x0f) != 0;}
+        public boolean AF() {
+            return (lf_var1b() & 0x0f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resb()==0);}
+        public boolean ZF() {
+            return (lf_resb() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resb()&0x80)!= 0;}
+        public boolean SF() {
+            return (lf_resb() & 0x80) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var1b() == 0x80);}
+        public boolean OF() {
+            return (lf_var1b() == 0x80);
+        }
     };
 
     final static public GetFlags t_NEGw = new GetFlags() {
         @Override
-        public boolean CF() {return lf_var1w() != 0;}
+        public boolean CF() {
+            return lf_var1w() != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var1w() & 0x0f) != 0;}
+        public boolean AF() {
+            return (lf_var1w() & 0x0f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resw()==0);}
+        public boolean ZF() {
+            return (lf_resw() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resw()&0x8000)!=0;}
+        public boolean SF() {
+            return (lf_resw() & 0x8000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var1w() == 0x8000);}
+        public boolean OF() {
+            return (lf_var1w() == 0x8000);
+        }
     };
 
     final static public GetFlags t_NEGd = new GetFlags() {
         @Override
-        public boolean CF() {return lf_var1d() != 0;}
+        public boolean CF() {
+            return lf_var1d() != 0;
+        }
+
         @Override
-        public boolean AF() {return (lf_var1d() & 0x0f) != 0;}
+        public boolean AF() {
+            return (lf_var1d() & 0x0f) != 0;
+        }
+
         @Override
-        public boolean ZF() {return (lf_resd()==0);}
+        public boolean ZF() {
+            return (lf_resd() == 0);
+        }
+
         @Override
-        public boolean SF() {return	(lf_resd()&0x80000000)!= 0;}
+        public boolean SF() {
+            return (lf_resd() & 0x80000000) != 0;
+        }
+
         @Override
-        public boolean OF() {return (lf_var1d() == 0x80000000);}
+        public boolean OF() {
+            return (lf_var1d() == 0x80000000);
+        }
     };
+
     /* CF     Carry Flag -- Set on high-order bit carry or borrow; cleared
           otherwise.
     */
@@ -826,36 +1565,36 @@ public class Flags {
     }
 
     public static final int[] parity_lookup = new int[] {
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
-        CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF
-        };
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0,
+            CPU_Regs.PF, 0, 0, CPU_Regs.PF, 0, CPU_Regs.PF, CPU_Regs.PF, 0, 0, CPU_Regs.PF, CPU_Regs.PF, 0, CPU_Regs.PF, 0, 0, CPU_Regs.PF
+    };
 
     static public boolean get_PF() {
         if (type != t_UNKNOWN) {
             return (parity_lookup[lf_resb() & 0xFF]) != 0;
         }
-        return CPU_Regs.GETFLAG(CPU_Regs.PF)!=0;
+        return CPU_Regs.GETFLAG(CPU_Regs.PF) != 0;
     }
 
     static public boolean TFLG_O() {
         return get_OF();
     }
 
-    static public boolean TFLG_NO () {
+    static public boolean TFLG_NO() {
         return !get_OF();
     }
 
@@ -908,7 +1647,7 @@ public class Flags {
     }
 
     static public boolean TFLG_LE() {
-        return (get_ZF()  || ((get_SF()) != (get_OF())));
+        return (get_ZF() || ((get_SF()) != (get_OF())));
     }
 
     static public boolean TFLG_NLE() {
@@ -921,29 +1660,29 @@ public class Flags {
 
     static public /*Bitu*/int FillFlags() {
         if (type != t_UNKNOWN) {
-            SET_FLAG(CPU_Regs.CF,type.CF());
-            SET_FLAG(CPU_Regs.AF,type.AF());
-            SET_FLAG(CPU_Regs.ZF,type.ZF());
-            SET_FLAG(CPU_Regs.SF,type.SF());
-            SET_FLAG(CPU_Regs.OF,type.OF());
-            SET_FLAG(CPU_Regs.PF,(parity_lookup[lf_resb() & 0xFF]) != 0);
-            type=t_UNKNOWN;
+            SET_FLAG(CPU_Regs.CF, type.CF());
+            SET_FLAG(CPU_Regs.AF, type.AF());
+            SET_FLAG(CPU_Regs.ZF, type.ZF());
+            SET_FLAG(CPU_Regs.SF, type.SF());
+            SET_FLAG(CPU_Regs.OF, type.OF());
+            SET_FLAG(CPU_Regs.PF, (parity_lookup[lf_resb() & 0xFF]) != 0);
+            type = t_UNKNOWN;
         }
         return CPU_Regs.flags;
     }
 
     public static void FillFlagsNoCFOF() {
         if (type != t_UNKNOWN) {
-            SET_FLAG(CPU_Regs.AF,type.AF());
-            SET_FLAG(CPU_Regs.ZF,type.ZF());
-            SET_FLAG(CPU_Regs.SF,type.SF());
-            SET_FLAG(CPU_Regs.PF,(parity_lookup[lf_resb() & 0xFF]) != 0);
-            type=t_UNKNOWN;
+            SET_FLAG(CPU_Regs.AF, type.AF());
+            SET_FLAG(CPU_Regs.ZF, type.ZF());
+            SET_FLAG(CPU_Regs.SF, type.SF());
+            SET_FLAG(CPU_Regs.PF, (parity_lookup[lf_resb() & 0xFF]) != 0);
+            type = t_UNKNOWN;
         }
     }
 
     static public void DestroyConditionFlags() {
-        type=t_UNKNOWN;
+        type = t_UNKNOWN;
     }
 
 }

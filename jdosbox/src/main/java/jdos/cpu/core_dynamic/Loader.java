@@ -1,25 +1,32 @@
 package jdos.cpu.core_dynamic;
 
-import jdos.Dosbox;
-import jdos.hardware.mame.RasterizerCompiler;
-
-import java.io.*;
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import jdos.Dosbox;
+import jdos.hardware.mame.RasterizerCompiler;
+
 
 public class Loader {
 
     private static final Logger logger = System.getLogger(Loader.class.getName());
 
     private static class SaveItem {
+
         public SaveItem(String name, byte[] byteCode, int start, byte[] opCode, String source) {
             this.name = name;
             this.byteCode = byteCode;
@@ -27,13 +34,16 @@ public class Loader {
             this.source = source;
             this.start = start;
         }
+
         final String source;
         final String name;
         final byte[] byteCode;
         final byte[] opCode;
         final int start;
     }
+
     private static class Item {
+
         String name;
         byte[] opCodes;
         int start;
@@ -49,6 +59,7 @@ public class Loader {
             init();
         return !items.isEmpty();
     }
+
     private static void init() {
         initialized = true;
         InputStream is = Dosbox.class.getResourceAsStream("Cache.index");
@@ -56,7 +67,7 @@ public class Loader {
             DataInputStream dis = new DataInputStream(is);
             try {
                 int count = dis.readInt();
-                for (int i=0;i<count;i++) {
+                for (int i = 0; i < count; i++) {
                     Item item = new Item();
                     item.name = dis.readUTF();
                     item.start = dis.readInt();
@@ -67,13 +78,17 @@ public class Loader {
                     List<Item> bucket = items.computeIfAbsent(key, k -> new ArrayList<>());
                     bucket.add(item);
                 }
-                logger.log(Level.DEBUG,"Loaded " + count + " blocks");
+                logger.log(Level.DEBUG, "Loaded " + count + " blocks");
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
             }
-            try {dis.close();} catch (Exception _) {}
+            try {
+                dis.close();
+            } catch (Exception _) {
+            }
         }
     }
+
     public static Op load(int start, byte[] opCodes) {
         Integer key = start;
         List<Item> bucket = items.get(key);
@@ -90,9 +105,11 @@ public class Loader {
         }
         return null;
     }
+
     public static void add(String className, byte[] byteCode, int start, byte[] opCode, String source) {
         savedItems.add(new SaveItem(className, byteCode, start, opCode, source));
     }
+
     public static void save(String fileName, boolean source) {
         source = true;
         try {
@@ -101,9 +118,9 @@ public class Loader {
             dos.writeInt(savedItems.size());
             ByteArrayOutputStream src_bos = null;
             DataOutputStream src_dos = null;
-            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(fileName+".jar")));
-            String root = fileName+"_src"+File.separator+ "jdos";
-            String dirName = root+File.separator+"cpu"+File.separator+"core_dynamic";
+            ZipOutputStream out = new ZipOutputStream(new BufferedOutputStream(new FileOutputStream(fileName + ".jar")));
+            String root = fileName + "_src" + File.separator + "jdos";
+            String dirName = root + File.separator + "cpu" + File.separator + "core_dynamic";
             if (source) {
                 src_bos = new ByteArrayOutputStream();
                 src_dos = new DataOutputStream(src_bos);
@@ -113,7 +130,7 @@ public class Loader {
                     dir.mkdirs();
                 File[] existing = dir.listFiles();
                 //noinspection ForLoopReplaceableByForEach
-                for (int i=0;i<existing.length;i++) {
+                for (int i = 0; i < existing.length; i++) {
                     existing[i].delete();
                 }
             }
@@ -142,11 +159,11 @@ public class Loader {
             out.close();
             if (source) {
                 src_dos.flush();
-                FileOutputStream fos = new FileOutputStream(root+File.separator+"Cache.index");
+                FileOutputStream fos = new FileOutputStream(root + File.separator + "Cache.index");
                 fos.write(src_bos.toByteArray());
                 fos.close();
             }
-            logger.log(Level.DEBUG,"Saved "+savedItems.size()+" blocks");
+            logger.log(Level.DEBUG, "Saved " + savedItems.size() + " blocks");
         } catch (Exception e) {
             logger.log(Level.ERROR, e.getMessage(), e);
         }

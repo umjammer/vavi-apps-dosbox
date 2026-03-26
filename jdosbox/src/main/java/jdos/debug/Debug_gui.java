@@ -16,9 +16,11 @@ public class Debug_gui {
     private static final Logger logger = System.getLogger(Debug_gui.class.getName());
 
     static class _LogGroup {
+
         String front;
         boolean enabled;
     }
+
     static final Map<String, _LogGroup> loggrp = new HashMap<>();
     static OutputStream debuglog;
 
@@ -26,16 +28,19 @@ public class Debug_gui {
         @Override
         public void call(Section section) {
             if (debuglog != null) {
-                try {debuglog.close();} catch (Exception ignore){}
+                try {
+                    debuglog.close();
+                } catch (Exception ignore) {
+                }
             }
         }
     };
     static Section.SectionFunction LOG_Init = new Section.SectionFunction() {
         @Override
         public void call(Section section) {
-            Section_prop sect=(Section_prop)section;
+            Section_prop sect = (Section_prop) section;
             String blah = sect.Get_string("logfile");
-            if(blah != null && !blah.isEmpty()){
+            if (blah != null && !blah.isEmpty()) {
                 try {
                     debuglog = new FileOutputStream(blah);
                 } catch (Exception e) {
@@ -44,46 +49,46 @@ public class Debug_gui {
             }
             sect.addDestroyFunction(LOG_Destroy);
             for (var loggrp : loggrp.values()) {
-                loggrp.enabled=sect.Get_bool(loggrp.front.toLowerCase());
+                loggrp.enabled = sect.Get_bool(loggrp.front.toLowerCase());
             }
         }
     };
 
     static final String[] names = {
-        "ALL",
-        "VGA",
-        "VGAGFX",
-        "VGAMISC",
-        "INT10",
-        "SB",
-        "DMACONTROL",
+            "ALL",
+            "VGA",
+            "VGAGFX",
+            "VGAMISC",
+            "INT10",
+            "SB",
+            "DMACONTROL",
 
-        "FPU",
-        "CPU",
-        "PAGING",
+            "FPU",
+            "CPU",
+            "PAGING",
 
-        "FCB",
-        "FILES",
-        "IOCTL",
-        "EXEC",
-        "DOSMISC",
+            "FCB",
+            "FILES",
+            "IOCTL",
+            "EXEC",
+            "DOSMISC",
 
-        "PIT",
-        "KEYBOARD",
-        "PIC",
+            "PIT",
+            "KEYBOARD",
+            "PIC",
 
-        "MOUSE",
-        "BIOS",
-        "GUI",
-        "MISC",
+            "MOUSE",
+            "BIOS",
+            "GUI",
+            "MISC",
 
-        "IO",
+            "IO",
     };
 
     public static void LOG_StartUp() {
         for (String name : names) {
             loggrp.put("LOG_" + name, new Debug_gui._LogGroup());
-            loggrp.get("LOG_" + name).front=name;
+            loggrp.get("LOG_" + name).front = name;
         }
 
         /* Register the log section */

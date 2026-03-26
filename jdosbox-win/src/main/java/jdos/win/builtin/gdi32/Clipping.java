@@ -2,7 +2,9 @@ package jdos.win.builtin.gdi32;
 
 import jdos.win.builtin.WinAPI;
 
+
 public class Clipping extends WinAPI {
+
     // int GetClipRgn(HDC hdc, HRGN hrgn)
     static public int GetClipRgn(int hdc, int hrgn) {
         WinDC dc = WinDC.get(hdc);
@@ -10,7 +12,7 @@ public class Clipping extends WinAPI {
             return -1;
         if (dc.hClipRgn == 0)
             return 0;
-        if (WinRegion.CombineRgn(hrgn, dc.hClipRgn, 0, RGN_COPY)!=ERROR) {
+        if (WinRegion.CombineRgn(hrgn, dc.hClipRgn, 0, RGN_COPY) != ERROR) {
             return 1;
         }
         return -1;

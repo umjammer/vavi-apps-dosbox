@@ -2,10 +2,12 @@ package jdos.win.system;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import javax.sound.midi.MidiSystem;
+import javax.sound.midi.Sequence;
+import javax.sound.midi.Sequencer;
 
 import jdos.win.utils.FilePath;
 
-import javax.sound.midi.*;
 
 public class WinMidi extends WinMCI {
 
@@ -55,7 +57,7 @@ public class WinMidi extends WinMCI {
             sequencer.open();
             sequencer.setSequence(sequence);
             sequencer.addMetaEventListener(meta -> {
-                if ( meta.getType() == 47 ) {
+                if (meta.getType() == 47) {
                     if (hWnd != 0)
                         sendNotification(MCI_NOTIFY_SUCCESSFUL);
                 }

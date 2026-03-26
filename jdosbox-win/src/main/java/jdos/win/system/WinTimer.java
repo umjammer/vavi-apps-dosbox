@@ -1,16 +1,18 @@
 package jdos.win.system;
 
-import jdos.win.builtin.WinAPI;
-import jdos.win.builtin.kernel32.WinThread;
-import jdos.win.builtin.user32.WinWindow;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import jdos.win.builtin.WinAPI;
+import jdos.win.builtin.kernel32.WinThread;
+import jdos.win.builtin.user32.WinWindow;
+
+
 public class WinTimer {
+
     final int hWnd;
 
     public WinTimer(int hWnd) {
@@ -21,12 +23,14 @@ public class WinTimer {
     final Map<Integer, TimerItem> itemsById = new HashMap<>();
 
     static private class TimerItem implements Comparable<TimerItem> {
+
         public TimerItem(int id, int eip, int elapse) {
             this.id = id;
             this.eip = eip;
             this.elapse = elapse;
-            this.nextRun = WinSystem.getTickCount()+elapse;
+            this.nextRun = WinSystem.getTickCount() + elapse;
         }
+
         final int id;
         final int eip;
         int nextRun;
@@ -45,8 +49,8 @@ public class WinTimer {
     public int addTimer(int time, int id, int timerProc) {
         if (id == 0) {
             while (true) {
-                id+=7;
-                if (getItem(id)==null)
+                id += 7;
+                if (getItem(id) == null)
                     break;
             }
         }
@@ -55,7 +59,7 @@ public class WinTimer {
             killTimer(id);
         }
         item = new TimerItem(id, timerProc, time);
-        itemsById.put(id+1, item);
+        itemsById.put(id + 1, item);
         itemsByTime.add(item);
         Collections.sort(itemsByTime);
         return id;
@@ -79,10 +83,10 @@ public class WinTimer {
     public boolean getNextTimerMsg(int msgAddress, int time, boolean reset) {
         if (!itemsByTime.isEmpty()) {
             TimerItem item = itemsByTime.getFirst();
-            if (item.nextRun<time) {
+            if (item.nextRun < time) {
                 WinThread.setMessage(msgAddress, hWnd, WinWindow.WM_TIMER, item.id, 0, time, StaticData.currentPos.x, StaticData.currentPos.y);
                 if (reset) {
-                    item.nextRun = time+item.elapse;
+                    item.nextRun = time + item.elapse;
                     Collections.sort(itemsByTime);
                 }
                 return true;

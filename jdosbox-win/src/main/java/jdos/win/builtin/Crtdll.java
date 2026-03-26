@@ -1,5 +1,9 @@
 package jdos.win.builtin;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Random;
+
 import jdos.cpu.CPU_Regs;
 import jdos.fpu.FPU;
 import jdos.hardware.Memory;
@@ -8,9 +12,6 @@ import jdos.win.loader.Loader;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.Random;
 
 public class Crtdll extends BuiltinModule {
 
@@ -41,17 +42,17 @@ public class Crtdll extends BuiltinModule {
         double x = FPU.regs[FPU.top];
         FPU.regs[FPU.top] = Math.pow(x, y);
         if (LOG)
-            log(x+"^"+y+"="+ FPU.regs[FPU.top]);
+            log(x + "^" + y + "=" + FPU.regs[FPU.top]);
     }
 
     public static void _ftol() {
         // TODO is this right?
         long result = (long) FPU.regs[FPU.top];
         if (LOG)
-            log(FPU.regs[FPU.top]+" -> "+result);
+            log(FPU.regs[FPU.top] + " -> " + result);
         FPU.FPU_FPOP();
-        CPU_Regs.reg_eax.dword = (int)result;
-        CPU_Regs.reg_edx.dword = (int)(result >>> 32);
+        CPU_Regs.reg_eax.dword = (int) result;
+        CPU_Regs.reg_edx.dword = (int) (result >>> 32);
     }
 
     // void __GetMainArgs(int * argc, char *** argv, char *** envp, int expand_wildcards)
@@ -65,12 +66,12 @@ public class Crtdll extends BuiltinModule {
 
     // void __cdecl _initterm(PVFV *, PVFV *)
     public static void _initterm(int start, int end) {
-        while (start<end) {
+        while (start < end) {
             int next = Memory.mem_readd(start);
             if (next != 0) {
-                logger.log(Level.DEBUG,"Crtdll._initterm faked");
+                logger.log(Level.DEBUG, "Crtdll._initterm faked");
             }
-            start+=4;
+            start += 4;
         }
     }
 
@@ -87,6 +88,6 @@ public class Crtdll extends BuiltinModule {
     }
 
     public static int toupper(int c) {
-        return Character.toUpperCase((char)c);
+        return Character.toUpperCase((char) c);
     }
 }

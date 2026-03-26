@@ -5,11 +5,14 @@ import jdos.win.Win;
 import jdos.win.kernel.KernelMemory;
 import jdos.win.system.WinSystem;
 
+
 public class VirtualMemory {
+
     public VirtualMemory(long address, int size) {
         this.address = address;
         this.size = size;
     }
+
     public final long address;
     public final int size;
 
@@ -18,19 +21,19 @@ public class VirtualMemory {
             Win.panic("VirtualMemory.commit was expecting page aligned address");
         }
         int directory = WinSystem.getCurrentProcess().page_directory;
-        for (long i=p;i<p+size;i+=0x1000) {
-            int pagePtr = WinSystem.memory.get_page((int)i, true, directory);
+        for (long i = p; i < p + size; i += 0x1000) {
+            int pagePtr = WinSystem.memory.get_page((int) i, true, directory);
             int page = Memory.mem_readd(pagePtr);
-            if ((page & 0xFFFFF000)==0)
+            if ((page & 0xFFFFF000) == 0)
                 KernelMemory.setPage(pagePtr, WinSystem.memory.getNextFrame(), false, true);
         }
-        Memory.mem_zero((int)p, size);
+        Memory.mem_zero((int) p, size);
     }
 
     public void decommit(long p, int size) {
         int directory = WinSystem.getCurrentProcess().page_directory;
-        for (long i=p;i<p+size;i+=0x1000) {
-            int pagePtr = WinSystem.memory.get_page((int)i, false, directory);
+        for (long i = p; i < p + size; i += 0x1000) {
+            int pagePtr = WinSystem.memory.get_page((int) i, false, directory);
             if (pagePtr != 0)
                 KernelMemory.clearPage(pagePtr);
         }

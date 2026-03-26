@@ -1,5 +1,8 @@
 package jdos.win.builtin.user32;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import jdos.win.Win;
 import jdos.win.builtin.gdi32.WinDC;
 import jdos.win.loader.winpe.LittleEndianFile;
@@ -8,13 +11,12 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 import jdos.win.utils.StringUtil;
 
-import java.util.HashMap;
-import java.util.Map;
 
 public class WinClass extends WinObject {
+
     static public WinClass create() {
         int id = nextObjectId();
-        if (id>0xFFFF)
+        if (id > 0xFFFF)
             Win.panic("CLASS atom can not be greater than 0xFFFF");
         return new WinClass(id);
     }
@@ -27,7 +29,7 @@ public class WinClass extends WinObject {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof WinClass))
             return null;
-        return (WinClass)object;
+        return (WinClass) object;
     }
 
     // BOOL WINAPI GetClassInfo(HINSTANCE hInstance, LPCTSTR lpClassName, LPWNDCLASS lpWndClass)
@@ -53,7 +55,7 @@ public class WinClass extends WinObject {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return 0;
-         if (nIndex>=0) {
+        if (nIndex >= 0) {
             Integer old = window.winClass.extra.get(nIndex);
             if (old != null)
                 return old;
@@ -84,6 +86,7 @@ public class WinClass extends WinObject {
         }
         return 0;
     }
+
     // int WINAPI GetClassName(HWND hWnd, LPTSTR lpClassName, int nMaxCount)
     static public int GetClassNameA(int hWnd, int lpClassName, int nMaxCount) {
         WinWindow window = WinWindow.get(hWnd);
@@ -119,7 +122,7 @@ public class WinClass extends WinObject {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return 0;
-        if (nIndex>=0) {
+        if (nIndex >= 0) {
             Integer old = window.winClass.extra.get(nIndex);
             window.winClass.extra.put(nIndex, dwNewLong);
             if (old != null)
@@ -259,18 +262,28 @@ public class WinClass extends WinObject {
     }
 
     public void write(int address) {
-        writed(address, style);address+=4;
-        writed(address, eip);address+=4;
-        writed(address, cbClsExtra);address+=4;
-        writed(address, cbWndExtra);address+=4;
-        writed(address, hInstance);address+=4;
-        writed(address, hIcon);address+=4;
-        writed(address, hCursor);address+=4;
-        writed(address, hbrBackground);address+=4;
-        writed(address, pMenuName);address+=4;
+        writed(address, style);
+        address += 4;
+        writed(address, eip);
+        address += 4;
+        writed(address, cbClsExtra);
+        address += 4;
+        writed(address, cbWndExtra);
+        address += 4;
+        writed(address, hInstance);
+        address += 4;
+        writed(address, hIcon);
+        address += 4;
+        writed(address, hCursor);
+        address += 4;
+        writed(address, hbrBackground);
+        address += 4;
+        writed(address, pMenuName);
+        address += 4;
         if (pClassName == 0)
             pClassName = StringUtil.allocateA(className);
-        writed(address, pClassName);address+=4;
+        writed(address, pClassName);
+        address += 4;
     }
 
     @Override

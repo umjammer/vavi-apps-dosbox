@@ -2,19 +2,22 @@ package jdos.util;
 
 import java.io.File;
 
+
 public class FileHelper {
+
     public static String getHomeDirectory() {
         return HomeDirectory.get();
     }
+
     public static String resolve_path(String path) {
         if (path.startsWith("~")) {
-            return getHomeDirectory()+path.substring(1);
+            return getHomeDirectory() + path.substring(1);
         }
         return path;
     }
-    
+
     public static boolean deleteFile(File path) {
-        if( path.exists() ) {
+        if (path.exists()) {
             if (path.isDirectory()) {
                 File[] files = path.listFiles();
                 for (File file : files) {
@@ -26,6 +29,6 @@ public class FileHelper {
                 }
             }
         }
-        return(path.delete());
+        return (path.delete());
     }
 }

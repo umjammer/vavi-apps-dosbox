@@ -1,11 +1,13 @@
 package jdos.win.builtin.kernel32;
 
-import jdos.win.system.Scheduler;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import jdos.win.system.Scheduler;
+
+
 public class WaitGroup {
+
     public WaitGroup(WinThread thread) {
         this.thread = thread;
     }

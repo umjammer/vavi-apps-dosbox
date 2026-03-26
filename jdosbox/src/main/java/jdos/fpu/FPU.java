@@ -1,11 +1,12 @@
 package jdos.fpu;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Flags;
 import jdos.hardware.Memory;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 

@@ -1,15 +1,17 @@
 package jdos.win.loader.winpe;
 
-import jdos.win.system.WinFile;
-import jdos.win.utils.LittleEndian;
-
 import java.io.IOException;
 import java.io.OutputStream;
 
+import jdos.win.system.WinFile;
+import jdos.win.utils.LittleEndian;
+
+
 // From Wine project
 public class HeaderImageOptional {
+
     public final static int SIZE = 0xE0;
-         
+
     public final static int IMAGE_DIRECTORY_ENTRY_EXPORT = 0;
     public final static int IMAGE_DIRECTORY_ENTRY_IMPORT = 1;
     public final static int IMAGE_DIRECTORY_ENTRY_RESOURCE = 2;
@@ -25,8 +27,9 @@ public class HeaderImageOptional {
     public final static int IMAGE_DIRECTORY_ENTRY_IAT = 12;  /* Import Address Table */
     public final static int IMAGE_DIRECTORY_ENTRY_DELAY_IMPORT = 13;
     public final static int IMAGE_DIRECTORY_ENTRY_COM_DESCRIPTOR = 14;
-    
+
     public static class ImageDataDirectory {
+
         public long VirtualAddress;
         public long Size;
     }
@@ -102,7 +105,7 @@ public class HeaderImageOptional {
         SizeOfHeapCommit = is.readUnsignedInt();
         LoaderFlags = is.readUnsignedInt();
         NumberOfRvaAndSizes = is.readUnsignedInt();
-        for (int i=0;i<DataDirectory.length;i++) {
+        for (int i = 0; i < DataDirectory.length; i++) {
             DataDirectory[i] = new ImageDataDirectory();
             DataDirectory[i].VirtualAddress = is.readUnsignedInt();
             DataDirectory[i].Size = is.readUnsignedInt();

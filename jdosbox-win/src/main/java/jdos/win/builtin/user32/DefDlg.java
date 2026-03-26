@@ -6,6 +6,7 @@ import jdos.win.builtin.gdi32.WinDC;
 import jdos.win.system.WinRect;
 import jdos.win.system.WinSystem;
 
+
 public class DefDlg extends WinAPI {
     //static public final int DWLP_MSGRESULT = 0;
     //static public final int DWLP_DLGPROC = 4;
@@ -146,14 +147,14 @@ public class DefDlg extends WinAPI {
     static private void DEFDLG_SaveFocus(int hWnd) {
         int hwndFocus = Focus.GetFocus();
 
-        if (hwndFocus == 0 || WinWindow.IsChild(hWnd, hwndFocus)==0) return;
+        if (hwndFocus == 0 || WinWindow.IsChild(hWnd, hwndFocus) == 0) return;
         WinWindow window = WinWindow.get(hWnd);
         if (window.dlgInfo == null) return;
         window.dlgInfo.hwndFocus = hwndFocus;
     }
 
     static private void DEFDLG_RestoreFocus(int hWnd) {
-        if (WinPos.IsIconic(hWnd)!=0) return;
+        if (WinPos.IsIconic(hWnd) != 0) return;
         WinWindow window = WinWindow.get(hWnd);
         if (window.dlgInfo == null) return;
         /* Don't set the focus back to controls if EndDialog is already called.*/

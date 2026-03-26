@@ -5,6 +5,7 @@ import java.lang.System.Logger.Level;
 
 import jdos.util.FileIO;
 
+
 public class RawBlockDriver extends BlockDriver {
 
     private static final Logger logger = System.getLogger(RawBlockDriver.class.getName());
@@ -16,6 +17,7 @@ public class RawBlockDriver extends BlockDriver {
     public RawBlockDriver(FileIO file) {
         this.file = file;
     }
+
     @Override
     public Object allocOpaque() {
         return null;
@@ -48,20 +50,21 @@ public class RawBlockDriver extends BlockDriver {
 
     @Override
     public int bdrv_read(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors) {
-        /*Bit32u*/long bytenum;
+        /*Bit32u*/
+        long bytenum;
 
         bytenum = sector_num * sector_size;
 
         try {
-            if (bytenum!=current_fpos)
+            if (bytenum != current_fpos)
                 file.seek(bytenum);
-            current_fpos=bytenum;
-            int read = sector_size*nb_sectors;
-            int ret=file.read(buf, bufferOffset, read);
+            current_fpos = bytenum;
+            int read = sector_size * nb_sectors;
+            int ret = file.read(buf, bufferOffset, read);
             if (ret != read) {
                 return -Error.EIO;
             }
-            current_fpos+=read;
+            current_fpos += read;
         } catch (Exception e) {
             logger.log(Level.ERROR, e.getMessage(), e);
             return -Error.EIO;
@@ -71,19 +74,20 @@ public class RawBlockDriver extends BlockDriver {
 
     @Override
     public int bdrv_write(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors) {
-        /*Bit32u*/long bytenum;
+        /*Bit32u*/
+        long bytenum;
 
         bytenum = sector_num * sector_size;
 
         try {
-            if (bytenum!=current_fpos)
+            if (bytenum != current_fpos)
                 file.seek(bytenum);
-            current_fpos=bytenum;
+            current_fpos = bytenum;
 
-            for (int i=0;i<nb_sectors;i++) {
+            for (int i = 0; i < nb_sectors; i++) {
                 file.write(buf, bufferOffset, sector_size);
-                current_fpos+=sector_size;
-                bufferOffset+=sector_size;
+                current_fpos += sector_size;
+                bufferOffset += sector_size;
             }
         } catch (Exception e) {
             logger.log(Level.ERROR, e.getMessage(), e);

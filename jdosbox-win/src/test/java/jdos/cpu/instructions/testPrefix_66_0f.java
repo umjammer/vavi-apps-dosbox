@@ -1,6 +1,6 @@
 package jdos.cpu.instructions;
 
-public class testPrefix_66_0f extends InstructionsTestCase{
+public class testPrefix_66_0f extends InstructionsTestCase {
     // 0x3a4
     // SHLD Ed,Gd,Ib
 

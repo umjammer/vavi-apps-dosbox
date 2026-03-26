@@ -1,22 +1,24 @@
 package jdos.win.builtin.gdi32;
 
+import java.awt.Graphics2D;
+
 import jdos.win.builtin.WinAPI;
 
-import java.awt.*;
 
 public class Dib extends WinAPI {
+
     // UINT GetDIBColorTable(HDC hdc, UINT uStartIndex, UINT cEntries, RGBQUAD *pColors)
     static public int GetDIBColorTable(int hdc, int uStartIndex, int cEntries, int pColors) {
         WinDC dc = WinDC.get(hdc);
         if (dc == null || dc.hBitmap == 0)
             return 0;
         WinBitmap bitmap = WinBitmap.get(dc.hBitmap);
-        if (bitmap == null || bitmap.palette == null || bitmap.palette.length==0)
+        if (bitmap == null || bitmap.palette == null || bitmap.palette.length == 0)
             return 0;
-        if (uStartIndex+cEntries>bitmap.palette.length)
+        if (uStartIndex + cEntries > bitmap.palette.length)
             cEntries = bitmap.palette.length - uStartIndex;
-        for (int i=uStartIndex;i<uStartIndex+cEntries;i++) {
-            writed(pColors+4*(i-uStartIndex), bitmap.palette[i]);
+        for (int i = uStartIndex; i < uStartIndex + cEntries; i++) {
+            writed(pColors + 4 * (i - uStartIndex), bitmap.palette[i]);
         }
         return cEntries;
     }
@@ -34,7 +36,7 @@ public class Dib extends WinAPI {
         WinBitmap bitmap = new WinBitmap(0, lpBitsInfo, iUsage, dc.hPalette, false);
         bitmap.bits = lpBits;
         Graphics2D g = dc.getGraphics();
-        BitBlt.StretchBlt2D(g, dc.x+XDest, dc.x+YDest, nDestWidth, nDestHeight, bitmap.createJavaBitmap(true).getImage(), XSrc, bitmap.height-YSrc-1-nSrcHeight, nSrcWidth, nSrcHeight, dwRop);
+        BitBlt.StretchBlt2D(g, dc.x + XDest, dc.x + YDest, nDestWidth, nDestHeight, bitmap.createJavaBitmap(true).getImage(), XSrc, bitmap.height - YSrc - 1 - nSrcHeight, nSrcWidth, nSrcHeight, dwRop);
         g.dispose();
         return nDestHeight;
     }

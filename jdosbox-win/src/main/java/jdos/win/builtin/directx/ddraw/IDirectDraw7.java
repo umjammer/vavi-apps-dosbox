@@ -4,9 +4,11 @@ import jdos.cpu.CPU;
 import jdos.cpu.Callback;
 import jdos.win.builtin.HandlerBase;
 
+
 public class IDirectDraw7 extends IUnknown {
+
     private static int createVTable() {
-        int address = allocateVTable("IDirectDraw7", IDirectDraw.VTABLE_SIZE+7);
+        int address = allocateVTable("IDirectDraw7", IDirectDraw.VTABLE_SIZE + 7);
         int result = address;
         address = IDirectDraw.addIDirectDraw(address, true);
 
@@ -37,6 +39,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.GetAvailableVidMem";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -54,6 +57,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.GetSurfaceFromDC";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -69,6 +73,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.RestoreAllSurfaces";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -82,6 +87,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.TestCooperativeLevel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -94,6 +100,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.GetDeviceIdentifier";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -110,6 +117,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.StartModeTest";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -126,6 +134,7 @@ public class IDirectDraw7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDraw7.EvaluateMode";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

@@ -12,6 +12,7 @@ import jdos.win.system.Scheduler;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
+
 abstract public class HandlerBase extends WinAPI implements Callback.Handler {
 
     private static final Logger logger = System.getLogger(HandlerBase.class.getName());
@@ -25,9 +26,11 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
 
     public HandlerBase() {
     }
+
     public HandlerBase(boolean resetError) {
         this.resetError = resetError;
     }
+
     @Override
     public int call() {
         currentHandler = this;
@@ -58,10 +61,11 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
     public boolean preCall() {
         return true;
     }
+
     abstract public void onCall();
 
     protected void notImplemented() {
-        logger.log(Level.DEBUG,getName()+" not implemented yet.");
+        logger.log(Level.DEBUG, getName() + " not implemented yet.");
         Console.out(getName() + " not implemented yet.");
         Win.exit();
     }
@@ -82,6 +86,6 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
         System.out.print(" esi=");
         System.out.print(Long.toString(CPU_Regs.reg_esi.dword & 0xFFFFFFFFL, 16));
         System.out.print(" edi=");
-        logger.log(Level.DEBUG,Long.toString(CPU_Regs.reg_edi.dword & 0xFFFFFFFFL, 16));
+        logger.log(Level.DEBUG, Long.toString(CPU_Regs.reg_edi.dword & 0xFFFFFFFFL, 16));
     }
 }

@@ -9,7 +9,9 @@ import jdos.win.builtin.directx.dsound.IDirectSound;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 
+
 public class DSound extends BuiltinModule {
+
     public DSound(Loader loader, int handle) {
         super(loader, "DSound.dll", handle);
         add(DirectSoundCreate, 1);
@@ -21,6 +23,7 @@ public class DSound extends BuiltinModule {
         public String getName() {
             return "DSound.DirectSoundCreate";
         }
+
         @Override
         public void onCall() {
             int lpGUID = CPU.CPU_Pop32();

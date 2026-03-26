@@ -1,9 +1,16 @@
 package jdos.cpu.core_share;
 
-import jdos.cpu.*;
+import jdos.cpu.CPU;
+import jdos.cpu.CPU_Regs;
+import jdos.cpu.Callback;
+import jdos.cpu.Core;
+import jdos.cpu.Flags;
+import jdos.cpu.Table_ea;
 import jdos.cpu.core_normal.Prefix_helpers;
 
+
 public class ModifiedDecode {
+
     static public int call() {
         Core.cseip = CPU_Regs.reg_csPhys.dword + CPU_Regs.reg_eip;
         if (CPU.cpu.code.big) {

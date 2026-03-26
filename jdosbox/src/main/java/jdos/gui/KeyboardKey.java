@@ -45,9 +45,18 @@ public class KeyboardKey {
 
     static public int translateMapKey(int key) {
         switch (key) {
-            case Mapper.MapKeys.MK_f1:case Mapper.MapKeys.MK_f2:case Mapper.MapKeys.MK_f3:case Mapper.MapKeys.MK_f4:
-            case Mapper.MapKeys.MK_f5:case Mapper.MapKeys.MK_f6:case Mapper.MapKeys.MK_f7:case Mapper.MapKeys.MK_f8:
-            case Mapper.MapKeys.MK_f9:case Mapper.MapKeys.MK_f10:case Mapper.MapKeys.MK_f11:case Mapper.MapKeys.MK_f12:
+            case Mapper.MapKeys.MK_f1:
+            case Mapper.MapKeys.MK_f2:
+            case Mapper.MapKeys.MK_f3:
+            case Mapper.MapKeys.MK_f4:
+            case Mapper.MapKeys.MK_f5:
+            case Mapper.MapKeys.MK_f6:
+            case Mapper.MapKeys.MK_f7:
+            case Mapper.MapKeys.MK_f8:
+            case Mapper.MapKeys.MK_f9:
+            case Mapper.MapKeys.MK_f10:
+            case Mapper.MapKeys.MK_f11:
+            case Mapper.MapKeys.MK_f12:
                 key = VK_F1 + (key - Mapper.MapKeys.MK_f1);
                 break;
             case Mapper.MapKeys.MK_return:

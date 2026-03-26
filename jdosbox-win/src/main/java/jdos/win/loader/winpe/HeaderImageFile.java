@@ -1,22 +1,24 @@
 package jdos.win.loader.winpe;
 
-import jdos.win.system.WinFile;
-import jdos.win.utils.LittleEndian;
-
 import java.io.IOException;
 import java.io.OutputStream;
 
+import jdos.win.system.WinFile;
+import jdos.win.utils.LittleEndian;
+
+
 // From Wine project
 public class HeaderImageFile {
-    final static public int SIZE=20;
 
-    public int  Machine;
-    public int  NumberOfSections;
+    final static public int SIZE = 20;
+
+    public int Machine;
+    public int NumberOfSections;
     public long TimeDateStamp;
     public long PointerToSymbolTable;
     public long NumberOfSymbols;
-    public int  SizeOfOptionalHeader;
-    public int  Characteristics;
+    public int SizeOfOptionalHeader;
+    public int Characteristics;
 
     public void load(OutputStream os, WinFile fis) throws IOException {
         byte[] buffer = new byte[SIZE];

@@ -9,10 +9,12 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 import jdos.win.utils.StringUtil;
 
+
 public class DDraw extends BuiltinModule {
+
     public DDraw(Loader loader, int handle) {
         super(loader, "DDraw.dll", handle);
-        add(DDraw.class, "DirectDrawCreate", new String[]{"(GUID)lpGUID", "lplpDD", "pUnkOuter", "(HRESULT)result"});
+        add(DDraw.class, "DirectDrawCreate", new String[] {"(GUID)lpGUID", "lplpDD", "pUnkOuter", "(HRESULT)result"});
         add(DDraw.class, "DirectDrawCreateEx", new String[] {"(GUID)lpGUID", "lplpDD", "(GUID)iid", "pUnkOuter", "(HRESULT)result"});
         add(DDraw.class, "DirectDrawEnumerateA", new String[] {"(HEX)lpCallback", "lpContext"});
     }
@@ -33,6 +35,6 @@ public class DDraw extends BuiltinModule {
     public static int DirectDrawEnumerateA(int lpCallback, int lpContext) {
         // BOOL WINAPI DDEnumCallback(GUID FAR *lpGUID, LPSTR lpDriverDescription, LPSTR lpDriverName, LPVOID lpContext)
         WinSystem.call(lpCallback, NULL, StringUtil.allocateTempA("DirectDraw HAL"), StringUtil.allocateTempA("display"), lpContext);
-        return  Error.S_OK;
+        return Error.S_OK;
     }
 }

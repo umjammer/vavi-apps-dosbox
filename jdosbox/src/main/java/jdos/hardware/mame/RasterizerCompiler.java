@@ -1,8 +1,5 @@
 package jdos.hardware.mame;
 
-import javassist.*;
-import jdos.Dosbox;
-
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -16,18 +13,32 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
+import javassist.ClassPath;
+import javassist.ClassPool;
+import javassist.CtClass;
+import javassist.CtConstructor;
+import javassist.CtMethod;
+import javassist.CtNewConstructor;
+import javassist.CtNewMethod;
+import javassist.NotFoundException;
+import jdos.Dosbox;
+
+
 public class RasterizerCompiler extends RasterizerCompilerCommon {
 
     private static final Logger logger = System.getLogger(RasterizerCompiler.class.getName());
 
     static private class SaveInfo {
+
         public SaveInfo(raster_info info, byte[] byteCode) {
             this.info = info;
             this.byteCode = byteCode;
         }
+
         final raster_info info;
         final byte[] byteCode;
     }
+
     private static final List<SaveInfo> savedClasses = new ArrayList<>();
 
     static public void save(ZipOutputStream out) throws IOException {
@@ -35,7 +46,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         DataOutputStream dos = new DataOutputStream(bos);
         dos.writeInt(1); // version
         dos.writeInt(savedClasses.size());
-        for (int i=0;i<savedClasses.size();i++) {
+        for (int i = 0; i < savedClasses.size(); i++) {
             SaveInfo info = savedClasses.get(i);
             String name = "Rasterizer" + i;
             out.putNextEntry(new ZipEntry(name + ".class"));
@@ -56,12 +67,15 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
     static private void getRegR(StringBuilder method, String value) {
         method.append("(").append(value).append(" >> 16) & 0xFF");
     }
+
     static private void getRegG(StringBuilder method, String value) {
         method.append("(").append(value).append(" >> 8) & 0xFF");
     }
+
     static private void getRegB(StringBuilder method, String value) {
         method.append(value).append(" & 0xFF");
     }
+
     static private void getRegA(StringBuilder method, String value) {
         method.append("(").append(value).append(" >> 24) & 0xFF");
     }
@@ -112,10 +126,9 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 //        int c_local;
 
         /* determine the S/T/LOD values for this texture */
-        if (VoodooCommon.TEXMODE_ENABLE_PERSPECTIVE(texMode))
-        {
-            method.append(  "int lod, oow;\n");
-            method.append(  "{\n");
+        if (VoodooCommon.TEXMODE_ENABLE_PERSPECTIVE(texMode)) {
+            method.append("int lod, oow;\n");
+            method.append("{\n");
             method.append("""
                         int temp, recip, rlog;
                         int interp;
@@ -123,14 +136,14 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                         boolean neg = false;
                         int lz, exp = 0;
                     """);
-            method.append(  "    if (").append(iterw).append(" < 0) {\n");
-            method.append(  "        ").append(iterw).append(" = -").append(iterw).append("""
+            method.append("    if (").append(iterw).append(" < 0) {\n");
+            method.append("        ").append(iterw).append(" = -").append(iterw).append("""
                     ;
                             neg = true;
                         }
                     """);
 
-            method.append(  "    if ((").append(iterw).append(" & 0xffff00000000l)!=0) {\n");
+            method.append("    if ((").append(iterw).append(" & 0xffff00000000l)!=0) {\n");
             method.append("        temp = (int)(").append(iterw).append("""
                      >> 16);
                             exp -= 16;
@@ -152,14 +165,14 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                              exp += lz;
                              tablePos = (temp >>> (31 - \
                     """).append(VoodooCommon.RECIPLOG_LOOKUP_BITS).append(" - 1)) & ((2 << ").append(VoodooCommon.RECIPLOG_LOOKUP_BITS).append(") - 2);\n" +
-                            "         interp = (temp >>> (31 - ").append(VoodooCommon.RECIPLOG_LOOKUP_BITS).append("""
+                    "         interp = (temp >>> (31 - ").append(VoodooCommon.RECIPLOG_LOOKUP_BITS).append("""
                      - 8)) & 0xff;
                              rlog = (VoodooCommon.voodoo_reciplog[tablePos+1] * (0x100 - interp) + VoodooCommon.voodoo_reciplog[tablePos+3] * interp) >>> 8;
                              recip = (VoodooCommon.voodoo_reciplog[tablePos] * (0x100 - interp) + VoodooCommon.voodoo_reciplog[tablePos+2] * interp) >>> 8;
                              rlog = (rlog + (1 << (\
-                    """).append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(" - ").append(VoodooCommon.LOG_OUTPUT_PREC).append(" - 1))) >> (").append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(" - ").append(VoodooCommon.LOG_OUTPUT_PREC).append(");\n"+
-                            "         lod = ((exp - (31 - ").append(VoodooCommon.RECIPLOG_INPUT_PREC).append(")) << ").append(VoodooCommon.LOG_OUTPUT_PREC).append(") - rlog;\n" +
-                            "         exp += (").append(VoodooCommon.RECIP_OUTPUT_PREC).append(" - ").append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(") - (31 - ").append(VoodooCommon.RECIPLOG_INPUT_PREC).append("""
+                    """).append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(" - ").append(VoodooCommon.LOG_OUTPUT_PREC).append(" - 1))) >> (").append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(" - ").append(VoodooCommon.LOG_OUTPUT_PREC).append(");\n" +
+                    "         lod = ((exp - (31 - ").append(VoodooCommon.RECIPLOG_INPUT_PREC).append(")) << ").append(VoodooCommon.LOG_OUTPUT_PREC).append(") - rlog;\n" +
+                    "         exp += (").append(VoodooCommon.RECIP_OUTPUT_PREC).append(" - ").append(VoodooCommon.RECIPLOG_LOOKUP_PREC).append(") - (31 - ").append(VoodooCommon.RECIPLOG_INPUT_PREC).append("""
                     );
                              if (exp < 0)
                                  recip >>>= -exp;
@@ -172,9 +185,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             method.append("int s = (int)(((long)oow * ").append(iters).append(") >>> 29);\n");
             method.append("int t = (int)(((long)oow * ").append(itert).append(") >>> 29);\n");
             method.append("lod += ").append(lodBase).append(";\n");
-        }
-        else
-        {
+        } else {
             method.append("int s = (int)(").append(iters).append(" >> 14);\n");
             method.append("int t = (int)(").append(itert).append(" >> 14);\n");
             method.append("int lod = ").append(lodBase).append(";\n");
@@ -248,7 +259,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                         c_local = tmu.lookup[texel0];
                         """);
             } else {
-                method.append(  "int texel0 = VoodooCommon.mem_readw(tmu.ram, (texbase + 2*(t + s)) & tmu.mask);\n");
+                method.append("int texel0 = VoodooCommon.mem_readw(tmu.ram, (texbase + 2*(t + s)) & tmu.mask);\n");
                 if (VoodooCommon.TEXMODE_FORMAT(texMode) >= 10 && VoodooCommon.TEXMODE_FORMAT(texMode) <= 12) {
                     method.append("c_local = tmu.lookup[texel0];\n");
                 } else
@@ -290,8 +301,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                     """);
 
             /* fetch texel data */
-            if (VoodooCommon.TEXMODE_FORMAT(texMode) < 8)
-            {
+            if (VoodooCommon.TEXMODE_FORMAT(texMode) < 8) {
                 method.append("""
                         int texel0 = tmu.ram[(texbase + t + s) & tmu.mask] & 0xFF;
                         int texel1 = tmu.ram[(texbase + t + s1) & tmu.mask] & 0xFF;
@@ -302,9 +312,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                         texel2 = tmu.lookup[texel2];
                         texel3 = tmu.lookup[texel3];
                         """);
-            }
-            else
-            {
+            } else {
                 method.append("""
                         int texel0 = VoodooCommon.mem_readw(tmu.ram, (texbase + 2*(t + s)) & tmu.mask);
                         int texel1 = VoodooCommon.mem_readw(tmu.ram, (texbase + 2*(t + s1)) & tmu.mask);
@@ -334,54 +342,79 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 
         /* select zero/other for RGB */
         if (!VoodooCommon.TEXMODE_TC_ZERO_OTHER(texMode)) {
-            method.append("int tr = ");getRegR(method, "texel");method.append(";\n");
-            method.append("int tg = ");getRegG(method, "texel");method.append(";\n");
-            method.append("int tb = ");getRegB(method, "texel");method.append(";\n");
+            method.append("int tr = ");
+            getRegR(method, "texel");
+            method.append(";\n");
+            method.append("int tg = ");
+            getRegG(method, "texel");
+            method.append(";\n");
+            method.append("int tb = ");
+            getRegB(method, "texel");
+            method.append(";\n");
         } else {
             method.append("int tr = 0, tg = 0, tb = 0;\n");
         }
         /* select zero/other for alpha */
         if (!VoodooCommon.TEXMODE_TCA_ZERO_OTHER(texMode)) {
-            method.append("int ta = ");getRegA(method, "texel");method.append(";\n");
+            method.append("int ta = ");
+            getRegA(method, "texel");
+            method.append(";\n");
         } else {
             method.append("int ta = 0;\n");
         }
 
         /* potentially subtract c_local */
         if (VoodooCommon.TEXMODE_TC_SUB_CLOCAL(texMode)) {
-            method.append("tr -= ");getRegR(method, "c_local");method.append(";\n");
-            method.append("tg -= ");getRegG(method, "c_local");method.append(";\n");
-            method.append("tb -= ");getRegB(method, "c_local");method.append(";\n");
+            method.append("tr -= ");
+            getRegR(method, "c_local");
+            method.append(";\n");
+            method.append("tg -= ");
+            getRegG(method, "c_local");
+            method.append(";\n");
+            method.append("tb -= ");
+            getRegB(method, "c_local");
+            method.append(";\n");
         }
         if (VoodooCommon.TEXMODE_TCA_SUB_CLOCAL(texMode)) {
-            method.append("ta -= ");getRegA(method, "c_local");method.append(";\n");
+            method.append("ta -= ");
+            getRegA(method, "c_local");
+            method.append(";\n");
         }
 
-        if (VoodooCommon.TEXMODE_TC_MSELECT(texMode)==0 && VoodooCommon.TEXMODE_TCA_MSELECT(texMode)==0 && !VoodooCommon.TEXMODE_TC_REVERSE_BLEND(texMode) && !VoodooCommon.TEXMODE_TCA_REVERSE_BLEND(texMode)) {
-            logger.log(Level.DEBUG,"  removed textured blend");
+        if (VoodooCommon.TEXMODE_TC_MSELECT(texMode) == 0 && VoodooCommon.TEXMODE_TCA_MSELECT(texMode) == 0 && !VoodooCommon.TEXMODE_TC_REVERSE_BLEND(texMode) && !VoodooCommon.TEXMODE_TCA_REVERSE_BLEND(texMode)) {
+            logger.log(Level.DEBUG, "  removed textured blend");
         } else {
             /* blend RGB */
-            switch (VoodooCommon.TEXMODE_TC_MSELECT(texMode))
-            {
+            switch (VoodooCommon.TEXMODE_TC_MSELECT(texMode)) {
                 default:    /* reserved */
                 case 0:     /* zero */
                     method.append("int blendr = 0, blendg = 0, blendb = 0;\n");
                     break;
 
                 case 1:     /* c_local */
-                    method.append("int blendr = ");getRegR(method, "c_local");method.append(";\n");
-                    method.append("int blendg = ");getRegG(method, "c_local");method.append(";\n");
-                    method.append("int blendb = ");getRegB(method, "c_local");method.append(";\n");
+                    method.append("int blendr = ");
+                    getRegR(method, "c_local");
+                    method.append(";\n");
+                    method.append("int blendg = ");
+                    getRegG(method, "c_local");
+                    method.append(";\n");
+                    method.append("int blendb = ");
+                    getRegB(method, "c_local");
+                    method.append(";\n");
                     break;
 
                 case 2:     /* a_other */
-                    method.append("int blendr = ");getRegA(method, "texel");method.append(";\n");
+                    method.append("int blendr = ");
+                    getRegA(method, "texel");
+                    method.append(";\n");
                     method.append("int blendg = blendr;\n");
                     method.append("int blendb = blendr;\n");
                     break;
 
                 case 3:     /* a_local */
-                    method.append("int blendr = ");getRegA(method, "c_local");method.append(";\n");
+                    method.append("int blendr = ");
+                    getRegA(method, "c_local");
+                    method.append(";\n");
                     method.append("int blendg = blendr;\n");
                     method.append("int blendb = blendr;\n");
                     break;
@@ -409,23 +442,28 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             }
 
             /* blend alpha */
-            switch (VoodooCommon.TEXMODE_TCA_MSELECT(texMode))
-            {
+            switch (VoodooCommon.TEXMODE_TCA_MSELECT(texMode)) {
                 default:    /* reserved */
                 case 0:     /* zero */
                     method.append("int blenda = 0;\n");
                     break;
 
                 case 1:     /* c_local */
-                    method.append("int blenda = ");getRegA(method, "c_local");method.append(";\n");
+                    method.append("int blenda = ");
+                    getRegA(method, "c_local");
+                    method.append(";\n");
                     break;
 
                 case 2:     /* a_other */
-                    method.append("int blenda = ");getRegA(method, "texel");method.append(";\n");
+                    method.append("int blenda = ");
+                    getRegA(method, "texel");
+                    method.append(";\n");
                     break;
 
                 case 3:     /* a_local */
-                    method.append("int blenda = ");getRegA(method, "c_local");method.append(";\n");
+                    method.append("int blenda = ");
+                    getRegA(method, "c_local");
+                    method.append(";\n");
                     break;
 
                 case 4:     /* LOD (detail factor) */
@@ -467,28 +505,41 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                     """);
         }
         /* add clocal or alocal to RGB */
-        switch (VoodooCommon.TEXMODE_TC_ADD_ACLOCAL(texMode))
-        {
+        switch (VoodooCommon.TEXMODE_TC_ADD_ACLOCAL(texMode)) {
             case 3:     /* reserved */
             case 0:     /* nothing */
                 break;
 
             case 1:     /* add c_local */
-                method.append("tr += ");getRegR(method,"c_local");method.append(";\n");
-                method.append("tg += ");getRegG(method,"c_local");method.append(";\n");
-                method.append("tb += ");getRegB(method,"c_local");method.append(";\n");
+                method.append("tr += ");
+                getRegR(method, "c_local");
+                method.append(";\n");
+                method.append("tg += ");
+                getRegG(method, "c_local");
+                method.append(";\n");
+                method.append("tb += ");
+                getRegB(method, "c_local");
+                method.append(";\n");
                 break;
 
             case 2:     /* add_alocal */
-                method.append("tr += ");getRegR(method,"c_local");method.append(";\n");
-                method.append("tg += ");getRegG(method,"c_local");method.append(";\n");
-                method.append("tb += ");getRegB(method,"c_local");method.append(";\n");
+                method.append("tr += ");
+                getRegR(method, "c_local");
+                method.append(";\n");
+                method.append("tg += ");
+                getRegG(method, "c_local");
+                method.append(";\n");
+                method.append("tb += ");
+                getRegB(method, "c_local");
+                method.append(";\n");
                 break;
         }
 
         /* add clocal or alocal to alpha */
-        if (VoodooCommon.TEXMODE_TCA_ADD_ACLOCAL(texMode)!=0) {
-            method.append("ta += ");getRegA(method,"c_local");method.append(";\n");
+        if (VoodooCommon.TEXMODE_TCA_ADD_ACLOCAL(texMode) != 0) {
+            method.append("ta += ");
+            getRegA(method, "c_local");
+            method.append(";\n");
         }
 
         /* clamp */
@@ -515,7 +566,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         // make it live
         if (result != null) {
             info.callback = result.callback;
-            logger.log(Level.DEBUG,"compiled "+count+" rasterizers");
+            logger.log(Level.DEBUG, "compiled " + count + " rasterizers");
             //logger.log(Level.DEBUG,method.toString());
         }
 
@@ -569,7 +620,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             method.append("int depthPos;\n");
 
         if (VoodooCommon.FBZMODE_Y_ORIGIN(fbzMode)) {
-            method.append(      "scry = (v.fbi.yorigin - y) & 0x3ff;\n");
+            method.append("scry = (v.fbi.yorigin - y) & 0x3ff;\n");
         }
 
         if (VoodooCommon.FBZMODE_ENABLE_DITHERING(fbzMode)) {
@@ -595,7 +646,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
         if (VoodooCommon.FBZMODE_ENABLE_CLIPPING(fbzMode)) {
-            method.append(      "if (scry < ((v.reg[").append(VoodooCommon.clipLowYHighY).append("] >> 16) & 0x3ff) || scry >= (v.reg[").append(VoodooCommon.clipLowYHighY).append("""
+            method.append("if (scry < ((v.reg[").append(VoodooCommon.clipLowYHighY).append("] >> 16) & 0x3ff) || scry >= (v.reg[").append(VoodooCommon.clipLowYHighY).append("""
                     ] & 0x3ff)) {
                         stats.pixels_in += stopx - startx;
                         stats.clip_fail += stopx - startx;
@@ -617,9 +668,9 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                     }
                     """);
         }
-        method.append(          "destPos = destOffset+scry * v.fbi.rowpixels;\n");
+        method.append("destPos = destOffset+scry * v.fbi.rowpixels;\n");
         if (uses_depthPos)
-            method.append(      "depthPos = (v.fbi.auxoffs != -1) ? (v.fbi.auxoffs / 2 + scry * v.fbi.rowpixels) : -1;\n");
+            method.append("depthPos = (v.fbi.auxoffs != -1) ? (v.fbi.auxoffs / 2 + scry * v.fbi.rowpixels) : -1;\n");
         method.append("""
                 dx = startx - (extra.ax >> 4);
                 dy = y - (extra.ay >> 4);
@@ -646,7 +697,6 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
 
-
         method.append("for (x = startx; x < stopx; x++");
         method.append(", iterr += extra.drdx, iterg += extra.dgdx, iterb += extra.dbdx, itera += extra.dadx, iterz += extra.dzdx, iterw += extra.dwdx");
         if (tmuCount >= 1) {
@@ -662,8 +712,8 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                 int r, g, b;
                 """);
         boolean uses_a = (VoodooCommon.FBZMODE_AUX_BUFFER_MASK(fbzMode) && VoodooCommon.FBZMODE_ENABLE_ALPHA_PLANES(fbzMode)) ||
-                    VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode)==1 || VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode)==5 || VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode)==15 ||
-                    VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode)==1 || VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode)==5;
+                VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode) == 1 || VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode) == 5 || VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode) == 15 ||
+                VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode) == 1 || VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode) == 5;
         if (uses_a)
             method.append("int a;\n");
         method.append("stats.pixels_in++;\n");
@@ -671,15 +721,15 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         if (VoodooCommon.FBZMODE_ENABLE_STIPPLE(fbzMode)) {
             /* rotate mode */
             if (!VoodooCommon.FBZMODE_STIPPLE_PATTERN(fbzMode)) {
-                method.append(  "v.reg[").append(VoodooCommon.stipple).append("] = (v.reg[").append(VoodooCommon.stipple).append("] << 1) | (v.reg[").append(VoodooCommon.stipple).append("] >> 31);\n");
-                method.append(  "if ((v.reg[").append(VoodooCommon.stipple).append("""
+                method.append("v.reg[").append(VoodooCommon.stipple).append("] = (v.reg[").append(VoodooCommon.stipple).append("] << 1) | (v.reg[").append(VoodooCommon.stipple).append("] >> 31);\n");
+                method.append("if ((v.reg[").append(VoodooCommon.stipple).append("""
                         ] & 0x80000000) == 0) {
                             v.stats.total_stippled++;
                             continue;
                         }
                         """);
             } else { /* pattern mode */
-                method.append(  "if (((reg[").append(VoodooCommon.stipple).append("""
+                method.append("if (((reg[").append(VoodooCommon.stipple).append("""
                         ] >> (((y & 3) << 3) | (~x & 7))) & 1) == 0) {
                             v.stats.total_stippled++;
                             continue;
@@ -689,7 +739,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
         boolean needDepthVal = (VoodooCommon.FBZMODE_ENABLE_DEPTHBUF(fbzMode) && !VoodooCommon.FBZMODE_DEPTH_SOURCE_COMPARE(fbzMode)) || (VoodooCommon.FBZMODE_AUX_BUFFER_MASK(fbzMode) && !VoodooCommon.FBZMODE_ENABLE_ALPHA_PLANES(fbzMode));
-        boolean needWFloat = (needDepthVal && VoodooCommon.FBZMODE_WBUFFER_SELECT(fbzMode) && !VoodooCommon.FBZMODE_DEPTH_FLOAT_SELECT(fbzMode)) || (VoodooCommon.FOGMODE_ENABLE_FOG(fogMode) && VoodooCommon.FOGMODE_FOG_ZALPHA(fogMode)==0);
+        boolean needWFloat = (needDepthVal && VoodooCommon.FBZMODE_WBUFFER_SELECT(fbzMode) && !VoodooCommon.FBZMODE_DEPTH_FLOAT_SELECT(fbzMode)) || (VoodooCommon.FOGMODE_ENABLE_FOG(fogMode) && VoodooCommon.FOGMODE_FOG_ZALPHA(fogMode) == 0);
 
         if (needWFloat) {
             method.append("""
@@ -709,11 +759,12 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
         if (needDepthVal) {
             if (!VoodooCommon.FBZMODE_WBUFFER_SELECT(fbzMode)) {
-                method.append(  "int ");CLAMPED_Z(method, "iterz", colorPath, "depthval");
+                method.append("int ");
+                CLAMPED_Z(method, "iterz", colorPath, "depthval");
             } else if (!VoodooCommon.FBZMODE_DEPTH_FLOAT_SELECT(fbzMode))
-                method.append(  "int depthval = wfloat;\n");
+                method.append("int depthval = wfloat;\n");
             else {
-                method.append(  "int depthval;\n");
+                method.append("int depthval;\n");
                 method.append("""
                         if ((iterz & 0xf0000000)!=0) {
                             depthval = 0x0000;
@@ -731,19 +782,18 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
         if (VoodooCommon.FBZMODE_ENABLE_DEPTH_BIAS(fbzMode)) {
-            method.append(      "depthval += (short)v.reg[").append(VoodooCommon.zaColor).append("];\n");
+            method.append("depthval += (short)v.reg[").append(VoodooCommon.zaColor).append("];\n");
             CLAMP(method, "depthval", "0", "0xffff");
         }
 
         if (VoodooCommon.FBZMODE_ENABLE_DEPTHBUF(fbzMode)) {
             if (!VoodooCommon.FBZMODE_DEPTH_SOURCE_COMPARE(fbzMode))
-                method.append(  "int depthsource = depthval;\n");
+                method.append("int depthsource = depthval;\n");
             else
-                method.append(  "int depthsource = v.reg[").append(VoodooCommon.zaColor).append("] & 0xFFFF;\n");
+                method.append("int depthsource = v.reg[").append(VoodooCommon.zaColor).append("] & 0xFFFF;\n");
 
             /* test against the depth buffer */
-            switch (VoodooCommon.FBZMODE_DEPTH_FUNCTION(fbzMode))
-            {
+            switch (VoodooCommon.FBZMODE_DEPTH_FUNCTION(fbzMode)) {
                 case 0:     /* depthOP = never */
                     method.append("""
                             stats.zfunc_fail++;
@@ -824,11 +874,11 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 
         }
 
-        boolean uses_iterargb =  VoodooCommon.FBZCP_CC_RGBSELECT(colorPath)==0 ||
-                        VoodooCommon.FBZCP_CC_ASELECT(colorPath)==0 ||
-                        VoodooCommon.FBZCP_CCA_LOCALSELECT(colorPath)==0 ||
-                        VoodooCommon.FBZCP_CC_LOCALSELECT_OVERRIDE(colorPath) || (!VoodooCommon.FBZCP_CC_LOCALSELECT_OVERRIDE(colorPath) && !VoodooCommon.FBZCP_CC_LOCALSELECT(colorPath)) ||
-                        (VoodooCommon.FOGMODE_ENABLE_FOG(fogMode) && !VoodooCommon.FOGMODE_FOG_CONSTANT(fogMode) && VoodooCommon.FOGMODE_FOG_ZALPHA(fogMode)==1);
+        boolean uses_iterargb = VoodooCommon.FBZCP_CC_RGBSELECT(colorPath) == 0 ||
+                VoodooCommon.FBZCP_CC_ASELECT(colorPath) == 0 ||
+                VoodooCommon.FBZCP_CCA_LOCALSELECT(colorPath) == 0 ||
+                VoodooCommon.FBZCP_CC_LOCALSELECT_OVERRIDE(colorPath) || (!VoodooCommon.FBZCP_CC_LOCALSELECT_OVERRIDE(colorPath) && !VoodooCommon.FBZCP_CC_LOCALSELECT(colorPath)) ||
+                (VoodooCommon.FOGMODE_ENABLE_FOG(fogMode) && !VoodooCommon.FOGMODE_FOG_CONSTANT(fogMode) && VoodooCommon.FOGMODE_FOG_ZALPHA(fogMode) == 1);
         if (uses_iterargb) {
             method.append("""
                     int ir, ig, ib, ia;
@@ -867,8 +917,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             }
             method.append("iterargb = ib | (ig << 8) | (ir << 16) | (ia << 24);\n");
         }
-        switch (VoodooCommon.FBZCP_CC_RGBSELECT(colorPath))
-        {
+        switch (VoodooCommon.FBZCP_CC_RGBSELECT(colorPath)) {
             case 0:     /* iterated RGB */
                 method.append("int c_other = iterargb;\n");
                 break;
@@ -884,12 +933,13 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
         if (VoodooCommon.FBZMODE_ENABLE_CHROMAKEY(fbzMode)) {
-            method.append("if (!v.APPLY_CHROMAKEY(stats, ");method.append(fbzMode);method.append(", c_other)) continue;\n");
+            method.append("if (!v.APPLY_CHROMAKEY(stats, ");
+            method.append(fbzMode);
+            method.append(", c_other)) continue;\n");
         }
 
         /* compute a_other */
-        switch (VoodooCommon.FBZCP_CC_ASELECT(colorPath))
-        {
+        switch (VoodooCommon.FBZCP_CC_ASELECT(colorPath)) {
             case 0:     /* iterated alpha */
                 method.append("c_other = (c_other & 0x00FFFFFF) | (iterargb & 0xFF000000);\n");
                 break;
@@ -907,7 +957,9 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                 break;
         }
         if (VoodooCommon.FBZMODE_ENABLE_ALPHA_MASK(fbzMode) || VoodooCommon.ALPHAMODE_ALPHATEST(alphaMode)) {
-            method.append("int c_other_a = ");getRegA(method, "c_other");method.append(";\n");
+            method.append("int c_other_a = ");
+            getRegA(method, "c_other");
+            method.append(";\n");
         }
         if (VoodooCommon.FBZMODE_ENABLE_ALPHA_MASK(fbzMode)) {
             method.append("""
@@ -921,10 +973,10 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             method.append("if (!v.APPLY_ALPHATEST(stats, ").append(alphaMode).append(", c_other_a)) continue;\n");
         }
         boolean uses_c_local = VoodooCommon.FBZCP_CC_SUB_CLOCAL(colorPath) || VoodooCommon.FBZCP_CCA_SUB_CLOCAL(colorPath) ||
-                VoodooCommon.FBZCP_CC_MSELECT(colorPath)==1 || VoodooCommon.FBZCP_CC_MSELECT(colorPath)==3 ||
-                VoodooCommon.FBZCP_CCA_MSELECT(colorPath)==1 || VoodooCommon.FBZCP_CCA_MSELECT(colorPath)==3 ||
-                VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath)==1 || VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath)==2 ||
-                VoodooCommon.FBZCP_CCA_ADD_ACLOCAL(colorPath)!=0;
+                VoodooCommon.FBZCP_CC_MSELECT(colorPath) == 1 || VoodooCommon.FBZCP_CC_MSELECT(colorPath) == 3 ||
+                VoodooCommon.FBZCP_CCA_MSELECT(colorPath) == 1 || VoodooCommon.FBZCP_CCA_MSELECT(colorPath) == 3 ||
+                VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath) == 1 || VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath) == 2 ||
+                VoodooCommon.FBZCP_CCA_ADD_ACLOCAL(colorPath) != 0;
 
         if (uses_c_local) {
             if (!VoodooCommon.FBZCP_CC_LOCALSELECT_OVERRIDE(colorPath)) {
@@ -943,8 +995,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             }
 
             /* compute a_local */
-                switch (VoodooCommon.FBZCP_CCA_LOCALSELECT(colorPath))
-            {
+            switch (VoodooCommon.FBZCP_CCA_LOCALSELECT(colorPath)) {
                 default:
                 case 0:     /* iterated alpha */
                     method.append("c_local = (c_local & 0x00FFFFFF) | (iterargb & 0xFF000000);\n");
@@ -954,16 +1005,14 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                     method.append("c_local = (c_local & 0x00FFFFFF) | (v.reg[VoodooCommon.color0] & 0xFF000000);\n");
                     break;
 
-                case 2:     /* clamped iterated Z[27:20] */
-                {
+                case 2:     /* clamped iterated Z[27:20] */ {
                     method.append("int temp = ");
                     CLAMPED_Z(method, "iterz", colorPath, "temp");
                     method.append("c_local = (c_local & 0x00FFFFFF) | (temp << 24);\n");
                     break;
                 }
 
-                case 3:     /* clamped iterated W[39:32] */
-                {
+                case 3:     /* clamped iterated W[39:32] */ {
                     method.append("int temp = ");
                     CLAMPED_W(method, "iterw", colorPath, "temp");
                     method.append("c_local = (c_local & 0x00FFFFFF) | (temp << 24);\n");
@@ -973,16 +1022,24 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
         /* select zero or c_other */
         if (!VoodooCommon.FBZCP_CC_ZERO_OTHER(colorPath)) {
-            method.append("r = ");getRegR(method,"c_other");method.append(";\n");
-            method.append("g = ");getRegG(method,"c_other");method.append(";\n");
-            method.append("b = ");getRegB(method,"c_other");method.append(";\n");
+            method.append("r = ");
+            getRegR(method, "c_other");
+            method.append(";\n");
+            method.append("g = ");
+            getRegG(method, "c_other");
+            method.append(";\n");
+            method.append("b = ");
+            getRegB(method, "c_other");
+            method.append(";\n");
         } else {
             method.append("r = g = b = 0;\n");
         }
 
         if (uses_a) {
             if (!VoodooCommon.FBZCP_CCA_ZERO_OTHER(colorPath)) {
-                method.append("a = ");getRegA(method,"c_other");method.append(";\n");
+                method.append("a = ");
+                getRegA(method, "c_other");
+                method.append(";\n");
             } else {
                 method.append("a = 0;\n");
             }
@@ -990,83 +1047,115 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 
         /* subtract c_local */
         if (VoodooCommon.FBZCP_CC_SUB_CLOCAL(colorPath)) {
-            method.append("r -= ");getRegR(method,"c_local");method.append(";\n");
-            method.append("g -= ");getRegG(method,"c_local");method.append(";\n");
-            method.append("b -= ");getRegB(method,"c_local");method.append(";\n");
+            method.append("r -= ");
+            getRegR(method, "c_local");
+            method.append(";\n");
+            method.append("g -= ");
+            getRegG(method, "c_local");
+            method.append(";\n");
+            method.append("b -= ");
+            getRegB(method, "c_local");
+            method.append(";\n");
         }
 
         if (uses_a) {
             if (VoodooCommon.FBZCP_CCA_SUB_CLOCAL(colorPath)) {
-                method.append("a -= ");getRegA(method,"c_local");method.append(";\n");
+                method.append("a -= ");
+                getRegA(method, "c_local");
+                method.append(";\n");
             }
         }
-        if (VoodooCommon.FBZCP_CC_MSELECT(colorPath)==0 && VoodooCommon.FBZCP_CCA_MSELECT(colorPath)==0 && !VoodooCommon.FBZCP_CC_REVERSE_BLEND(colorPath) && (!VoodooCommon.FBZCP_CCA_REVERSE_BLEND(colorPath) || !uses_a)) {
-            logger.log(Level.DEBUG,"  removed color path blend");
+        if (VoodooCommon.FBZCP_CC_MSELECT(colorPath) == 0 && VoodooCommon.FBZCP_CCA_MSELECT(colorPath) == 0 && !VoodooCommon.FBZCP_CC_REVERSE_BLEND(colorPath) && (!VoodooCommon.FBZCP_CCA_REVERSE_BLEND(colorPath) || !uses_a)) {
+            logger.log(Level.DEBUG, "  removed color path blend");
         } else {
             /* blend RGB */
-            switch (VoodooCommon.FBZCP_CC_MSELECT(colorPath))
-            {
+            switch (VoodooCommon.FBZCP_CC_MSELECT(colorPath)) {
                 default:    /* reserved */
                 case 0:     /* 0 */
                     method.append("int blendr = 0, blendg = 0, blendb = 0;\n");
                     break;
 
                 case 1:     /* c_local */
-                    method.append("int blendr = ");getRegR(method,"c_local");method.append(";\n");
-                    method.append("int blendg = ");getRegG(method,"c_local");method.append(";\n");
-                    method.append("int blendb = ");getRegB(method,"c_local");method.append(";\n");
+                    method.append("int blendr = ");
+                    getRegR(method, "c_local");
+                    method.append(";\n");
+                    method.append("int blendg = ");
+                    getRegG(method, "c_local");
+                    method.append(";\n");
+                    method.append("int blendb = ");
+                    getRegB(method, "c_local");
+                    method.append(";\n");
                     break;
 
                 case 2:     /* a_other */
-                    method.append(  "int blendr = ");getRegA(method,"c_other");method.append("""
-                        ;
-                        int blendb = blendr, blendg = blendr;
-                        """);
+                    method.append("int blendr = ");
+                    getRegA(method, "c_other");
+                    method.append("""
+                            ;
+                            int blendb = blendr, blendg = blendr;
+                            """);
                     break;
 
                 case 3:     /* a_local */
-                    method.append(  "int blendr = ");getRegA(method,"c_local");method.append("""
-                        ;
-                        int blendb = blendr, blendg = blendr;
-                        """);
+                    method.append("int blendr = ");
+                    getRegA(method, "c_local");
+                    method.append("""
+                            ;
+                            int blendb = blendr, blendg = blendr;
+                            """);
                     break;
 
                 case 4:     /* texture alpha */
-                    method.append(  "int blendr = ");getRegA(method,"texel");method.append("""
-                        ;
-                        int blendb = blendr, blendg = blendr;
-                        """);
+                    method.append("int blendr = ");
+                    getRegA(method, "texel");
+                    method.append("""
+                            ;
+                            int blendb = blendr, blendg = blendr;
+                            """);
                     break;
 
                 case 5:     /* texture RGB (Voodoo 2 only) */
-                    method.append("int blendr = ");getRegR(method,"texel");method.append(";\n");
-                    method.append("int blendg = ");getRegG(method,"texel");method.append(";\n");
-                    method.append("int blendb = ");getRegB(method,"texel");method.append(";\n");
+                    method.append("int blendr = ");
+                    getRegR(method, "texel");
+                    method.append(";\n");
+                    method.append("int blendg = ");
+                    getRegG(method, "texel");
+                    method.append(";\n");
+                    method.append("int blendb = ");
+                    getRegB(method, "texel");
+                    method.append(";\n");
                     break;
             }
 
             if (uses_a) {
-                switch (VoodooCommon.FBZCP_CCA_MSELECT(colorPath))
-                {
+                switch (VoodooCommon.FBZCP_CCA_MSELECT(colorPath)) {
                     default:    /* reserved */
                     case 0:     /* 0 */
                         method.append("int blenda = 0;\n");
                         break;
 
                     case 1:     /* a_local */
-                        method.append("int blenda = ");getRegA(method,"c_local");method.append(";\n");
+                        method.append("int blenda = ");
+                        getRegA(method, "c_local");
+                        method.append(";\n");
                         break;
 
                     case 2:     /* a_other */
-                        method.append("int blenda = ");getRegA(method,"c_other");method.append(";\n");
+                        method.append("int blenda = ");
+                        getRegA(method, "c_other");
+                        method.append(";\n");
                         break;
 
                     case 3:     /* a_local */
-                        method.append("int blenda = ");getRegA(method,"c_local");method.append(";\n");
+                        method.append("int blenda = ");
+                        getRegA(method, "c_local");
+                        method.append(";\n");
                         break;
 
                     case 4:     /* texture alpha */
-                        method.append("int blenda = ");getRegA(method,"texel");method.append(";\n");
+                        method.append("int blenda = ");
+                        getRegA(method, "texel");
+                        method.append(";\n");
                         break;
                 }
             }
@@ -1096,28 +1185,41 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
         }
 
         /* add clocal or alocal to RGB */
-        switch (VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath))
-        {
+        switch (VoodooCommon.FBZCP_CC_ADD_ACLOCAL(colorPath)) {
             case 3:     /* reserved */
             case 0:     /* nothing */
                 break;
 
             case 1:     /* add c_local */
-                method.append("r += ");getRegR(method,"c_local");method.append(";\n");
-                method.append("g += ");getRegG(method,"c_local");method.append(";\n");
-                method.append("b += ");getRegB(method,"c_local");method.append(";\n");
+                method.append("r += ");
+                getRegR(method, "c_local");
+                method.append(";\n");
+                method.append("g += ");
+                getRegG(method, "c_local");
+                method.append(";\n");
+                method.append("b += ");
+                getRegB(method, "c_local");
+                method.append(";\n");
                 break;
 
             case 2:     /* add_alocal */
-                method.append("r += ");getRegA(method,"c_local");method.append(";\n");
-                method.append("g += ");getRegA(method,"c_local");method.append(";\n");
-                method.append("b += ");getRegA(method,"c_local");method.append(";\n");
+                method.append("r += ");
+                getRegA(method, "c_local");
+                method.append(";\n");
+                method.append("g += ");
+                getRegA(method, "c_local");
+                method.append(";\n");
+                method.append("b += ");
+                getRegA(method, "c_local");
+                method.append(";\n");
                 break;
         }
 
         if (uses_a) {
-            if (VoodooCommon.FBZCP_CCA_ADD_ACLOCAL(colorPath)!=0) {
-                method.append("a += ");getRegA(method,"c_local");method.append(";\n");
+            if (VoodooCommon.FBZCP_CCA_ADD_ACLOCAL(colorPath) != 0) {
+                method.append("a += ");
+                getRegA(method, "c_local");
+                method.append(";\n");
             }
         }
 
@@ -1142,7 +1244,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
                 method.append("a ^= 0xff;\n");
             }
         }
-        if (VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode)==15) {
+        if (VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode) == 15) {
             method.append("""
                     int prefogr = r;
                     int prefogg = g;
@@ -1152,13 +1254,19 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 
         // APPLY_FOGGING(VV, FOGMODE, FBZCOLORPATH, XX, DITHER4, r, g, b, ITERZ, ITERW, ITERAXXX);
         if (VoodooCommon.FOGMODE_ENABLE_FOG(fogMode)) {
-            method.append(  "int fogcolor = v.reg[VoodooCommon.fogColor];\n");
+            method.append("int fogcolor = v.reg[VoodooCommon.fogColor];\n");
 
             /* constant fog bypasses everything else */
             if (VoodooCommon.FOGMODE_FOG_CONSTANT(fogMode)) {
-                method.append("int fr = ");getRegR(method,"fogcolor");method.append(";\n");
-                method.append("int fg = ");getRegG(method,"fogcolor");method.append(";\n");
-                method.append("int fb = ");getRegB(method,"fogcolor");method.append(";\n");
+                method.append("int fr = ");
+                getRegR(method, "fogcolor");
+                method.append(";\n");
+                method.append("int fg = ");
+                getRegG(method, "fogcolor");
+                method.append(";\n");
+                method.append("int fb = ");
+                getRegB(method, "fogcolor");
+                method.append(";\n");
             }
             /* non-constant fog comes from several sources */
             else {
@@ -1166,9 +1274,15 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
 
                 /* if fog_add is zero, we start with the fog color */
                 if (!VoodooCommon.FOGMODE_FOG_ADD(fogMode)) {
-                    method.append("int fr = ");getRegR(method,"fogcolor");method.append(";\n");
-                    method.append("int fg = ");getRegG(method,"fogcolor");method.append(";\n");
-                    method.append("int fb = ");getRegB(method,"fogcolor");method.append(";\n");
+                    method.append("int fr = ");
+                    getRegR(method, "fogcolor");
+                    method.append(";\n");
+                    method.append("int fg = ");
+                    getRegG(method, "fogcolor");
+                    method.append(";\n");
+                    method.append("int fb = ");
+                    getRegB(method, "fogcolor");
+                    method.append(";\n");
                 } else {
                     method.append("int fr = 0, fg = 0, fb = 0;\n");
                 }
@@ -1273,8 +1387,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             }
 
             /* compute source portion */
-            switch (VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode))
-            {
+            switch (VoodooCommon.ALPHAMODE_SRCRGBBLEND(alphaMode)) {
                 default:    /* reserved */
                 case 0:     /* AZERO */
                     method.append("r = g = b = 0;\n");
@@ -1334,8 +1447,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             }
 
             /* add in dest portion */
-            switch (VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode))
-            {
+            switch (VoodooCommon.ALPHAMODE_DSTRGBBLEND(alphaMode)) {
                 default:    /* reserved */
                 case 0:     /* AZERO */
                     break;
@@ -1440,7 +1552,7 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
             else
                 method.append("v.fbi.ram[depthPos+x] = (short)a;\n");
         }
-        method.append(  "stats.pixels_out++;\n");
+        method.append("stats.pixels_out++;\n");
 
         // close loop
         method.append("}\n");
@@ -1480,45 +1592,46 @@ public class RasterizerCompiler extends RasterizerCompilerCommon {
     }
 
     static private int count;
+
     static private raster_info compileMethod(StringBuilder method, raster_info info) {
-       //logger.log(Level.DEBUG,method.toString());
-       try {
-           String className = "Rasterizer" + (count++);
+        //logger.log(Level.DEBUG,method.toString());
+        try {
+            String className = "Rasterizer" + (count++);
 
-           CtClass codeBlock = pool.makeClass(className);
-           codeBlock.setSuperclass(pool.getCtClass("jdos.hardware.mame.raster_info"));
-           codeBlock.addInterface(pool.getCtClass("jdos.hardware.mame.poly_draw_scanline_func"));
-           method.append("}");
-           CtMethod m = CtNewMethod.make("public void call(short[] dest, int destOffset, int y, poly_extent extent, poly_extra_data extra, int threadid) {" + method, codeBlock);
-           codeBlock.addMethod(m);
+            CtClass codeBlock = pool.makeClass(className);
+            codeBlock.setSuperclass(pool.getCtClass("jdos.hardware.mame.raster_info"));
+            codeBlock.addInterface(pool.getCtClass("jdos.hardware.mame.poly_draw_scanline_func"));
+            method.append("}");
+            CtMethod m = CtNewMethod.make("public void call(short[] dest, int destOffset, int y, poly_extent extent, poly_extra_data extra, int threadid) {" + method, codeBlock);
+            codeBlock.addMethod(m);
 
-          String constructor =
-          "{this.eff_color_path = "+info.eff_color_path+";" +
-          "this.eff_alpha_mode = "+info.eff_alpha_mode+";" +
-          "this.eff_fog_mode = "+info.eff_fog_mode+";" +
-          "this.eff_fbz_mode = "+info.eff_fbz_mode+";" +
-          "this.eff_tex_mode_0 = "+info.eff_tex_mode_0+";" +
-          "this.eff_tex_mode_1 = "+info.eff_tex_mode_1+";" +
-          "this.callback = this;}";
+            String constructor =
+                    "{this.eff_color_path = " + info.eff_color_path + ";" +
+                            "this.eff_alpha_mode = " + info.eff_alpha_mode + ";" +
+                            "this.eff_fog_mode = " + info.eff_fog_mode + ";" +
+                            "this.eff_fbz_mode = " + info.eff_fbz_mode + ";" +
+                            "this.eff_tex_mode_0 = " + info.eff_tex_mode_0 + ";" +
+                            "this.eff_tex_mode_1 = " + info.eff_tex_mode_1 + ";" +
+                            "this.callback = this;}";
 
-           CtConstructor c = CtNewConstructor.make("public "+className+"()"+constructor, codeBlock);
-           codeBlock.addConstructor(c);
+            CtConstructor c = CtNewConstructor.make("public " + className + "()" + constructor, codeBlock);
+            codeBlock.addConstructor(c);
 
-           // Make the dynamic class belong to its own class loader so that when we
-           // release the raster block the class and class loader will be unloaded
-           URLClassLoader cl = (URLClassLoader) codeBlock.getClass().getClassLoader();
-           cl = URLClassLoader.newInstance(cl.getURLs(), cl);
-           Class<?> clazz = codeBlock.toClass(cl, null);
-           raster_info result = (raster_info) clazz.newInstance();
-           if (saveClasses) {
-               savedClasses.add(new SaveInfo(info, codeBlock.toBytecode()));
-           }
-           codeBlock.detach();
-           return result;
-       } catch (Exception e) {
-           logger.log(Level.DEBUG,method.toString());
-           logger.log(Level.ERROR, e.getMessage(), e);
-       }
-       return null;
-   }
+            // Make the dynamic class belong to its own class loader so that when we
+            // release the raster block the class and class loader will be unloaded
+            URLClassLoader cl = (URLClassLoader) codeBlock.getClass().getClassLoader();
+            cl = URLClassLoader.newInstance(cl.getURLs(), cl);
+            Class<?> clazz = codeBlock.toClass(cl, null);
+            raster_info result = (raster_info) clazz.newInstance();
+            if (saveClasses) {
+                savedClasses.add(new SaveInfo(info, codeBlock.toBytecode()));
+            }
+            codeBlock.detach();
+            return result;
+        } catch (Exception e) {
+            logger.log(Level.DEBUG, method.toString());
+            logger.log(Level.ERROR, e.getMessage(), e);
+        }
+        return null;
+    }
 }

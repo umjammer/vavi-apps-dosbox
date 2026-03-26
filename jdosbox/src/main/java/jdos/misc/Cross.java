@@ -1,5 +1,7 @@
 package jdos.misc;
 
+import java.io.File;
+
 import jdos.Dosbox;
 import jdos.misc.setup.Config;
 import jdos.util.BooleanRef;
@@ -7,9 +9,9 @@ import jdos.util.FileHelper;
 import jdos.util.HomeDirectory;
 import jdos.util.StringRef;
 
-import java.io.File;
 
 public class Cross {
+
     public static boolean isWindows() {
         return System.getProperty("os.name").toLowerCase().contains("win");
     }
@@ -22,6 +24,7 @@ public class Cross {
     }
 
     static public class dir_information {
+
         private File[] list;
         private int index;
     }
@@ -44,7 +47,7 @@ public class Cross {
     }
 
     static public boolean read_directory_next(dir_information dirp, StringRef entry_name, BooleanRef is_directory) {
-        if (dirp.index+1 >= dirp.list.length) return false;
+        if (dirp.index + 1 >= dirp.list.length) return false;
         dirp.index++;
         entry_name.value = dirp.list[dirp.index].getName();
         is_directory.value = dirp.list[dirp.index].isDirectory();
@@ -67,13 +70,13 @@ public class Cross {
             if (!f.exists()) {
                 f.mkdir();
             }
-            return f.getAbsolutePath()+File.separator;
+            return f.getAbsolutePath() + File.separator;
         }
         return "";
     }
 
     static public String GetPlatformConfigName() {
-        return "dosbox-"+ Config.MAJOR_VERSION +".conf"; 
+        return "dosbox-" + Config.MAJOR_VERSION + ".conf";
     }
 
     static public void CreateDir(String dir) {

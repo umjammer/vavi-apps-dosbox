@@ -1,15 +1,16 @@
 package jdos.win.utils;
 
 public class Unicode {
-    public static final int C1_UPPER   = 0x0001;
-    public static final int C1_LOWER   = 0x0002;
-    public static final int C1_DIGIT   = 0x0004;
-    public static final int C1_SPACE   = 0x0008;
-    public static final int C1_PUNCT   = 0x0010;
-    public static final int C1_CNTRL   = 0x0020;
-    public static final int C1_BLANK   = 0x0040;
-    public static final int C1_XDIGIT  = 0x0080;
-    public static final int C1_ALPHA   = 0x0100;
+
+    public static final int C1_UPPER = 0x0001;
+    public static final int C1_LOWER = 0x0002;
+    public static final int C1_DIGIT = 0x0004;
+    public static final int C1_SPACE = 0x0008;
+    public static final int C1_PUNCT = 0x0010;
+    public static final int C1_CNTRL = 0x0020;
+    public static final int C1_BLANK = 0x0040;
+    public static final int C1_XDIGIT = 0x0080;
+    public static final int C1_ALPHA = 0x0100;
     public static final int C1_DEFINED = 0x0200;
 
     public static final int C2_NOTAPPLICABLE = 0x0000; /* unassigned */
@@ -48,6 +49,7 @@ public class Unicode {
             default -> C2_NOTAPPLICABLE;
         };
     }
+
     public static short get_char_typeW(char c) {
         switch (c) {
             case 0x00:
@@ -67,36 +69,36 @@ public class Unicode {
         int javaType = Character.getType(c);
         short winType = 0;
         if ((javaType & Character.UPPERCASE_LETTER) != 0) {
-            winType|=C1_UPPER|C1_ALPHA;
+            winType |= C1_UPPER | C1_ALPHA;
         }
         if ((javaType & Character.LOWERCASE_LETTER) != 0) {
-            winType|=C1_LOWER|C1_ALPHA;
+            winType |= C1_LOWER | C1_ALPHA;
         }
         if ((javaType & Character.DECIMAL_DIGIT_NUMBER) != 0) {
-            winType|=C1_DIGIT;
+            winType |= C1_DIGIT;
         }
         if ((javaType & Character.SPACE_SEPARATOR) != 0) {
-            winType|=C1_SPACE;
+            winType |= C1_SPACE;
         }
         if ((javaType & Character.DASH_PUNCTUATION) != 0 || (javaType & Character.CONNECTOR_PUNCTUATION) != 0 || (javaType & Character.OTHER_PUNCTUATION) != 0
-                 || (javaType & Character.END_PUNCTUATION) != 0 || (javaType & Character.FINAL_QUOTE_PUNCTUATION) != 0 || (javaType & Character.INITIAL_QUOTE_PUNCTUATION) !=0
-                 || (javaType & Character.START_PUNCTUATION) != 0) {
-            winType|=C1_PUNCT;
+                || (javaType & Character.END_PUNCTUATION) != 0 || (javaType & Character.FINAL_QUOTE_PUNCTUATION) != 0 || (javaType & Character.INITIAL_QUOTE_PUNCTUATION) != 0
+                || (javaType & Character.START_PUNCTUATION) != 0) {
+            winType |= C1_PUNCT;
         }
         if ((javaType & Character.SPACE_SEPARATOR) != 0) {
-            winType|=C1_SPACE;
+            winType |= C1_SPACE;
         }
         if ((javaType & Character.MODIFIER_LETTER) != 0 || (javaType & Character.OTHER_LETTER) != 0) {
-            winType|=C1_ALPHA;
+            winType |= C1_ALPHA;
         }
         if (javaType != 0) {
-            winType|=C1_DEFINED;
+            winType |= C1_DEFINED;
         }
         if ((javaType & Character.LETTER_NUMBER) != 0) {
-            winType|=C1_XDIGIT;
+            winType |= C1_XDIGIT;
         }
         if ((javaType & Character.CONTROL) != 0) {
-            winType|=C1_CNTRL;
+            winType |= C1_CNTRL;
         }
         return winType;
     }

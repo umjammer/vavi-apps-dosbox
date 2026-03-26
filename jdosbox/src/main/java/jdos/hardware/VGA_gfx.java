@@ -1,16 +1,19 @@
 package jdos.hardware;
 
-import jdos.Dosbox;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 
+import jdos.Dosbox;
+
+
 public class VGA_gfx {
+
     private static final Logger LOG_VGAMISC = System.getLogger("LOG_VGAMISC");
 
-static boolean index9warned=false;
+    static boolean index9warned = false;
 
     /*Bitu*//*Bitu*//*Bitu*/
-    private static final IoHandler.IO_WriteHandler write_p3ce = (port, val, iolen) -> VGA.vga.gfx.index=(short)(val & 0x0f);
+    private static final IoHandler.IO_WriteHandler write_p3ce = (port, val, iolen) -> VGA.vga.gfx.index = (short) (val & 0x0f);
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_ReadHandler read_p3ce = (port, iolen) -> VGA.vga.gfx.index;
@@ -18,11 +21,11 @@ static boolean index9warned=false;
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_WriteHandler write_p3cf = (port, val, iolen) -> {
         switch (VGA.vga.gfx.index) {
-        case 0:	/* Set/Reset Register */
-            VGA.vga.gfx.set_reset=(short)(val & 0x0f);
-            VGA.vga.config.full_set_reset=VGA.FillTable[val & 0x0f];
-            VGA.vga.config.full_enable_and_set_reset=VGA.vga.config.full_set_reset &
-                VGA.vga.config.full_enable_set_reset;
+            case 0:    /* Set/Reset Register */
+                VGA.vga.gfx.set_reset = (short) (val & 0x0f);
+                VGA.vga.config.full_set_reset = VGA.FillTable[val & 0x0f];
+                VGA.vga.config.full_enable_and_set_reset = VGA.vga.config.full_set_reset &
+                        VGA.vga.config.full_enable_set_reset;
             /*
                 0	If in Write Mode 0 and bit 0 of 3CEh index 1 is set a write to
                     display memory will set all the bits in plane 0 of the byte to this
@@ -32,32 +35,32 @@ static boolean index9warned=false;
                 2	Same for plane 2 and bit 2 of 3CEh index 1.
                 3	Same for plane 3 and bit 3 of 3CEh index 1.
             */
-    //		logger.log(Level.TRACE,"Set Reset = %2X",val);
-            break;
-        case 1: /* Enable Set/Reset Register */
-            VGA.vga.gfx.enable_set_reset=(short)(val & 0x0f);
-            VGA.vga.config.full_enable_set_reset=VGA.FillTable[val & 0x0f];
-            VGA.vga.config.full_not_enable_set_reset=~VGA.vga.config.full_enable_set_reset;
-            VGA.vga.config.full_enable_and_set_reset=VGA.vga.config.full_set_reset &
-                VGA.vga.config.full_enable_set_reset;
-    //		if (VGA.vga.gfx.enable_set_reset)) VGA.vga.config.mh_mask|=MH_SETRESET else VGA.vga.config.mh_mask&=~MH_SETRESET;
-            break;
-        case 2: /* Color Compare Register */
-            VGA.vga.gfx.color_compare=(short)(val & 0x0f);
+                //		logger.log(Level.TRACE,"Set Reset = %2X",val);
+                break;
+            case 1: /* Enable Set/Reset Register */
+                VGA.vga.gfx.enable_set_reset = (short) (val & 0x0f);
+                VGA.vga.config.full_enable_set_reset = VGA.FillTable[val & 0x0f];
+                VGA.vga.config.full_not_enable_set_reset = ~VGA.vga.config.full_enable_set_reset;
+                VGA.vga.config.full_enable_and_set_reset = VGA.vga.config.full_set_reset &
+                        VGA.vga.config.full_enable_set_reset;
+                //		if (VGA.vga.gfx.enable_set_reset)) VGA.vga.config.mh_mask|=MH_SETRESET else VGA.vga.config.mh_mask&=~MH_SETRESET;
+                break;
+            case 2: /* Color Compare Register */
+                VGA.vga.gfx.color_compare = (short) (val & 0x0f);
             /*
                 0-3	In Read Mode 1 each pixel at the address of the byte read is compared
                     to this color and the corresponding bit in the output set to 1 if
                     they match, 0 if not. The Color Don't Care Register (3CEh index 7)
                     can exclude bitplanes from the comparison.
             */
-            VGA.vga.config.color_compare=(short)(val & 0xf);
-    //		logger.log(Level.TRACE,"Color Compare = %2X",val);
-            break;
-        case 3: /* Data Rotate */
-            VGA.vga.gfx.data_rotate=(short)val;
-            VGA.vga.config.data_rotate=(short)(val & 7);
-    //		if (val) VGA.vga.config.mh_mask|=MH_ROTATEOP else VGA.vga.config.mh_mask&=~MH_ROTATEOP;
-            VGA.vga.config.raster_op=(short)((val>>3) & 3);
+                VGA.vga.config.color_compare = (short) (val & 0xf);
+                //		logger.log(Level.TRACE,"Color Compare = %2X",val);
+                break;
+            case 3: /* Data Rotate */
+                VGA.vga.gfx.data_rotate = (short) val;
+                VGA.vga.config.data_rotate = (short) (val & 7);
+                //		if (val) VGA.vga.config.mh_mask|=MH_ROTATEOP else VGA.vga.config.mh_mask&=~MH_ROTATEOP;
+                VGA.vga.config.raster_op = (short) ((val >> 3) & 3);
             /*
                 0-2	Number of positions to rotate data right before it is written to
                     display memory. Only active in Write Mode 0.
@@ -69,21 +72,21 @@ static boolean index9warned=false;
                     2: CPU data is ORed  with the latch data.
                     3: CPU data is XORed with the latched data.
             */
-            break;
-        case 4: /* Read Map Select Register */
-            /*	0-1	number of the plane Read Mode 0 will read from */
-            VGA.vga.gfx.read_map_select=(short)(val & 0x03);
-            VGA.vga.config.read_map_select=(short)(val & 0x03);
-    //		logger.log(Level.TRACE,"Read Map %2X",val);
-            break;
-        case 5: /* Mode Register */
-            if (((VGA.vga.gfx.mode ^ val) & 0xf0)!=0) {
-                VGA.vga.gfx.mode=(byte)val;
-                VGA.VGA_DetermineMode();
-            } else VGA.vga.gfx.mode=(byte)val;
-            VGA.vga.config.write_mode=(short)(val & 3);
-            VGA.vga.config.read_mode=(short)((val >> 3) & 1);
-    //		logger.log(Level.TRACE,"Write Mode %d Read Mode %d val %d",VGA.vga.config.write_mode,VGA.vga.config.read_mode,val);
+                break;
+            case 4: /* Read Map Select Register */
+                /*	0-1	number of the plane Read Mode 0 will read from */
+                VGA.vga.gfx.read_map_select = (short) (val & 0x03);
+                VGA.vga.config.read_map_select = (short) (val & 0x03);
+                //		logger.log(Level.TRACE,"Read Map %2X",val);
+                break;
+            case 5: /* Mode Register */
+                if (((VGA.vga.gfx.mode ^ val) & 0xf0) != 0) {
+                    VGA.vga.gfx.mode = (byte) val;
+                    VGA.VGA_DetermineMode();
+                } else VGA.vga.gfx.mode = (byte) val;
+                VGA.vga.config.write_mode = (short) (val & 3);
+                VGA.vga.config.read_mode = (short) ((val >> 3) & 1);
+                //		logger.log(Level.TRACE,"Write Mode %d Read Mode %d val %d",VGA.vga.config.write_mode,VGA.vga.config.read_mode,val);
             /*
                 0-1	Write Mode: Controls how data from the CPU is transformed before
                     being written to display memory:
@@ -122,13 +125,13 @@ static boolean index9warned=false;
                 5	Enables CGA style 4 color pixels using even/odd bit pairs if set.
                 6	Enables 256 color mode if set.
             */
-            break;
-        case 6: /* Miscellaneous Register */
-            if (((VGA.vga.gfx.miscellaneous ^ val) & 0x0c)!=0) {
-                VGA.vga.gfx.miscellaneous=(byte)val;
-                VGA.VGA_DetermineMode();
-            } else VGA.vga.gfx.miscellaneous=(byte)val;
-            VGA_memory.VGA_SetupHandlers();
+                break;
+            case 6: /* Miscellaneous Register */
+                if (((VGA.vga.gfx.miscellaneous ^ val) & 0x0c) != 0) {
+                    VGA.vga.gfx.miscellaneous = (byte) val;
+                    VGA.VGA_DetermineMode();
+                } else VGA.vga.gfx.miscellaneous = (byte) val;
+                VGA_memory.VGA_SetupHandlers();
             /*
                 0	Indicates Graphics Mode if set, Alphanumeric mode else.
                 1	Enables Odd/Even mode if set.
@@ -138,79 +141,79 @@ static boolean index9warned=false;
                     2: use B000h-B7FFh   Monochrome modes
                     3: use B800h-BFFFh   CGA modes
             */
-            break;
-        case 7: /* Color Don't Care Register */
-            VGA.vga.gfx.color_dont_care=(short)(val & 0x0f);
+                break;
+            case 7: /* Color Don't Care Register */
+                VGA.vga.gfx.color_dont_care = (short) (val & 0x0f);
             /*
                 0	Ignore bit plane 0 in Read mode 1 if clear.
                 1	Ignore bit plane 1 in Read mode 1 if clear.
                 2	Ignore bit plane 2 in Read mode 1 if clear.
                 3	Ignore bit plane 3 in Read mode 1 if clear.
             */
-            VGA.vga.config.color_dont_care=(short)(val & 0xf);
-    //		logger.log(Level.TRACE,"Color don't care = %2X",val);
-            break;
-        case 8: /* Bit Mask Register */
-            VGA.vga.gfx.bit_mask=(short)val;
-            VGA.vga.config.full_bit_mask=VGA.ExpandTable[val];
-    //		logger.log(Level.TRACE,"Bit mask %2X",val);
+                VGA.vga.config.color_dont_care = (short) (val & 0xf);
+                //		logger.log(Level.TRACE,"Color don't care = %2X",val);
+                break;
+            case 8: /* Bit Mask Register */
+                VGA.vga.gfx.bit_mask = (short) val;
+                VGA.vga.config.full_bit_mask = VGA.ExpandTable[val];
+                //		logger.log(Level.TRACE,"Bit mask %2X",val);
             /*
                 0-7	Each bit if set enables writing to the corresponding bit of a byte in
                     display memory.
             */
-            break;
-        default:
-            if (VGA.svga.write_p3cf!=null) {
-                VGA.svga.write_p3cf.call(VGA.vga.gfx.index, val, iolen);
                 break;
-            }
-            if (VGA.vga.gfx.index == 9 && !index9warned) {
-                LOG_VGAMISC.log(Level.DEBUG, "VGA:3CF:Write "+Integer.toString(val, 16)+" to illegal index 9");
-                index9warned=true;
+            default:
+                if (VGA.svga.write_p3cf != null) {
+                    VGA.svga.write_p3cf.call(VGA.vga.gfx.index, val, iolen);
+                    break;
+                }
+                if (VGA.vga.gfx.index == 9 && !index9warned) {
+                    LOG_VGAMISC.log(Level.DEBUG, "VGA:3CF:Write " + Integer.toString(val, 16) + " to illegal index 9");
+                    index9warned = true;
+                    break;
+                }
+                LOG_VGAMISC.log(Level.DEBUG, "VGA:3CF:Write " + Integer.toString(val, 16) + " to illegal index " + Integer.toString(VGA.vga.gfx.index, 16));
                 break;
-            }
-            LOG_VGAMISC.log(Level.DEBUG, "VGA:3CF:Write "+Integer.toString(val, 16)+" to illegal index "+Integer.toString(VGA.vga.gfx.index,16));
-            break;
         }
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_ReadHandler read_p3cf = (port, iolen) -> {
         switch (VGA.vga.gfx.index) {
-        case 0:	/* Set/Reset Register */
-            return VGA.vga.gfx.set_reset;
-        case 1: /* Enable Set/Reset Register */
-            return VGA.vga.gfx.enable_set_reset;
-        case 2: /* Color Compare Register */
-            return VGA.vga.gfx.color_compare;
-        case 3: /* Data Rotate */
-            return VGA.vga.gfx.data_rotate;
-        case 4: /* Read Map Select Register */
-            return VGA.vga.gfx.read_map_select;
-        case 5: /* Mode Register */
-            return VGA.vga.gfx.mode;
-        case 6: /* Miscellaneous Register */
-            return VGA.vga.gfx.miscellaneous & 0xFF;
-        case 7: /* Color Don't Care Register */
-            return VGA.vga.gfx.color_dont_care;
-        case 8: /* Bit Mask Register */
-            return VGA.vga.gfx.bit_mask;
-        default:
-            if (VGA.svga.read_p3cf!=null)
-                return VGA.svga.read_p3cf.call(VGA.vga.gfx.index, iolen);
-            LOG_VGAMISC.log(Level.DEBUG, "Reading from illegal index "+Integer.toString(VGA.vga.gfx.index, 16)+" in port "+Integer.toString(port,16));
-            break;
+            case 0:    /* Set/Reset Register */
+                return VGA.vga.gfx.set_reset;
+            case 1: /* Enable Set/Reset Register */
+                return VGA.vga.gfx.enable_set_reset;
+            case 2: /* Color Compare Register */
+                return VGA.vga.gfx.color_compare;
+            case 3: /* Data Rotate */
+                return VGA.vga.gfx.data_rotate;
+            case 4: /* Read Map Select Register */
+                return VGA.vga.gfx.read_map_select;
+            case 5: /* Mode Register */
+                return VGA.vga.gfx.mode;
+            case 6: /* Miscellaneous Register */
+                return VGA.vga.gfx.miscellaneous & 0xFF;
+            case 7: /* Color Don't Care Register */
+                return VGA.vga.gfx.color_dont_care;
+            case 8: /* Bit Mask Register */
+                return VGA.vga.gfx.bit_mask;
+            default:
+                if (VGA.svga.read_p3cf != null)
+                    return VGA.svga.read_p3cf.call(VGA.vga.gfx.index, iolen);
+                LOG_VGAMISC.log(Level.DEBUG, "Reading from illegal index " + Integer.toString(VGA.vga.gfx.index, 16) + " in port " + Integer.toString(port, 16));
+                break;
         }
-        return 0;	/* Compiler happy */
+        return 0;    /* Compiler happy */
     };
 
     static public void VGA_SetupGFX() {
         if (Dosbox.IS_EGAVGA_ARCH()) {
-            IoHandler.IO_RegisterWriteHandler(0x3ce,write_p3ce,IoHandler.IO_MB);
-            IoHandler.IO_RegisterWriteHandler(0x3cf,write_p3cf,IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3ce, write_p3ce, IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3cf, write_p3cf, IoHandler.IO_MB);
             if (Dosbox.IS_VGA_ARCH()) {
-                IoHandler.IO_RegisterReadHandler(0x3ce,read_p3ce,IoHandler.IO_MB);
-                IoHandler.IO_RegisterReadHandler(0x3cf,read_p3cf,IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3ce, read_p3ce, IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3cf, read_p3cf, IoHandler.IO_MB);
             }
         }
     }

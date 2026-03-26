@@ -4,13 +4,20 @@ import jdos.hardware.Memory;
 import jdos.util.IntRef;
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
-import jdos.win.builtin.gdi32.*;
+import jdos.win.builtin.gdi32.GdiObj;
+import jdos.win.builtin.gdi32.PaintingGDI;
+import jdos.win.builtin.gdi32.TEXTMETRIC;
+import jdos.win.builtin.gdi32.WinDC;
+import jdos.win.builtin.gdi32.WinFont;
+import jdos.win.builtin.gdi32.WinPen;
 import jdos.win.system.WinRect;
 import jdos.win.system.WinSize;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
+
 public class WinText extends WinAPI {
+
     static final public int TAB = 9;
     static final public int LF = 10;
     static final public int CR = 13;
@@ -217,6 +224,7 @@ public class WinText extends WinAPI {
     }
 
     static private class ellipsis_data {
+
         int before;
         int len;
         int under;
@@ -623,8 +631,8 @@ public class WinText extends WinAPI {
         if (len_str.value + len_ellipsis >= max_len)
             len_str.value = max_len - len_ellipsis - 1;
         /* Hopefully this will never happen, otherwise it would probably lose
-        * the wrong character
-        */
+         * the wrong character
+         */
         writeb(str + len_str.value, 0); /* to simplify things */
 
         int lastBkSlash = StringUtil.strrchr(str, BACK_SLASH);

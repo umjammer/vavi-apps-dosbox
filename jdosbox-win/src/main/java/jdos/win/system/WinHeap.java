@@ -1,16 +1,17 @@
 package jdos.win.system;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 import jdos.win.kernel.KernelHeap;
 import jdos.win.utils.Error;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 
 public class WinHeap {
 
@@ -28,10 +29,10 @@ public class WinHeap {
     }
 
     public int validateHeap(int handle, int flags, int address) {
-        if (handle<=0 || handle>heaps.size()) {
+        if (handle <= 0 || handle > heaps.size()) {
             return WinAPI.FALSE;
         }
-        HeapItem item = heaps.get(handle-1);
+        HeapItem item = heaps.get(handle - 1);
         if (item == null) {
             return WinAPI.FALSE;
         }
@@ -41,10 +42,10 @@ public class WinHeap {
     public int createHeap(int initialSize, int maxSize) {
         HeapItem item = new HeapItem(initialSize, maxSize);
 
-        for (int i=0;i<heaps.size();i++) {
+        for (int i = 0; i < heaps.size(); i++) {
             if (heaps.get(i) == null) {
                 heaps.set(i, item);
-                return i+1;
+                return i + 1;
             }
         }
         heaps.add(item);
@@ -53,14 +54,14 @@ public class WinHeap {
 
 
     public int allocateHeap(int handle, int size) {
-        if (handle-1>=heaps.size())
+        if (handle - 1 >= heaps.size())
             return 0;
-        HeapItem item = heaps.get(handle-1);
+        HeapItem item = heaps.get(handle - 1);
         return item.alloc(size);
     }
 
     public int freeHeap(int handle, int memory) {
-        HeapItem item = heaps.get(handle-1);
+        HeapItem item = heaps.get(handle - 1);
         if (item == null) {
             Scheduler.getCurrentThread().setLastError(jdos.win.utils.Error.ERROR_INVALID_HANDLE);
             return WinAPI.FALSE;
@@ -69,7 +70,7 @@ public class WinHeap {
     }
 
     public int heapSize(int handle, int memory) {
-        HeapItem item = heaps.get(handle-1);
+        HeapItem item = heaps.get(handle - 1);
         if (item == null) {
             return -1;
         }
@@ -77,13 +78,15 @@ public class WinHeap {
     }
 
     public int realloc(int handle, int memory, int size, boolean zero) {
-        HeapItem item = heaps.get(handle-1);
+        HeapItem item = heaps.get(handle - 1);
         if (item == null) {
             return -1;
         }
         return item.realloc(memory, size, zero);
     }
+
     private class HeapItem {
+
         final int initialSize;
         final int maxSize;
         int currentSize = 0;
@@ -97,12 +100,12 @@ public class WinHeap {
         public int free(int add) {
             Integer size = allocs.get(add);
             if (size == null) {
-                logger.log(Level.DEBUG,"VirtualFree could not find address: 0x"+Integer.toString(add, 16));
+                logger.log(Level.DEBUG, "VirtualFree could not find address: 0x" + Integer.toString(add, 16));
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_PARAMETER);
                 return WinAPI.FALSE;
             }
             heap.free(add);
-            currentSize-= size;
+            currentSize -= size;
             return WinAPI.TRUE;
         }
 
@@ -113,21 +116,23 @@ public class WinHeap {
             }
             return size;
         }
+
         public int alloc(int size) {
-            if (maxSize!=0 && (currentSize+size)>maxSize)
+            if (maxSize != 0 && (currentSize + size) > maxSize)
                 return 0;
             int result = heap.alloc(size, false);
             allocs.put(result, size);
             return result;
         }
+
         public int realloc(int add, int size, boolean zero) {
             // TODO This could be done without a copy
             int result = alloc(size);
             int oldSize = size(add);
-            if (size>oldSize) {
+            if (size > oldSize) {
                 Memory.mem_memcpy(result, add, oldSize);
                 if (zero)
-                    Memory.mem_zero(result+oldSize, size-oldSize);
+                    Memory.mem_zero(result + oldSize, size - oldSize);
             } else {
                 Memory.mem_memcpy(result, add, size);
             }

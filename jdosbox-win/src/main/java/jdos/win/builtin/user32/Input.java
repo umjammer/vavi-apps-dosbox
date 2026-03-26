@@ -1,14 +1,19 @@
 package jdos.win.builtin.user32;
 
-import jdos.hardware.Memory;
-import jdos.win.builtin.WinAPI;
-import jdos.win.system.*;
-import jdos.win.utils.Ptr;
-import jdos.win.utils.StringUtil;
-
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.BitSet;
+
+import jdos.hardware.Memory;
+import jdos.win.builtin.WinAPI;
+import jdos.win.system.Scheduler;
+import jdos.win.system.StaticData;
+import jdos.win.system.WinKeyboard;
+import jdos.win.system.WinMsg;
+import jdos.win.system.WinPoint;
+import jdos.win.utils.Ptr;
+import jdos.win.utils.StringUtil;
+
 
 public class Input extends WinAPI {
 
@@ -36,11 +41,11 @@ public class Input extends WinAPI {
 
     // BOOL WINAPI GetKeyboardState(PBYTE lpKeyState)
     static public int GetKeyboardState(int lpKeyState) {
-        for (int i=0;i<256;i++) {
+        for (int i = 0; i < 256; i++) {
             if (Scheduler.getCurrentThread().getKeyState().get(i))
                 Memory.mem_writeb(lpKeyState + i, 0x80);
             else
-                Memory.mem_writeb(lpKeyState+i, 0x0);
+                Memory.mem_writeb(lpKeyState + i, 0x0);
         }
         return WinAPI.TRUE;
     }
@@ -67,7 +72,7 @@ public class Input extends WinAPI {
     // int WINAPI GetKeyNameText(LONG lParam, LPTSTR lpString, int cchSize)
     static public int GetKeyNameTextA(int lParam, int lpString, int cchSize) {
         int v = (lParam >> 16) & 0xFF;
-        if (keyNames[v]!=null)
+        if (keyNames[v] != null)
             return StringUtil.strncpy(lpString, keyNames[v], cchSize);
         return 0;
     }
@@ -144,16 +149,16 @@ public class Input extends WinAPI {
         switch (uMapType) {
             case MAPVK_VK_TO_VSC:
             case MAPVK_VK_TO_VSC_EX:
-                if (uCode>=0 && uCode<keyvk2vsc.length)
-                        return keyvk2vsc[uCode];
+                if (uCode >= 0 && uCode < keyvk2vsc.length)
+                    return keyvk2vsc[uCode];
                 break;
             case MAPVK_VSC_TO_VK: /* scan-code to vkey-code */
             case MAPVK_VSC_TO_VK_EX:
-                if (uCode>=0 && uCode<keyvscc2vk.length)
+                if (uCode >= 0 && uCode < keyvscc2vk.length)
                     return keyvscc2vk[uCode];
                 break;
             case MAPVK_VK_TO_CHAR: /* vkey-code to unshifted ANSI code */
-                if (uCode>=0 && uCode<keyvk2char.length)
+                if (uCode >= 0 && uCode < keyvk2char.length)
                     return keyvk2char[uCode];
                 break;
         }
@@ -182,7 +187,7 @@ public class Input extends WinAPI {
 
     // called from the cpu thread
     static public void processInput() {
-        while(!StaticData.inputQueue.isEmpty()) {
+        while (!StaticData.inputQueue.isEmpty()) {
             Object msg = StaticData.inputQueue.removeFirst();
             if (msg instanceof MouseInput mouseMsg) {
                 handeMouseInput(mouseMsg.msg, mouseMsg.pt, mouseMsg.wParam);
@@ -193,23 +198,27 @@ public class Input extends WinAPI {
     }
 
     static private class MouseInput {
+
         public MouseInput(int msg, WinPoint pt, int wParam) {
             this.msg = msg;
             this.pt = pt.copy();
             this.wParam = wParam;
         }
+
         final int msg;
         final WinPoint pt;
         final int wParam;
     }
 
     static private class KeyboardInput {
+
         public KeyboardInput(int msg, int wParam, int lParam, BitSet keyState) {
             this.msg = msg;
             this.wParam = wParam;
             this.lParam = lParam;
             this.keyState = keyState;
         }
+
         final int msg;
         final int wParam;
         final int lParam;
@@ -218,14 +227,14 @@ public class Input extends WinAPI {
 
     // called from java thread
     static public void addMouseMsg(int msg, WinPoint pt, int wParam) {
-        synchronized(StaticData.inputQueueMutex) {
+        synchronized (StaticData.inputQueueMutex) {
             StaticData.inputQueue.add(new MouseInput(msg, pt, wParam));
             StaticData.inputQueueMutex.notify();
         }
     }
 
     static public void addKeyboardMsg(int msg, int wParam, int lParam, BitSet keyState) {
-         synchronized(StaticData.inputQueueMutex) {
+        synchronized (StaticData.inputQueueMutex) {
             StaticData.inputQueue.add(new KeyboardInput(msg, wParam, lParam, keyState));
             StaticData.inputQueueMutex.notify();
         }
@@ -252,7 +261,7 @@ public class Input extends WinAPI {
             }
         }
         if (LOG) {
-            logger.log(Level.DEBUG,"\nMOUSE 0x"+Ptr.toString(msg)+" "+pt.toString()+" hwnd="+window.handle+"("+StaticData.mouseCapture+")");
+            logger.log(Level.DEBUG, "\nMOUSE 0x" + Ptr.toString(msg) + " " + pt.toString() + " hwnd=" + window.handle + "(" + StaticData.mouseCapture + ")");
         }
         relWinPt = pt.copy();
         window.screenToWindow(relWinPt);

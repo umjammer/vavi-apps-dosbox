@@ -2,7 +2,9 @@ package jdos.win.builtin.winmm;
 
 import jdos.win.system.WinObject;
 
+
 public class WinMMIO extends WinObject {
+
     static public WinMMIO create() {
         return new WinMMIO(nextObjectId());
     }
@@ -11,7 +13,7 @@ public class WinMMIO extends WinObject {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof WinMMIO))
             return null;
-        return (WinMMIO)object;
+        return (WinMMIO) object;
     }
 
     public WinMMIO(int id) {

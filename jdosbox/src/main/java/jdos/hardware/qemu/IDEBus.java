@@ -8,6 +8,7 @@ import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 
+
 public class IDEBus extends Module_base {
 
     private static final Logger logger = System.getLogger(IDEBus.class.getName());
@@ -69,7 +70,7 @@ public class IDEBus extends Module_base {
             irq = IDE_default_IRQs[index];
         }
 
-        for (int i=0;i< ifs.length;i++)
+        for (int i = 0; i < ifs.length; i++)
             ifs[i] = new Internal.IDEState();
 
         IDE.ide_init2(this, irq);
@@ -77,7 +78,7 @@ public class IDEBus extends Module_base {
 
     public void initIO() {
         if (base_io != 0 || alt_io != 0 || irq >= 0)
-            logger.log(Level.DEBUG,"IDE: Adding IDE controller to port 0x" + Integer.toHexString(base_io) + "/%03x IRQ " + alt_io);
+            logger.log(Level.DEBUG, "IDE: Adding IDE controller to port 0x" + Integer.toHexString(base_io) + "/%03x IRQ " + alt_io);
 
         for (int i = 0; i < WriteHandler.length; i++)
             WriteHandler[i] = new IoHandler.IO_WriteHandleObject();

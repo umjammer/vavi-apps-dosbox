@@ -56,6 +56,7 @@ public class KernelMemory {
     }
 
     static class Page {
+
         private static final int PRESENT_MASK = 0x01; // Page present in memory
         private static final int RW_MASK = 0x02; // Read-only if clear, readwrite if set
         private static final int USER_MASK = 0x04; // Supervisor level only if clear
@@ -84,6 +85,7 @@ public class KernelMemory {
     }
 
     static class PageDirectory {
+
         public static final int PAGE_TABLE_COUNT = 1024;
         public static final int TABLES_ENTRY_SIZE = 4;
         public static final int TABLES_PHYSICAL_SIZE = 4;
@@ -181,8 +183,9 @@ public class KernelMemory {
         IntRef used = new IntRef(0);
 
         getInfo(free, used);
-        System.out.print((used.value*4)+"/"+((used.value+free.value)*4)+"KB");
+        System.out.print((used.value * 4) + "/" + ((used.value + free.value) * 4) + "KB");
     }
+
     public int getNextFrame() {
         int frame = first_frame();
         if (frame == -1) {
@@ -197,7 +200,7 @@ public class KernelMemory {
     }
 
     static public void clearPage(int pagePtr) {
-        Memory.mem_writed(pagePtr,0);
+        Memory.mem_writed(pagePtr, 0);
     }
 
     static public void setPage(int pagePtr, int frame, boolean is_kernel, boolean is_writeable) {
@@ -243,7 +246,7 @@ public class KernelMemory {
         IntRef result = new IntRef(0);
         int vresult = kmalloc(PageDirectory.SIZE, true, result);
         Memory.mem_zero(vresult, PageDirectory.SIZE);
-        for (int i=0;i<1024;i++) {
+        for (int i = 0; i < 1024; i++) {
             int tablePtr = Memory.phys_readd(kernel_directory + PageDirectory.TABLES_OFFSET + i * PageDirectory.TABLES_ENTRY_SIZE);
             if (tablePtr != 0) {
                 int physicalPtr = Memory.phys_readd(kernel_directory + PageDirectory.TABLES_PHYSICAL_OFFSET + i * PageDirectory.TABLES_PHYSICAL_SIZE);
@@ -274,23 +277,23 @@ public class KernelMemory {
         // by calling kmalloc(). A while loop causes this to be
         // computed on-the-fly rather than once at the start.
         long i = 0;
-        while (i < placement_address+0x1000) {
+        while (i < placement_address + 0x1000) {
             // Kernel code is readable but not writeable from userspace.
-            alloc_frame(get_page((int)i, true, kernel_directory), false, false);
+            alloc_frame(get_page((int) i, true, kernel_directory), false, false);
             i += 0x1000;
         }
         int oldPlacement = placement_address;
-        for (i = KHEAP_START;i<KHEAP_START+KHEAP_INITIAL_SIZE;i+=0x1000) {
-            alloc_frame(get_page((int)i, true, kernel_directory), false, false);
+        for (i = KHEAP_START; i < KHEAP_START + KHEAP_INITIAL_SIZE; i += 0x1000) {
+            alloc_frame(get_page((int) i, true, kernel_directory), false, false);
         }
-        if (placement_address>oldPlacement+0x1000) {
-            logger.log(Level.DEBUG,"Kernel Heap padding was not large enough");
+        if (placement_address > oldPlacement + 0x1000) {
+            logger.log(Level.DEBUG, "Kernel Heap padding was not large enough");
             System.exit(0);
         }
         // Now, enable paging!
         switch_page_directory(kernel_directory);
 
-        heap = new KernelHeap(this, kernel_directory, KHEAP_START, KHEAP_START+KHEAP_INITIAL_SIZE, KHEAP_END, false, false);
+        heap = new KernelHeap(this, kernel_directory, KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_END, false, false);
     }
 
     public void switch_page_directory(int dir) {
@@ -328,7 +331,7 @@ public class KernelMemory {
     final Callback.Handler pageFaultHandler = new Callback.Handler() {
         @Override
         public int call() {
-            logger.log(Level.DEBUG,"Page Fault");
+            logger.log(Level.DEBUG, "Page Fault");
             System.exit(0);
             return 0;
         }

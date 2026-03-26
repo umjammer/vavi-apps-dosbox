@@ -1,14 +1,17 @@
 package jdos.win.builtin.gdi32;
 
+import java.awt.Graphics2D;
+import java.awt.Polygon;
+import java.awt.geom.Line2D;
+
 import jdos.gui.Main;
 import jdos.win.builtin.WinAPI;
 import jdos.win.system.StaticData;
 import jdos.win.system.WinPoint;
 
-import java.awt.*;
-import java.awt.geom.Line2D;
 
 public class PaintingGDI extends WinAPI {
+
     // BOOL LineTo(HDC hdc, int nXEnd, int nYEnd)
     static public int LineTo(int hdc, int nXEnd, int nYEnd) {
         WinDC dc = WinDC.get(hdc);
@@ -34,7 +37,7 @@ public class PaintingGDI extends WinAPI {
         if (dc == null) {
             return FALSE;
         }
-        if (lpPoint!=0) {
+        if (lpPoint != 0) {
             WinPoint p = new WinPoint(dc.CursPosX, dc.CursPosY);
             p.write(lpPoint);
         }
@@ -55,9 +58,9 @@ public class PaintingGDI extends WinAPI {
 
         int[] x = new int[nCount];
         int[] y = new int[nCount];
-        for (int i=0;i<nCount;i++) {
-            x[i] = readd(lpPoints+i*8);
-            y[i] = readd(lpPoints+i*12);
+        for (int i = 0; i < nCount; i++) {
+            x[i] = readd(lpPoints + i * 8);
+            y[i] = readd(lpPoints + i * 12);
         }
         Polygon polygon = new Polygon(x, y, nCount);
 

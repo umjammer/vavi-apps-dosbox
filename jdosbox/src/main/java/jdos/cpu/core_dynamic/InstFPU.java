@@ -4,8 +4,11 @@ import jdos.cpu.CPU_Regs;
 import jdos.cpu.Flags;
 import jdos.fpu.FPU;
 
+
 public class InstFPU {
+
     abstract static protected class FpuOpEA extends Op {
+
         final EaaBase get_eaa;
 
         public FpuOpEA(int rm) {
@@ -44,6 +47,7 @@ public class InstFPU {
     }
 
     abstract static protected class FpuOpNormal extends Op {
+
         final int rm;
 
         public FpuOpNormal(int rm) {
@@ -82,6 +86,7 @@ public class InstFPU {
     }
 
     final static public class FADD_SINGLE_REAL extends FpuOpEA {
+
         public FADD_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -100,6 +105,7 @@ public class InstFPU {
     }
 
     final static public class FMUL_SINGLE_REAL extends FpuOpEA {
+
         public FMUL_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -118,6 +124,7 @@ public class InstFPU {
     }
 
     final static public class FCOM_SINGLE_REAL extends FpuOpEA {
+
         final boolean pop;
 
         public FCOM_SINGLE_REAL(int rm, boolean pop) {
@@ -139,6 +146,7 @@ public class InstFPU {
     }
 
     final static public class FSUB_SINGLE_REAL extends FpuOpEA {
+
         public FSUB_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -157,6 +165,7 @@ public class InstFPU {
     }
 
     final static public class FSUBR_SINGLE_REAL extends FpuOpEA {
+
         public FSUBR_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -175,6 +184,7 @@ public class InstFPU {
     }
 
     final static public class FDIV_SINGLE_REAL extends FpuOpEA {
+
         public FDIV_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -193,6 +203,7 @@ public class InstFPU {
     }
 
     final static public class FDIVR_SINGLE_REAL extends FpuOpEA {
+
         public FDIVR_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -211,6 +222,7 @@ public class InstFPU {
     }
 
     final static public class FADD_ST0_STj extends FpuOpNormal {
+
         public FADD_ST0_STj(int rm) {
             super(rm);
         }
@@ -229,6 +241,7 @@ public class InstFPU {
     }
 
     final static public class FMUL_ST0_STj extends FpuOpNormal {
+
         public FMUL_ST0_STj(int rm) {
             super(rm);
         }
@@ -247,6 +260,7 @@ public class InstFPU {
     }
 
     final static public class FCOM_STi extends FpuOpNormal {
+
         final boolean pop;
 
         public FCOM_STi(int rm, boolean pop) {
@@ -268,6 +282,7 @@ public class InstFPU {
     }
 
     final static public class FSUB_ST0_STj extends FpuOpNormal {
+
         public FSUB_ST0_STj(int rm) {
             super(rm);
         }
@@ -286,6 +301,7 @@ public class InstFPU {
     }
 
     final static public class FSUBR_ST0_STj extends FpuOpNormal {
+
         public FSUBR_ST0_STj(int rm) {
             super(rm);
         }
@@ -304,6 +320,7 @@ public class InstFPU {
     }
 
     final static public class FDIV_ST0_STj extends FpuOpNormal {
+
         public FDIV_ST0_STj(int rm) {
             super(rm);
         }
@@ -322,6 +339,7 @@ public class InstFPU {
     }
 
     final static public class FDIVR_ST0_STj extends FpuOpNormal {
+
         public FDIVR_ST0_STj(int rm) {
             super(rm);
         }
@@ -340,6 +358,7 @@ public class InstFPU {
     }
 
     final static public class FLD_SINGLE_REAL extends FpuOpEA {
+
         public FLD_SINGLE_REAL(int rm) {
             super(rm);
         }
@@ -358,6 +377,7 @@ public class InstFPU {
     }
 
     final static public class FST_SINGLE_REAL extends FpuOpEA {
+
         final boolean pop;
 
         public FST_SINGLE_REAL(int rm, boolean pop) {
@@ -379,6 +399,7 @@ public class InstFPU {
     }
 
     final static public class FLDENV extends FpuOpEA {
+
         public FLDENV(int rm) {
             super(rm);
         }
@@ -397,6 +418,7 @@ public class InstFPU {
     }
 
     final static public class FLDCW extends FpuOpEA {
+
         public FLDCW(int rm) {
             super(rm);
         }
@@ -415,6 +437,7 @@ public class InstFPU {
     }
 
     final static public class FNSTENV extends FpuOpEA {
+
         public FNSTENV(int rm) {
             super(rm);
         }
@@ -433,6 +456,7 @@ public class InstFPU {
     }
 
     final static public class FNSTCW extends FpuOpEA {
+
         public FNSTCW(int rm) {
             super(rm);
         }
@@ -451,6 +475,7 @@ public class InstFPU {
     }
 
     final static public class FLD_STi extends FpuOpNormal {
+
         public FLD_STi(int rm) {
             super(rm);
         }
@@ -469,6 +494,7 @@ public class InstFPU {
     }
 
     final static public class FXCH_STi extends FpuOpNormal {
+
         public FXCH_STi(int rm) {
             super(rm);
         }
@@ -487,6 +513,7 @@ public class InstFPU {
     }
 
     final static public class FNOP extends FpuOpNormal {
+
         public FNOP() {
             super(0);
         }
@@ -505,6 +532,7 @@ public class InstFPU {
     }
 
     final static public class FST_STi extends FpuOpNormal {
+
         final boolean pop;
 
         public FST_STi(int rm, boolean pop) {
@@ -526,6 +554,7 @@ public class InstFPU {
     }
 
     final static public class FCHS extends FpuOpNormal {
+
         public FCHS() {
             super(0);
         }
@@ -544,6 +573,7 @@ public class InstFPU {
     }
 
     final static public class FABS extends FpuOpNormal {
+
         public FABS() {
             super(0);
         }
@@ -562,6 +592,7 @@ public class InstFPU {
     }
 
     final static public class FTST extends FpuOpNormal {
+
         public FTST() {
             super(0);
         }
@@ -580,6 +611,7 @@ public class InstFPU {
     }
 
     final static public class FXAM extends FpuOpNormal {
+
         public FXAM() {
             super(0);
         }
@@ -598,6 +630,7 @@ public class InstFPU {
     }
 
     final static public class FLD1 extends FpuOpNormal {
+
         public FLD1() {
             super(0);
         }
@@ -616,6 +649,7 @@ public class InstFPU {
     }
 
     final static public class FLDL2T extends FpuOpNormal {
+
         public FLDL2T() {
             super(0);
         }
@@ -634,6 +668,7 @@ public class InstFPU {
     }
 
     final static public class FLDL2E extends FpuOpNormal {
+
         public FLDL2E() {
             super(0);
         }
@@ -652,6 +687,7 @@ public class InstFPU {
     }
 
     final static public class FLDPI extends FpuOpNormal {
+
         public FLDPI() {
             super(0);
         }
@@ -670,6 +706,7 @@ public class InstFPU {
     }
 
     final static public class FLDLG2 extends FpuOpNormal {
+
         public FLDLG2() {
             super(0);
         }
@@ -688,6 +725,7 @@ public class InstFPU {
     }
 
     final static public class FLDLN2 extends FpuOpNormal {
+
         public FLDLN2() {
             super(0);
         }
@@ -706,6 +744,7 @@ public class InstFPU {
     }
 
     final static public class FLDZ extends FpuOpNormal {
+
         public FLDZ() {
             super(0);
         }
@@ -724,6 +763,7 @@ public class InstFPU {
     }
 
     final static public class F2XM1 extends FpuOpNormal {
+
         public F2XM1() {
             super(0);
         }
@@ -742,6 +782,7 @@ public class InstFPU {
     }
 
     final static public class FYL2X extends FpuOpNormal {
+
         public FYL2X() {
             super(0);
         }
@@ -760,6 +801,7 @@ public class InstFPU {
     }
 
     final static public class FPTAN extends FpuOpNormal {
+
         public FPTAN() {
             super(0);
         }
@@ -778,6 +820,7 @@ public class InstFPU {
     }
 
     final static public class FPATAN extends FpuOpNormal {
+
         public FPATAN() {
             super(0);
         }
@@ -796,6 +839,7 @@ public class InstFPU {
     }
 
     final static public class FXTRACT extends FpuOpNormal {
+
         public FXTRACT() {
             super(0);
         }
@@ -814,6 +858,7 @@ public class InstFPU {
     }
 
     final static public class FPREM extends FpuOpNormal {
+
         final boolean bRoundNearest;
 
         public FPREM(boolean bRoundNearest) {
@@ -835,6 +880,7 @@ public class InstFPU {
     }
 
     final static public class FDECSTP extends FpuOpNormal {
+
         public FDECSTP() {
             super(0);
         }
@@ -853,6 +899,7 @@ public class InstFPU {
     }
 
     final static public class FINCSTP extends FpuOpNormal {
+
         public FINCSTP() {
             super(0);
         }
@@ -871,6 +918,7 @@ public class InstFPU {
     }
 
     final static public class FYL2XP1 extends FpuOpNormal {
+
         public FYL2XP1() {
             super(0);
         }
@@ -889,6 +937,7 @@ public class InstFPU {
     }
 
     final static public class FSQRT extends FpuOpNormal {
+
         public FSQRT() {
             super(0);
         }
@@ -907,6 +956,7 @@ public class InstFPU {
     }
 
     final static public class FSINCOS extends FpuOpNormal {
+
         public FSINCOS() {
             super(0);
         }
@@ -925,6 +975,7 @@ public class InstFPU {
     }
 
     final static public class FRNDINT extends FpuOpNormal {
+
         public FRNDINT() {
             super(0);
         }
@@ -943,6 +994,7 @@ public class InstFPU {
     }
 
     final static public class FSCALE extends FpuOpNormal {
+
         public FSCALE() {
             super(0);
         }
@@ -961,6 +1013,7 @@ public class InstFPU {
     }
 
     final static public class FSIN extends FpuOpNormal {
+
         public FSIN() {
             super(0);
         }
@@ -979,6 +1032,7 @@ public class InstFPU {
     }
 
     final static public class FCOS extends FpuOpNormal {
+
         public FCOS() {
             super(0);
         }
@@ -997,6 +1051,7 @@ public class InstFPU {
     }
 
     final static public class FIADD_DWORD_INTEGER extends FpuOpEA {
+
         public FIADD_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1015,6 +1070,7 @@ public class InstFPU {
     }
 
     final static public class FIMUL_DWORD_INTEGER extends FpuOpEA {
+
         public FIMUL_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1033,6 +1089,7 @@ public class InstFPU {
     }
 
     final static public class FICOM_DWORD_INTEGER extends FpuOpEA {
+
         final boolean pop;
 
         public FICOM_DWORD_INTEGER(int rm, boolean pop) {
@@ -1054,6 +1111,7 @@ public class InstFPU {
     }
 
     final static public class FISUB_DWORD_INTEGER extends FpuOpEA {
+
         public FISUB_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1072,6 +1130,7 @@ public class InstFPU {
     }
 
     final static public class FISUBR_DWORD_INTEGER extends FpuOpEA {
+
         public FISUBR_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1090,6 +1149,7 @@ public class InstFPU {
     }
 
     final static public class FIDIV_DWORD_INTEGER extends FpuOpEA {
+
         public FIDIV_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1108,6 +1168,7 @@ public class InstFPU {
     }
 
     final static public class FIDIVR_DWORD_INTEGER extends FpuOpEA {
+
         public FIDIVR_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1126,6 +1187,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_CF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_CF(int rm) {
             super(rm);
         }
@@ -1144,6 +1206,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_ZF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_ZF(int rm) {
             super(rm);
         }
@@ -1162,6 +1225,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_CF_OR_ZF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_CF_OR_ZF(int rm) {
             super(rm);
         }
@@ -1180,6 +1244,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_PF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_PF(int rm) {
             super(rm);
         }
@@ -1198,6 +1263,7 @@ public class InstFPU {
     }
 
     final static public class FUCOMPP extends FpuOpNormal {
+
         public FUCOMPP() {
             super(0);
         }
@@ -1216,6 +1282,7 @@ public class InstFPU {
     }
 
     final static public class FILD_DWORD_INTEGER extends FpuOpEA {
+
         public FILD_DWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1234,6 +1301,7 @@ public class InstFPU {
     }
 
     final static public class FISTTP32 extends FpuOpEA {
+
         public FISTTP32(int rm) {
             super(rm);
         }
@@ -1252,6 +1320,7 @@ public class InstFPU {
     }
 
     final static public class FIST_DWORD_INTEGER extends FpuOpEA {
+
         final boolean pop;
 
         public FIST_DWORD_INTEGER(int rm, boolean pop) {
@@ -1273,6 +1342,7 @@ public class InstFPU {
     }
 
     final static public class FLD_EXTENDED_REAL extends FpuOpEA {
+
         public FLD_EXTENDED_REAL(int rm) {
             super(rm);
         }
@@ -1291,6 +1361,7 @@ public class InstFPU {
     }
 
     final static public class FSTP_EXTENDED_REAL extends FpuOpEA {
+
         public FSTP_EXTENDED_REAL(int rm) {
             super(rm);
         }
@@ -1309,6 +1380,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_NCF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_NCF(int rm) {
             super(rm);
         }
@@ -1327,6 +1399,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_NZF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_NZF(int rm) {
             super(rm);
         }
@@ -1345,6 +1418,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_NCF_AND_NZF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_NCF_AND_NZF(int rm) {
             super(rm);
         }
@@ -1363,6 +1437,7 @@ public class InstFPU {
     }
 
     final static public class FCMOV_ST0_STj_NPF extends FpuOpNormal {
+
         public FCMOV_ST0_STj_NPF(int rm) {
             super(rm);
         }
@@ -1381,6 +1456,7 @@ public class InstFPU {
     }
 
     final static public class FNCLEX extends FpuOpNormal {
+
         public FNCLEX() {
             super(0);
         }
@@ -1399,6 +1475,7 @@ public class InstFPU {
     }
 
     final static public class FNINIT extends FpuOpNormal {
+
         public FNINIT() {
             super(0);
         }
@@ -1417,6 +1494,7 @@ public class InstFPU {
     }
 
     final static public class FUCOMI_ST0_STj extends FpuOpNormal {
+
         final boolean pop;
 
         public FUCOMI_ST0_STj(int rm, boolean pop) {
@@ -1438,6 +1516,7 @@ public class InstFPU {
     }
 
     final static public class FCOMI_ST0_STj extends FpuOpNormal {
+
         final boolean pop;
 
         public FCOMI_ST0_STj(int rm, boolean pop) {
@@ -1459,6 +1538,7 @@ public class InstFPU {
     }
 
     final static public class FADD_DOUBLE_REAL extends FpuOpEA {
+
         public FADD_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1477,6 +1557,7 @@ public class InstFPU {
     }
 
     final static public class FMUL_DOUBLE_REAL extends FpuOpEA {
+
         public FMUL_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1495,6 +1576,7 @@ public class InstFPU {
     }
 
     final static public class FCOM_DOUBLE_REAL extends FpuOpEA {
+
         final boolean pop;
 
         public FCOM_DOUBLE_REAL(int rm, boolean pop) {
@@ -1516,6 +1598,7 @@ public class InstFPU {
     }
 
     final static public class FSUB_DOUBLE_REAL extends FpuOpEA {
+
         public FSUB_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1534,6 +1617,7 @@ public class InstFPU {
     }
 
     final static public class FSUBR_DOUBLE_REAL extends FpuOpEA {
+
         public FSUBR_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1552,6 +1636,7 @@ public class InstFPU {
     }
 
     final static public class FDIV_DOUBLE_REAL extends FpuOpEA {
+
         public FDIV_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1570,6 +1655,7 @@ public class InstFPU {
     }
 
     final static public class FDIVR_DOUBLE_REAL extends FpuOpEA {
+
         public FDIVR_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1588,7 +1674,9 @@ public class InstFPU {
     }
 
     final static public class FADD_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FADD_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1608,7 +1696,9 @@ public class InstFPU {
     }
 
     final static public class FMUL_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FMUL_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1628,7 +1718,9 @@ public class InstFPU {
     }
 
     final static public class FSUBR_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FSUBR_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1648,7 +1740,9 @@ public class InstFPU {
     }
 
     final static public class FSUB_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FSUB_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1668,7 +1762,9 @@ public class InstFPU {
     }
 
     final static public class FDIVR_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FDIVR_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1688,7 +1784,9 @@ public class InstFPU {
     }
 
     final static public class FDIV_STi_ST0 extends FpuOpNormal {
+
         final boolean pop;
+
         public FDIV_STi_ST0(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1708,6 +1806,7 @@ public class InstFPU {
     }
 
     final static public class FLD_DOUBLE_REAL extends FpuOpEA {
+
         public FLD_DOUBLE_REAL(int rm) {
             super(rm);
         }
@@ -1726,6 +1825,7 @@ public class InstFPU {
     }
 
     final static public class FISTTP64 extends FpuOpEA {
+
         public FISTTP64(int rm) {
             super(rm);
         }
@@ -1744,7 +1844,9 @@ public class InstFPU {
     }
 
     final static public class FST_DOUBLE_REAL extends FpuOpEA {
+
         final boolean pop;
+
         public FST_DOUBLE_REAL(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1764,6 +1866,7 @@ public class InstFPU {
     }
 
     final static public class FRSTOR extends FpuOpEA {
+
         public FRSTOR(int rm) {
             super(rm);
         }
@@ -1782,6 +1885,7 @@ public class InstFPU {
     }
 
     final static public class FNSAVE extends FpuOpEA {
+
         public FNSAVE(int rm) {
             super(rm);
         }
@@ -1800,6 +1904,7 @@ public class InstFPU {
     }
 
     final static public class FNSTSW extends FpuOpEA {
+
         public FNSTSW(int rm) {
             super(rm);
         }
@@ -1818,6 +1923,7 @@ public class InstFPU {
     }
 
     final static public class FFREE_STi extends FpuOpNormal {
+
         public FFREE_STi(int rm) {
             super(rm);
         }
@@ -1836,7 +1942,9 @@ public class InstFPU {
     }
 
     final static public class FUCOM_STi extends FpuOpNormal {
+
         final boolean pop;
+
         public FUCOM_STi(int rm, boolean pop) {
             super(rm);
             this.pop = pop;
@@ -1856,6 +1964,7 @@ public class InstFPU {
     }
 
     final static public class FIADD_WORD_INTEGER extends FpuOpEA {
+
         public FIADD_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1874,6 +1983,7 @@ public class InstFPU {
     }
 
     final static public class FIMUL_WORD_INTEGER extends FpuOpEA {
+
         public FIMUL_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1892,6 +2002,7 @@ public class InstFPU {
     }
 
     final static public class FICOM_WORD_INTEGER extends FpuOpEA {
+
         final boolean pop;
 
         public FICOM_WORD_INTEGER(int rm, boolean pop) {
@@ -1913,6 +2024,7 @@ public class InstFPU {
     }
 
     final static public class FISUB_WORD_INTEGER extends FpuOpEA {
+
         public FISUB_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1931,6 +2043,7 @@ public class InstFPU {
     }
 
     final static public class FISUBR_WORD_INTEGER extends FpuOpEA {
+
         public FISUBR_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1949,6 +2062,7 @@ public class InstFPU {
     }
 
     final static public class FIDIV_WORD_INTEGER extends FpuOpEA {
+
         public FIDIV_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1967,6 +2081,7 @@ public class InstFPU {
     }
 
     final static public class FIDIVR_WORD_INTEGER extends FpuOpEA {
+
         public FIDIVR_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -1985,6 +2100,7 @@ public class InstFPU {
     }
 
     final static public class FCOMPP extends FpuOpNormal {
+
         public FCOMPP() {
             super(0);
         }
@@ -2003,6 +2119,7 @@ public class InstFPU {
     }
 
     final static public class FILD_WORD_INTEGER extends FpuOpEA {
+
         public FILD_WORD_INTEGER(int rm) {
             super(rm);
         }
@@ -2021,6 +2138,7 @@ public class InstFPU {
     }
 
     final static public class FISTTP16 extends FpuOpEA {
+
         public FISTTP16(int rm) {
             super(rm);
         }
@@ -2039,6 +2157,7 @@ public class InstFPU {
     }
 
     final static public class FIST_WORD_INTEGER extends FpuOpEA {
+
         final boolean pop;
 
         public FIST_WORD_INTEGER(int rm, boolean pop) {
@@ -2060,6 +2179,7 @@ public class InstFPU {
     }
 
     final static public class FBLD_PACKED_BCD extends FpuOpEA {
+
         public FBLD_PACKED_BCD(int rm) {
             super(rm);
         }
@@ -2078,6 +2198,7 @@ public class InstFPU {
     }
 
     final static public class FILD_QWORD_INTEGER extends FpuOpEA {
+
         public FILD_QWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -2096,6 +2217,7 @@ public class InstFPU {
     }
 
     final static public class FBSTP_PACKED_BCD extends FpuOpEA {
+
         public FBSTP_PACKED_BCD(int rm) {
             super(rm);
         }
@@ -2114,6 +2236,7 @@ public class InstFPU {
     }
 
     final static public class FISTP_QWORD_INTEGER extends FpuOpEA {
+
         public FISTP_QWORD_INTEGER(int rm) {
             super(rm);
         }
@@ -2132,6 +2255,7 @@ public class InstFPU {
     }
 
     final static public class FFREEP_STi extends FpuOpNormal {
+
         public FFREEP_STi(int rm) {
             super(rm);
         }
@@ -2150,6 +2274,7 @@ public class InstFPU {
     }
 
     final static public class FNSTSW_AX extends FpuOpNormal {
+
         public FNSTSW_AX() {
             super(0);
         }

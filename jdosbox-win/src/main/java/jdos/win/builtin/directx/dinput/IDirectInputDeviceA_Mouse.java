@@ -8,7 +8,9 @@ import jdos.win.builtin.HandlerBase;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 import jdos.win.utils.Error;
 
+
 public class IDirectInputDeviceA_Mouse extends IUnknown {
+
     static final int VTABLE_SIZE = 15;
 
     static final int OFFSET_FLAGS = 0;
@@ -60,6 +62,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetCapabilities";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -74,6 +77,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.EnumObjects";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -90,6 +94,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetProperty";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -105,6 +110,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.SetProperty";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -120,6 +126,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.Acquire";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -133,6 +140,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.Unacquire";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -146,13 +154,14 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetDeviceState";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int cbData = CPU.CPU_Pop32();
             int lpvData = CPU.CPU_Pop32();
             //if (cbData == 16) { // DIMOUSESTATE
-                Memory.mem_zero(lpvData, cbData);
+            Memory.mem_zero(lpvData, cbData);
             //}
             CPU_Regs.reg_eax.dword = Error.S_OK;
         }
@@ -164,6 +173,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetDeviceData";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -181,6 +191,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.SetDataFormat";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -196,6 +207,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.SetEventNotification";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -210,6 +222,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.SetCooperativeLevel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -225,6 +238,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetObjectInfo";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -241,6 +255,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.GetDeviceInfo";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -255,6 +270,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.RunControlPanel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -270,6 +286,7 @@ public class IDirectInputDeviceA_Mouse extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA_Mouse.Initialize";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

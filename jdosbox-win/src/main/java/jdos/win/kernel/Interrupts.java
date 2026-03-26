@@ -10,6 +10,7 @@ import jdos.hardware.IO;
 import jdos.hardware.Memory;
 import jdos.win.Win;
 
+
 public class Interrupts {
 
     private static final Logger logger = System.getLogger(Interrupts.class.getName());
@@ -88,22 +89,23 @@ public class Interrupts {
         @Override
         public int call() {
             int index = CPU.CPU_Peek32(0);
-            if (index>=IRQ0 && index<IRQ15) {
+            if (index >= IRQ0 && index < IRQ15) {
                 // Send an EOI (end of interrupt) signal to the PICs.
-                if (index>=IRQ8)
+                if (index >= IRQ8)
                     IO.IO_WriteB(0xA0, 0x20);
                 IO.IO_WriteB(0x20, 0x20);
             }
-            if (interrupt_handlers[index]!=null)
+            if (interrupt_handlers[index] != null)
                 return interrupt_handlers[index].call();
             else {
                 if (index == 14) {
-                    logger.log(Level.DEBUG,"Page Fault at "+Integer.toHexString(Paging.cr2));
+                    logger.log(Level.DEBUG, "Page Fault at " + Integer.toHexString(Paging.cr2));
                     Win.exit();
                 }
             }
             return 0;
         }
+
         @Override
         public String getName() {
             return "isr";
@@ -172,7 +174,7 @@ public class Interrupts {
     public int install(KernelMemory memory, int index, boolean errorCodePresent, Callback.Handler handler) {
         int callback = WinCallback.addCallback(handler);
 
-        int physAddress = memory.kmalloc(errorCodePresent?13:15);
+        int physAddress = memory.kmalloc(errorCodePresent ? 13 : 15);
         int result = physAddress;
 
         if (!errorCodePresent) {
@@ -183,17 +185,17 @@ public class Interrupts {
         Memory.mem_writeb(physAddress++, 0x6a); // push ib
         Memory.mem_writeb(physAddress++, index);
 
-        Memory.mem_writeb(physAddress++, 0xFE);	    //GRP 4
-        Memory.mem_writeb(physAddress++,0x38);	    //Extra Callback instruction
-        Memory.mem_writew(physAddress,callback);
-        physAddress+=2;
+        Memory.mem_writeb(physAddress++, 0xFE);        //GRP 4
+        Memory.mem_writeb(physAddress++, 0x38);        //Extra Callback instruction
+        Memory.mem_writew(physAddress, callback);
+        physAddress += 2;
 
-        Memory.mem_writeb(physAddress,0x81);  // Grpl Ed,Id
-        Memory.mem_writeb(physAddress+0x01,0xC4);  // ADD ESP
-        Memory.mem_writed(physAddress+0x02,0x00000008); // 8 (pop 2 32-bit words off)
-        physAddress+=6;
+        Memory.mem_writeb(physAddress, 0x81);  // Grpl Ed,Id
+        Memory.mem_writeb(physAddress + 0x01, 0xC4);  // ADD ESP
+        Memory.mem_writed(physAddress + 0x02, 0x00000008); // 8 (pop 2 32-bit words off)
+        physAddress += 6;
 
-        Memory.mem_writeb(physAddress,0xCF); //IRET
+        Memory.mem_writeb(physAddress, 0xCF); //IRET
         return result;
     }
 }

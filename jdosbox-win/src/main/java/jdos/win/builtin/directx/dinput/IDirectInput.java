@@ -8,20 +8,22 @@ import jdos.win.builtin.HandlerBase;
 import jdos.win.builtin.directx.Guid;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 
+
 public class IDirectInput extends IUnknown {
+
     static final int VTABLE_SIZE = 5;
 
     static final int OFFSET_FLAGS = 0;
     static final int DATA_SIZE = 4;
 
-    static final Guid GUID_SysMouse = new Guid(0x6F1D2B60,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_SysKeyboard = new Guid(0x6F1D2B61,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_Joystick = new Guid(0x6F1D2B70,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_SysMouseEm = new Guid(0x6F1D2B80,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_SysMouseEm2 = new Guid(0x6F1D2B81,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_SysKeyboardEm = new Guid(0x6F1D2B82,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    static Guid GUID_SysKeyboardEm2 = new Guid(0x6F1D2B83,0xD5A0,0x11CF,0xBF,0xC7,0x44,0x45,0x53,0x54,0x00,0x00);
-    
+    static final Guid GUID_SysMouse = new Guid(0x6F1D2B60, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_SysKeyboard = new Guid(0x6F1D2B61, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_Joystick = new Guid(0x6F1D2B70, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_SysMouseEm = new Guid(0x6F1D2B80, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_SysMouseEm2 = new Guid(0x6F1D2B81, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_SysKeyboardEm = new Guid(0x6F1D2B82, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+    static Guid GUID_SysKeyboardEm2 = new Guid(0x6F1D2B83, 0xD5A0, 0x11CF, 0xBF, 0xC7, 0x44, 0x45, 0x53, 0x54, 0x00, 0x00);
+
     private static int createVTable() {
         int address = allocateVTable("IDirectInput", VTABLE_SIZE);
         addIDirectSound(address);
@@ -57,6 +59,7 @@ public class IDirectInput extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInput.CreateDevice";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -77,6 +80,7 @@ public class IDirectInput extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInput.EnumDevices";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -94,6 +98,7 @@ public class IDirectInput extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInput.GetDeviceStatus";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -108,6 +113,7 @@ public class IDirectInput extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInput.RunControlPanel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -123,6 +129,7 @@ public class IDirectInput extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInput.Initialize";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

@@ -6,7 +6,9 @@ import jdos.win.loader.Module;
 import jdos.win.loader.NativeModule;
 import jdos.win.system.WinSystem;
 
+
 public class KResource extends WinAPI {
+
     // BOOL WINAPI FreeResource(HGLOBAL hglbResource)
     static public int FreeResource(int hglbResource) {
         return TRUE;

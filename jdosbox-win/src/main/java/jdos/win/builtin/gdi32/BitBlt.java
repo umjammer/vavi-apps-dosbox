@@ -1,12 +1,14 @@
 package jdos.win.builtin.gdi32;
 
+import java.awt.Graphics2D;
+import java.awt.image.BufferedImage;
+
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
 
 public class BitBlt extends WinAPI {
+
     // BOOL BitBlt(HDC hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, HDC hdcSrc, int nXSrc, int nYSrc, DWORD dwRop)
     static public int BitBlt(int hdcDest, int nXDest, int nYDest, int nWidth, int nHeight, int hdcSrc, int nXSrc, int nYSrc, int dwRop) {
         if (!rop_uses_src(dwRop)) return WinDC.PatBlt(hdcDest, nXDest, nYDest, nWidth, nHeight, dwRop);
@@ -24,7 +26,7 @@ public class BitBlt extends WinAPI {
             Win.panic("StretchBlt only supports SRCCOPY");
         }
         Graphics2D g = dest.getGraphics();
-        StretchBlt2D(g, dest.x+nXOriginDest, dest.y+nYOriginDest, nWidthDest, nHeightDest, src.getImage(), nXOriginSrc, nYOriginSrc, nWidthSrc, nHeightSrc, dwRop);
+        StretchBlt2D(g, dest.x + nXOriginDest, dest.y + nYOriginDest, nWidthDest, nHeightDest, src.getImage(), nXOriginSrc, nYOriginSrc, nWidthSrc, nHeightSrc, dwRop);
         g.dispose();
         return TRUE;
     }
@@ -33,7 +35,7 @@ public class BitBlt extends WinAPI {
         if (dwRop != SRCCOPY) {
             Win.panic("StretchBlt only supports SRCCOPY");
         }
-        graphics.drawImage(src, nXOriginDest, nYOriginDest, nXOriginDest+nWidthDest, nYOriginDest+nHeightDest, nXOriginSrc, nYOriginSrc, nXOriginSrc+nWidthSrc, nYOriginSrc+nHeightSrc, null);
+        graphics.drawImage(src, nXOriginDest, nYOriginDest, nXOriginDest + nWidthDest, nYOriginDest + nHeightDest, nXOriginSrc, nYOriginSrc, nXOriginSrc + nWidthSrc, nYOriginSrc + nHeightSrc, null);
     }
 
     static private boolean rop_uses_src(int rop) {

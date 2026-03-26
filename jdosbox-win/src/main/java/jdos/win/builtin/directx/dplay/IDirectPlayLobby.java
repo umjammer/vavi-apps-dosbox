@@ -9,7 +9,9 @@ import jdos.win.builtin.directx.Guid;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 import jdos.win.utils.Error;
 
-public class IDirectPlayLobby  extends IUnknown {
+
+public class IDirectPlayLobby extends IUnknown {
+
     static final int VTABLE_SIZE = 10;
 
     static final int OFFSET_FLAGS = 0;
@@ -61,6 +63,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.QueryInterface";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -82,6 +85,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.Connect";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -98,6 +102,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.CreateAddress";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -117,6 +122,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumAddress";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -134,6 +140,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumAddressTypes";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -151,6 +158,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.EnumLocalApplications";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -167,6 +175,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.GetConnectionSettings";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -183,6 +192,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.ReceiveLobbyMessage";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -202,6 +212,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.RunApplication";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -219,6 +230,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.SendLobbyMessage";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -236,6 +248,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.SetConnectionSettings";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -252,6 +265,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.SetLobbyMessageEvent";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -269,6 +283,7 @@ public class IDirectPlayLobby  extends IUnknown {
         public java.lang.String getName() {
             return "IDirectPlayLobby.CreateCompoundAddress";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

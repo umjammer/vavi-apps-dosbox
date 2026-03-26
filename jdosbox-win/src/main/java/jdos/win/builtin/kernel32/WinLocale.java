@@ -2,7 +2,9 @@ package jdos.win.builtin.kernel32;
 
 import jdos.win.utils.StringUtil;
 
+
 public class WinLocale {
+
     // UINT GetOEMCP(void);
     static public int GetOEMCP() {
         return 437;

@@ -27,55 +27,54 @@ package jdos.util;
  */
 final public class BitUtils {
 
-  private BitUtils() {
-  }
-
-  /**
-   * Returns the number of contiguous 0 bits starting with the most significant
-   * bit of x.
-   */
-  static int countLeadingZeros(int x) {
-      return Integer.numberOfLeadingZeros(x);
-  }
-
-  /**
-   * Returns the number of contiguous 0 bits starting with the most significant
-   * bit of x.
-   */
-  static int countLeadingZeros(long x) {
-      return Long.numberOfLeadingZeros(x);
-  }
-
-  /**
-   * Right-shift x by count bits, and if any of the shifted-off bits are 1,
-   * set the least significant bit of the return value to 1.
-   */
-  static public int stickyRightShift(int x, int count) {
-    if (count >= 32) {
-      return ((x == 0) ? 0 : 1);
-    } else if ((x << (32 - count)) == 0) {
-      return x >>> count;
-    } else {
-      return (x >>> count) | 1;
+    private BitUtils() {
     }
-  }
 
-  /**
-   * Right-shift x by count bits, and if any of the shifted-off bits are 1,
-   * set the least significant bit of the return value to 1.
-   */
-  static public long stickyRightShift(long x, int count) {
-    if (count >= 64) {
-      return ((x == 0) ? 0 : 1);
-    } else if ((x << (64 - count)) == 0) {
-      return x >>> count;
-    } else {
-      return (x >>> count) | 1;
+    /**
+     * Returns the number of contiguous 0 bits starting with the most significant
+     * bit of x.
+     */
+    static int countLeadingZeros(int x) {
+        return Integer.numberOfLeadingZeros(x);
     }
-  }
 
-   static public void shift64ExtraRightJamming(long a0, long a1, int count, LongRef z0Ptr, LongRef z1Ptr)
-   {
+    /**
+     * Returns the number of contiguous 0 bits starting with the most significant
+     * bit of x.
+     */
+    static int countLeadingZeros(long x) {
+        return Long.numberOfLeadingZeros(x);
+    }
+
+    /**
+     * Right-shift x by count bits, and if any of the shifted-off bits are 1,
+     * set the least significant bit of the return value to 1.
+     */
+    static public int stickyRightShift(int x, int count) {
+        if (count >= 32) {
+            return ((x == 0) ? 0 : 1);
+        } else if ((x << (32 - count)) == 0) {
+            return x >>> count;
+        } else {
+            return (x >>> count) | 1;
+        }
+    }
+
+    /**
+     * Right-shift x by count bits, and if any of the shifted-off bits are 1,
+     * set the least significant bit of the return value to 1.
+     */
+    static public long stickyRightShift(long x, int count) {
+        if (count >= 64) {
+            return ((x == 0) ? 0 : 1);
+        } else if ((x << (64 - count)) == 0) {
+            return x >>> count;
+        } else {
+            return (x >>> count) | 1;
+        }
+    }
+
+    static public void shift64ExtraRightJamming(long a0, long a1, int count, LongRef z0Ptr, LongRef z1Ptr) {
         long z0, z1;
         int negCount = (-count) & 63;
 
@@ -83,13 +82,13 @@ final public class BitUtils {
             z1 = a1;
             z0 = a0;
         } else if (count < 64) {
-            z1 = (a0<<negCount) | ((a1 != 0)?1:0);
-            z0 = a0>>count;
+            z1 = (a0 << negCount) | ((a1 != 0) ? 1 : 0);
+            z0 = a0 >> count;
         } else {
             if (count == 64) {
-                z1 = a0 | ((a1 != 0)?1:0);
+                z1 = a0 | ((a1 != 0) ? 1 : 0);
             } else {
-                z1 = ((a0 | a1) != 0)?1:0;
+                z1 = ((a0 | a1) != 0) ? 1 : 0;
             }
             z0 = 0;
         }
@@ -97,45 +96,45 @@ final public class BitUtils {
         z0Ptr.value = z0;
     }
 
-  /**
-   * Right-shift x by count bits, and round the result using half-even rounding.
-   */
-  static int roundingRightShift(int x, int count) {
-    int remainder;
-    if (count > 32) {
-      return 0;
-    } else if (count == 32) {
-      remainder = x;
-      x = 0;
-    } else {
-      remainder = x << (32 - count);
-      x >>>= count;
+    /**
+     * Right-shift x by count bits, and round the result using half-even rounding.
+     */
+    static int roundingRightShift(int x, int count) {
+        int remainder;
+        if (count > 32) {
+            return 0;
+        } else if (count == 32) {
+            remainder = x;
+            x = 0;
+        } else {
+            remainder = x << (32 - count);
+            x >>>= count;
+        }
+        if ((remainder < 0) && ((remainder != 0x80000000) || ((x & 1) == 1))) {
+            return x + 1;
+        }
+        return x;
     }
-    if ((remainder < 0) && ((remainder != 0x80000000) || ((x & 1) == 1))) {
-      return x + 1;
-    }
-    return x;
-  }
 
-  /**
-   * Right-shift x by count bits, and round the result using half-even rounding.
-   */
-  static long roundingRightShift(long x, int count) {
-    long remainder;
-    if (count > 64) {
-      return 0;
-    } else if (count == 64) {
-      remainder = x;
-      x = 0;
-    } else {
-      remainder = x << (64 - count);
-      x >>>= count;
+    /**
+     * Right-shift x by count bits, and round the result using half-even rounding.
+     */
+    static long roundingRightShift(long x, int count) {
+        long remainder;
+        if (count > 64) {
+            return 0;
+        } else if (count == 64) {
+            remainder = x;
+            x = 0;
+        } else {
+            remainder = x << (64 - count);
+            x >>>= count;
+        }
+        if ((remainder < 0)
+                && ((remainder != 0x8000000000000000L) || ((x & 1) == 1))) {
+            return x + 1;
+        }
+        return x;
     }
-    if ((remainder < 0)
-        && ((remainder != 0x8000000000000000L) || ((x & 1) == 1))) {
-      return x + 1;
-    }
-    return x;
-  }
 
 }

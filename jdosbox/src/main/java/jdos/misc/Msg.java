@@ -1,14 +1,18 @@
 package jdos.misc;
 
-import jdos.Dosbox;
-import jdos.misc.setup.Prop_path;
-import jdos.misc.setup.Section_prop;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
+
+import jdos.Dosbox;
+import jdos.misc.setup.Prop_path;
+import jdos.misc.setup.Section_prop;
 
 
 /**
@@ -20,8 +24,10 @@ public class Msg {
     private static final Logger logger = System.getLogger(Msg.class.getName());
 
     static class MessageBlock {
+
         final String name;
         final String val;
+
         public MessageBlock(String _name, String _val) {
             name = _name;
             val = _val;
@@ -39,7 +45,7 @@ public class Msg {
     }
 
     static public void replace(String name, String value) {
-        for (int i=0;i<Lang.size();i++) {
+        for (int i = 0; i < Lang.size(); i++) {
             MessageBlock m = Lang.get(i);
             if (m.name.equals(name))
                 Lang.remove(m);
@@ -49,38 +55,41 @@ public class Msg {
 
     static public void LoadMessageFile(String fname) {
         if (fname == null || fname.isEmpty()) return; //empty string=no languagefile
-        FileReader fr=null;
+        FileReader fr = null;
         try {
             fr = new FileReader(fname);
         } catch (FileNotFoundException e) {
-            throw new IllegalStateException("MSG:Can't load messages: "+fname);
+            throw new IllegalStateException("MSG:Can't load messages: " + fname);
         }
         BufferedReader br = new BufferedReader(fr);
         String linein;
-        String name="";
-        String string="";
+        String name = "";
+        String string = "";
         try {
-            while ((linein=br.readLine()) != null) {
+            while ((linein = br.readLine()) != null) {
                 /* New string name */
                 if (linein.startsWith(":")) {
-                    string="";
-                    name=linein.substring(1);
-                /* End of string marker */
+                    string = "";
+                    name = linein.substring(1);
+                    /* End of string marker */
                 } else if (linein.startsWith(".")) {
                     /* Replace/Add the string to the internal languagefile */
-			        /* Remove last newline (marker is \n.\n) */
+                    /* Remove last newline (marker is \n.\n) */
                     if (string.endsWith("\n"))
-                        string = string.substring(0, string.length()-1); //Second if should not be needed, but better be safe.
+                        string = string.substring(0, string.length() - 1); //Second if should not be needed, but better be safe.
                     replace(name, string);
                 } else {
-                    string+=linein+"\n";
+                    string += linein + "\n";
                 }
             }
         } catch (IOException e) {
 
         }
         if (fr != null) {
-            try {fr.close();} catch (Exception e){}
+            try {
+                fr.close();
+            } catch (Exception e) {
+            }
         }
     }
 

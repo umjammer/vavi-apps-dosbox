@@ -1,17 +1,21 @@
 package jdos.misc.setup;
 
-import jdos.misc.Cross;
-
 import java.io.File;
 
+import jdos.misc.Cross;
+
+
 public class Prop_path extends Prop_string {
+
     public String realpath;
+
     public Prop_path(String _propname, int when, String _value) {
         super(_propname, when, _value);
         default_value.set(_value);
         value.set(_value);
         realpath = _value;
     }
+
     @Override
     public void SetValue(String str) {
         SetVal(new Value(str, Value.Etype.V_STRING), false, true);

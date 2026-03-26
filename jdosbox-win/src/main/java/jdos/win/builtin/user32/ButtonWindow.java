@@ -5,7 +5,11 @@ import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.win.builtin.HandlerBase;
 import jdos.win.builtin.WinAPI;
-import jdos.win.builtin.gdi32.*;
+import jdos.win.builtin.gdi32.GdiObj;
+import jdos.win.builtin.gdi32.TEXTMETRIC;
+import jdos.win.builtin.gdi32.WinBitmap;
+import jdos.win.builtin.gdi32.WinDC;
+import jdos.win.builtin.gdi32.WinFont;
 import jdos.win.builtin.kernel32.WinProcess;
 import jdos.win.kernel.WinCallback;
 import jdos.win.system.StaticData;
@@ -13,7 +17,9 @@ import jdos.win.system.WinPoint;
 import jdos.win.system.WinRect;
 import jdos.win.utils.StringUtil;
 
+
 public class ButtonWindow extends WinAPI {
+
     static public void registerClass(WinProcess process) {
         WinClass winClass = WinClass.create();
         winClass.className = "BUTTON";
@@ -77,6 +83,7 @@ public class ButtonWindow extends WinAPI {
             };
 
     private interface ButtonPaint {
+
         void paint(int hWnd, int hdc, int action);
     }
 
@@ -440,8 +447,8 @@ public class ButtonWindow extends WinAPI {
         if ((ex_style & WS_EX_RIGHT) != 0) dtStyle = DT_RIGHT | (dtStyle & ~(DT_LEFT | DT_CENTER));
 
         /* DrawText ignores vertical alignment for multiline text,
-        * but we use these flags to align label manually.
-        */
+         * but we use these flags to align label manually.
+         */
         if (get_button_type(style) != BS_GROUPBOX) {
             switch (style & BS_VCENTER) {
                 case BS_TOP:     /* DT_TOP is 0 */
@@ -521,10 +528,10 @@ public class ButtonWindow extends WinAPI {
         }
 
         /* Position label inside bounding rectangle according to
-        * alignment flags. (calculated rect is always left-top aligned).
-        * If label is aligned to any side - shift label in opposite
-        * direction to leave extra space for focus rectangle.
-        */
+         * alignment flags. (calculated rect is always left-top aligned).
+         * If label is aligned to any side - shift label in opposite
+         * direction to leave extra space for focus rectangle.
+         */
         int n;
         switch (dtStyle & (DT_CENTER | DT_RIGHT)) {
             case DT_LEFT:
@@ -594,9 +601,9 @@ public class ButtonWindow extends WinAPI {
         int style = WinWindow.GetWindowLongA(hwnd, GWL_STYLE);
 
         /* FIXME: To draw disabled label in Win31 look-and-feel, we probably
-        * must use DSS_MONO flag and COLOR_GRAYTEXT brush (or maybe DSS_UNION).
-        * I don't have Win31 on hand to verify that, so I leave it as is.
-        */
+         * must use DSS_MONO flag and COLOR_GRAYTEXT brush (or maybe DSS_UNION).
+         * I don't have Win31 on hand to verify that, so I leave it as is.
+         */
 
         if ((style & BS_PUSHLIKE) != 0 && (state & BST_INDETERMINATE) != 0) {
             hbr = SysParams.GetSysColorBrush(COLOR_GRAYTEXT);
@@ -990,18 +997,18 @@ public class ButtonWindow extends WinAPI {
     };
 
     static private final ButtonPaint[] btnPaintFunc = new ButtonPaint[]
-    {
-            PB_Paint,    /* BS_PUSHBUTTON */
-            PB_Paint,    /* BS_DEFPUSHBUTTON */
-            CB_Paint,    /* BS_CHECKBOX */
-            CB_Paint,    /* BS_AUTOCHECKBOX */
-            CB_Paint,    /* BS_RADIOBUTTON */
-            CB_Paint,    /* BS_3STATE */
-            CB_Paint,    /* BS_AUTO3STATE */
-            GB_Paint,    /* BS_GROUPBOX */
-            UB_Paint,    /* BS_USERBUTTON */
-            CB_Paint,    /* BS_AUTORADIOBUTTON */
-            null,        /* BS_PUSHBOX */
-            OB_Paint     /* BS_OWNERDRAW */
-    };
+            {
+                    PB_Paint,    /* BS_PUSHBUTTON */
+                    PB_Paint,    /* BS_DEFPUSHBUTTON */
+                    CB_Paint,    /* BS_CHECKBOX */
+                    CB_Paint,    /* BS_AUTOCHECKBOX */
+                    CB_Paint,    /* BS_RADIOBUTTON */
+                    CB_Paint,    /* BS_3STATE */
+                    CB_Paint,    /* BS_AUTO3STATE */
+                    GB_Paint,    /* BS_GROUPBOX */
+                    UB_Paint,    /* BS_USERBUTTON */
+                    CB_Paint,    /* BS_AUTORADIOBUTTON */
+                    null,        /* BS_PUSHBOX */
+                    OB_Paint     /* BS_OWNERDRAW */
+            };
 }

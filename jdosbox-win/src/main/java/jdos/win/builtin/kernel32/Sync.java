@@ -4,7 +4,9 @@ import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.system.Scheduler;
 
+
 public class Sync extends WinAPI {
+
     // DWORD WINAPI WaitForMultipleObjects(DWORD nCount, const HANDLE *lpHandles, BOOL bWaitAll, DWORD dwMilliseconds)
     public static int WaitForMultipleObjects(int nCount, int lpHandles, int bWaitAll, int dwMilliseconds) {
         if (nCount == 1)

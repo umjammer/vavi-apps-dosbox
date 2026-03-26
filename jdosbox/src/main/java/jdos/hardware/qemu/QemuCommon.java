@@ -1,7 +1,9 @@
 package jdos.hardware.qemu;
 
 public class QemuCommon {
+
     public static class iovec {
+
         public byte[] iov_base;
         public int iov_base_offset;
         public int iov_len;
@@ -11,6 +13,7 @@ public class QemuCommon {
     }
 
     public static class QEMUIOVector {
+
         public iovec iov;
         public int niov;
         public int nalloc;

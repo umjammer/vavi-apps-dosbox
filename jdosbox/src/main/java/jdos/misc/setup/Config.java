@@ -1,15 +1,20 @@
 package jdos.misc.setup;
 
-import jdos.misc.Cross;
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
+
+import jdos.misc.Cross;
 import jdos.misc.Msg;
 import jdos.util.FileIOFactory;
 import jdos.util.StringHelper;
-
-import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 
 public class Config {
@@ -26,7 +31,7 @@ public class Config {
     static public final boolean C_DEBUG = false;
     static public final boolean C_HEAVY_DEBUG = false;
     static public final boolean USE_FULL_TLB = true;
-    static public final boolean C_VGARAM_CHECKED = true;    
+    static public final boolean C_VGARAM_CHECKED = true;
     static public final boolean DEBUG_LOG = false;
     static public final boolean DEBUG_DEDERMINISTIC = false;
     static public final boolean IPX_DEBUGMSG = false;
@@ -35,9 +40,12 @@ public class Config {
     static public final boolean PCI_FUNCTIONALITY_ENABLED = true;
 
     static String current_config_dir; // Set by parseconfigfile so Prop_path can use it to construct the realpath
+
     public interface StartFunction {
+
         void call();
     }
+
     public final CommandLine cmdline;
 
     private final List<Section> sectionlist = new ArrayList<>();
@@ -59,53 +67,62 @@ public class Config {
     public Section_prop AddSection_prop(String _name, Section.SectionFunction _initfunction) {
         return AddSection_prop(_name, _initfunction, false);
     }
+
     public Section_prop AddSection_prop(String _name, Section.SectionFunction _initfunction, boolean canchange) {
         Section_prop blah = new Section_prop(_name);
         blah.addInitFunction(_initfunction, canchange);
         sectionlist.add(blah);
         return blah;
     }
+
     public Section GetSection(int index) {
-        if (index>=0 && index< sectionlist.size())
+        if (index >= 0 && index < sectionlist.size())
             return sectionlist.get(index);
         return null;
     }
+
     public Section GetSection(String _sectionname) {
         for (Section s : sectionlist) {
             if (s.getName().equalsIgnoreCase(_sectionname)) return s;
         }
         return null;
     }
+
     public Section GetSectionFromProperty(String prop) {
         for (Section section : sectionlist) {
             if (!section.getPropValue(prop).equals(Section.NO_SUCH_PROPERTY)) return section;
         }
         return null;
     }
+
     public void SetStartUp(StartFunction _function) {
         _start_function = _function;
     }
+
     public void Init() {
         for (Section section : sectionlist) {
             section.executeInit();
         }
     }
+
     public void Destroy() {
-        for (int i=sectionlist.size()-1;i>=0;i--) {
+        for (int i = sectionlist.size() - 1; i >= 0; i--) {
             Section s = sectionlist.get(i);
             s.executeDestroy(true);
         }
     }
+
     public void StartUp() {
         _start_function.call();
     }
+
     private static void fprintf(OutputStream outfile, String format, String args, int maxwidth) throws IOException {
         format = StringHelper.replace(format, "%s", args);
-        if (maxwidth>0) {
-            while (args.length()<maxwidth) {
-                args = " "+args;
+        if (maxwidth > 0) {
+            while (args.length() < maxwidth) {
+                args = " " + args;
             }
-            format = StringHelper.replace(format, "%"+maxwidth+"s", args);
+            format = StringHelper.replace(format, "%" + maxwidth + "s", args);
         }
         fputs(format, outfile);
     }
@@ -181,13 +198,13 @@ public class Config {
         BufferedReader in = null;
         try {
             in = new BufferedReader(new InputStreamReader(FileIOFactory.openStream(configfilename)));
-            String settings_type = first_configfile?"primary":"additional";
+            String settings_type = first_configfile ? "primary" : "additional";
             first_configfile = false;
-            logger.log(Level.DEBUG, "CONFIG:Loading "+settings_type+" settings from config file "+configfilename);
+            logger.log(Level.DEBUG, "CONFIG:Loading " + settings_type + " settings from config file " + configfilename);
             current_config_dir = FileIOFactory.getFullPath(configfilename);
             String line;
             Section currentsection = null;
-            while ((line=in.readLine()) != null) {
+            while ((line = in.readLine()) != null) {
                 line = line.trim();
                 if (line.isEmpty())
                     continue;
@@ -212,12 +229,16 @@ public class Config {
         } catch (Exception e) {
             logger.log(Level.ERROR, e.getMessage(), e);
         } finally {
-            if (in != null) try {in.close();} catch (Exception e) {}
+            if (in != null) try {
+                in.close();
+            } catch (Exception e) {
+            }
 
         }
         current_config_dir = ""; //So internal changes don't use the path information
         return false;
     }
+
     public void ParseEnv() {
 //        if (!Dosbox.applet) {
 //            Map env = System.getenv();
@@ -240,8 +261,12 @@ public class Config {
 //            }
 //        }
     }
+
     public boolean SecureMode() {
         return secure_mode;
     }
-    public void SwitchToSecureMode() { secure_mode = true; }//can't be undone
+
+    public void SwitchToSecureMode() {
+        secure_mode = true;
+    }//can't be undone
 }

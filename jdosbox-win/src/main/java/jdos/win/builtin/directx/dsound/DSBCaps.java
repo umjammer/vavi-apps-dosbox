@@ -2,15 +2,22 @@ package jdos.win.builtin.directx.dsound;
 
 import jdos.hardware.Memory;
 
+
 public class DSBCaps {
+
     public static final int SIZE = 20;
 
     public DSBCaps(int address) {
-        dwSize = Memory.mem_readd(address);address+=4;
-        dwFlags = Memory.mem_readd(address);address+=4;
-        dwBufferBytes = Memory.mem_readd(address);address+=4;
-        dwUnlockTransferRate = Memory.mem_readd(address);address+=4;
-        dwPlayCpuOverhead = Memory.mem_readd(address);address+=4;
+        dwSize = Memory.mem_readd(address);
+        address += 4;
+        dwFlags = Memory.mem_readd(address);
+        address += 4;
+        dwBufferBytes = Memory.mem_readd(address);
+        address += 4;
+        dwUnlockTransferRate = Memory.mem_readd(address);
+        address += 4;
+        dwPlayCpuOverhead = Memory.mem_readd(address);
+        address += 4;
     }
 
     public static void write(int address, int flags, int len, int rate, int overhead) {

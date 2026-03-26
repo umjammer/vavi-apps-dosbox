@@ -8,75 +8,89 @@ import jdos.util.IntRef;
 import jdos.util.ShortRef;
 import jdos.util.StringHelper;
 
+
 public class Serial {
+
     //  DUMMY
     public boolean Getchar(ShortRef data, ShortRef lsr, boolean wait_dsr, /*Bitu*/int timeout) {
         return false;
     }
+
     public boolean Putchar(short data, boolean wait_dtr, boolean wait_rts, /*Bitu*/int timeout) {
         return false;
     }
-    ///////////////////////////
+
+    /// ////////////////////////
 
     private static final boolean SERIAL_DEBUG = false;
     // Serial port interface
 
     static private class MyFifo {
+
         MyFifo(/*Bitu*/int maxsize_) {
-            maxsize=size=maxsize_;
-            pos=used=0;
-            data=new /*Bit8u*/short[size];
+            maxsize = size = maxsize_;
+            pos = used = 0;
+            data = new /*Bit8u*/short[size];
         }
+
         /*Bitu*/int getFree() {
-            return size-used;
+            return size - used;
         }
+
         boolean isEmpty() {
-            return used==0;
+            return used == 0;
         }
+
         boolean isFull() {
-            return (size-used)==0;
+            return (size - used) == 0;
         }
 
         /*Bitu*/int getUsage() {
             return used;
         }
-        void setSize(/*Bitu*/int newsize)
-        {
-            size=newsize;
-            pos=used=0;
+
+        void setSize(/*Bitu*/int newsize) {
+            size = newsize;
+            pos = used = 0;
         }
+
         void clear() {
-            pos=used=0;
-            data[0]=0;
+            pos = used = 0;
+            data[0] = 0;
         }
 
         boolean addb(/*Bit8u*/short _val) {
-            /*Bitu*/int where=pos+used;
-            if (where>=size) where-=size;
-            if(used>=size) {
+            /*Bitu*/
+            int where = pos + used;
+            if (where >= size) where -= size;
+            if (used >= size) {
                 // overwrite last byte
-                if(where==0) where=size-1;
+                if (where == 0) where = size - 1;
                 else where--;
-                data[where]=_val;
+                data[where] = _val;
                 return false;
             }
-            data[where]=_val;
+            data[where] = _val;
             used++;
             return true;
         }
+
         /*Bit8u*/short getb() {
-            if (used==0) return data[pos];
-            /*Bitu*/int where=pos;
+            if (used == 0) return data[pos];
+            /*Bitu*/
+            int where = pos;
             used--;
-            if(used!=0) pos++;
-            if (pos>=size) pos-=size;
+            if (used != 0) pos++;
+            if (pos >= size) pos -= size;
             return data[where];
         }
+
         /*Bit8u*/short getTop() {
-            /*Bitu*/int where=pos+used;
-            if (where>=size) where-=size;
-            if(used>=size) {
-                if(where==0) where=size-1;
+            /*Bitu*/
+            int where = pos + used;
+            if (where >= size) where -= size;
+            if (used >= size) {
+                if (where == 0) where = size - 1;
                 else where--;
             }
             return data[where];
@@ -85,6 +99,7 @@ public class Serial {
         /*Bit8u*/short probeByte() {
             return data[pos];
         }
+
         /*Bit8u*/final short[] data;
         /*Bitu*/final int maxsize;
         int size;
@@ -92,24 +107,28 @@ public class Serial {
         int used;
     }
 
-	FileIO debugfp;
-	boolean dbg_modemcontrol; // RTS,CTS,DTR,DSR,RI,CD
-	boolean dbg_serialtraffic;
-	boolean dbg_register;
-	boolean dbg_interrupt;
-	boolean dbg_aux;
-	void log_ser(boolean active, String format) {
-        if(active) {
-            String buf = StringHelper.format(Pic.PIC_FullIndex(), 3)+" ["+StringHelper.format(Main.GetTicks(), 7)+"] ";
-            buf+=format;
-            if(!buf.endsWith("\n")) buf+="\r\n";
-            try {debugfp.write(buf.getBytes());} catch (Exception e){}
+    FileIO debugfp;
+    boolean dbg_modemcontrol; // RTS,CTS,DTR,DSR,RI,CD
+    boolean dbg_serialtraffic;
+    boolean dbg_register;
+    boolean dbg_interrupt;
+    boolean dbg_aux;
+
+    void log_ser(boolean active, String format) {
+        if (active) {
+            String buf = StringHelper.format(Pic.PIC_FullIndex(), 3) + " [" + StringHelper.format(Main.GetTicks(), 7) + "] ";
+            buf += format;
+            if (!buf.endsWith("\n")) buf += "\r\n";
+            try {
+                debugfp.write(buf.getBytes());
+            } catch (Exception e) {
+            }
         }
     }
 
-	static boolean getBituSubstring(String name,/*Bitu*/IntRef data, CommandLine cmd) {
+    static boolean getBituSubstring(String name,/*Bitu*/IntRef data, CommandLine cmd) {
         String tmpstring;
-        if((tmpstring=cmd.findStringBegin(name,false))==null) return false;
+        if ((tmpstring = cmd.findStringBegin(name, false)) == null) return false;
         try {
             data.value = Integer.parseInt(tmpstring);
             return true;
@@ -118,8 +137,8 @@ public class Serial {
         return false;
     }
 
-	boolean InstallationSuccessful;// check after constructing. If
-								// something was wrong, delete it right away.
+    boolean InstallationSuccessful;// check after constructing. If
+    // something was wrong, delete it right away.
 
 //	// Constructor takes com port number (0-3)
 //	Serial(/*Bitu*/int id, CommandLine cmd) {

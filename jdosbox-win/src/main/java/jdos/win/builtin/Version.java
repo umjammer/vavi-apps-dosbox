@@ -17,6 +17,7 @@ import jdos.win.system.Scheduler;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
+
 public class Version extends BuiltinModule {
 
     private static final Logger logger = System.getLogger(Version.class.getName());
@@ -34,6 +35,7 @@ public class Version extends BuiltinModule {
         public java.lang.String getName() {
             return "Version.GetFileVersionInfoA";
         }
+
         @Override
         public void onCall() {
             int lptstrFilename = CPU.CPU_Pop32();
@@ -54,13 +56,13 @@ public class Version extends BuiltinModule {
                     CPU_Regs.reg_eax.dword = WinAPI.FALSE;
                     if (module instanceof NativeModule) {
                         IntRef size = new IntRef(0);
-                        int address = ((NativeModule)module).getAddressOfResource(NativeModule.RT_VERSION, 1, size);
+                        int address = ((NativeModule) module).getAddressOfResource(NativeModule.RT_VERSION, 1, size);
                         if (address != 0) {
                             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
                             Memory.mem_memcpy(lpData, address, Math.min(size.value, dwLen));
                         }
                     } else {
-                        logger.log(Level.DEBUG,getName()+" tried to get version of builtin dll, this is not supported yet");
+                        logger.log(Level.DEBUG, getName() + " tried to get version of builtin dll, this is not supported yet");
                     }
                     if (CPU_Regs.reg_eax.dword == WinAPI.FALSE) {
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_RESOURCE_DATA_NOT_FOUND);
@@ -76,6 +78,7 @@ public class Version extends BuiltinModule {
         public java.lang.String getName() {
             return "Version.GetFileVersionInfoSizeA";
         }
+
         @Override
         public void onCall() {
             int lptstrFilename = CPU.CPU_Pop32();
@@ -98,7 +101,7 @@ public class Version extends BuiltinModule {
                         ((NativeModule) module).getAddressOfResource(NativeModule.RT_VERSION, 1, size);
                         CPU_Regs.reg_eax.dword = size.value;
                     } else {
-                        logger.log(Level.DEBUG,getName()+" tried to get version of builtin dll, this is not supported yet");
+                        logger.log(Level.DEBUG, getName() + " tried to get version of builtin dll, this is not supported yet");
                     }
                     if (CPU_Regs.reg_eax.dword == 0) {
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_RESOURCE_DATA_NOT_FOUND);
@@ -113,19 +116,23 @@ public class Version extends BuiltinModule {
     // BOOL WINAPI VerQueryValue(LPCVOID pBlock, LPCTSTR lpSubBlock, LPVOID *lplpBuffer, PUINT puLen)
     private final Callback.Handler VerQueryValueA = new HandlerBase() {
         static class VersionInfo {
+
             public VersionInfo(int address) {
                 wLength = Memory.mem_readw(address);
-                wValueLength = Memory.mem_readw(address+2);
-                wType = Memory.mem_readw(address+4);
-                szKey = new LittleEndianFile(address+6).readCStringW();
+                wValueLength = Memory.mem_readw(address + 2);
+                wType = Memory.mem_readw(address + 4);
+                szKey = new LittleEndianFile(address + 6).readCStringW();
             }
+
             final int wLength;
             final int wValueLength;
             final int wType;
             final String szKey; // WCHAR
         }
+
         static final String rootA = "\\";
         static final String varfileinfoA = "\\VarFileInfo\\Translation";
+
         @Override
         public java.lang.String getName() {
             return "Version.VerQueryValueA";
@@ -135,28 +142,28 @@ public class Version extends BuiltinModule {
         public int value(int address) {
             VersionInfo info = new VersionInfo(address);
             int startOfValue = 6; //offset to szKey
-            startOfValue+=info.szKey.length()*2; // *2 because unicode
-            startOfValue+=2; // Unicode null terminator;
+            startOfValue += info.szKey.length() * 2; // *2 because unicode
+            startOfValue += 2; // Unicode null terminator;
             startOfValue = (startOfValue + 3) & ~3; // DWORD align as per spec
-            return address+startOfValue;
+            return address + startOfValue;
         }
 
         // VersionInfo32_Children( ver )  (const VS_VERSION_INFO_STRUCT32 *)( VersionInfo32_Value( ver ) + ( ( (ver)->wValueLength * ((ver)->wType? 2 : 1) + 3 ) & ~3 ) )
         public int children(int address) {
             VersionInfo info = new VersionInfo(address);
-            return value(address) + ((info.wValueLength * (info.wType!=0?2:1) + 3) & ~3);
+            return value(address) + ((info.wValueLength * (info.wType != 0 ? 2 : 1) + 3) & ~3);
         }
 
         // (VS_VERSION_INFO_STRUCT32 *)( (LPBYTE)ver + (((ver)->wLength + 3) & ~3) )
         public int next(int address) {
             VersionInfo info = new VersionInfo(address);
-            return address+((info.wLength+3) & ~3);
+            return address + ((info.wLength + 3) & ~3);
         }
 
         public int findChild(int address, String key) {
             VersionInfo info = new VersionInfo(address);
             int pChild = children(address);
-            while (pChild < address +info.wLength) {
+            while (pChild < address + info.wLength) {
                 VersionInfo child = new VersionInfo(pChild);
                 if (child.szKey.equalsIgnoreCase(key)) {
                     return pChild;
@@ -167,6 +174,7 @@ public class Version extends BuiltinModule {
             }
             return 0;
         }
+
         @Override
         public void onCall() {
             int pBlock = CPU.CPU_Pop32();
@@ -182,9 +190,9 @@ public class Version extends BuiltinModule {
             int info = pBlock;
             while (!subBlock.isEmpty()) {
                 int pos = subBlock.indexOf("\\");
-                if (pos>=0) {
+                if (pos >= 0) {
                     if (pos == 0) {
-                        subBlock = subBlock.substring(pos+1);
+                        subBlock = subBlock.substring(pos + 1);
                         continue;
                     }
                 }
@@ -196,7 +204,7 @@ public class Version extends BuiltinModule {
                     CPU_Regs.reg_eax.dword = WinAPI.TRUE;
                     return;
                 }
-                subBlock = subBlock.substring(pos+1);
+                subBlock = subBlock.substring(pos + 1);
             }
             VersionInfo ver = new VersionInfo(info);
             Memory.mem_writed(lplpBuffer, value(info));

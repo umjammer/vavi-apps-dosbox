@@ -1,5 +1,9 @@
 package jdos.win.builtin.user32;
 
+import java.io.InputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.hardware.Memory;
 import jdos.win.Console;
 import jdos.win.Win;
@@ -11,10 +15,6 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Ptr;
 import jdos.win.utils.StreamHelper;
 import jdos.win.utils.StringUtil;
-
-import java.io.InputStream;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 
 
 public class Resource extends WinAPI {
@@ -48,17 +48,17 @@ public class Resource extends WinAPI {
                     default -> null;
                 };
                 if (res == null)
-                    Win.panic("LoadImage currently does not support builtin image: "+lpszName);
+                    Win.panic("LoadImage currently does not support builtin image: " + lpszName);
                 InputStream is = WinCursor.class.getResourceAsStream("/jdos/win/builtin/res/" + res);
                 try {
                     byte[] data = StreamHelper.readStream(is);
                     // 14 is the file header length
-                    int address = WinSystem.getCurrentProcess().heap.alloc(data.length-14, false);
-                    Memory.mem_memcpy(address, data, 14, data.length-14);
+                    int address = WinSystem.getCurrentProcess().heap.alloc(data.length - 14, false);
+                    Memory.mem_memcpy(address, data, 14, data.length - 14);
                     return WinBitmap.create(address, true).handle;
                 } catch (Exception e) {
                     logger.log(Level.ERROR, e.getMessage(), e);
-                    Win.panic("LoadImage could not find "+res);
+                    Win.panic("LoadImage could not find " + res);
                 }
             }
         } else {
@@ -71,19 +71,19 @@ public class Resource extends WinAPI {
     static public int LoadStringA(int hInstance, int uID, int lpBuffer, int nBufferMax) {
         Module m = WinSystem.getCurrentProcess().loader.getModuleByHandle(hInstance);
         if (m instanceof NativeModule module) {
-            int stringAddress = module.getAddressOfResource(NativeModule.RT_STRING, (uID >> 4)+1);
+            int stringAddress = module.getAddressOfResource(NativeModule.RT_STRING, (uID >> 4) + 1);
             if (stringAddress != 0) {
                 int index = uID & 0xf;
                 for (int i = 0; i < index; i++)
-                    stringAddress += readw(stringAddress)*2 + 2;
+                    stringAddress += readw(stringAddress) * 2 + 2;
                 int len = readw(stringAddress);
-                stringAddress+=2;
+                stringAddress += 2;
                 String result = StringUtil.getStringW(stringAddress, len);
                 StringUtil.strncpy(lpBuffer, result, nBufferMax);
                 return Math.min(result.length(), nBufferMax);
             }
         }
-        if (lpBuffer != 0 && nBufferMax>0)
+        if (lpBuffer != 0 && nBufferMax > 0)
             writeb(lpBuffer, 0);
         return 0;
     }

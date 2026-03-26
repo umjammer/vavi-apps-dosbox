@@ -7,7 +7,9 @@ import jdos.hardware.Memory;
 import jdos.win.builtin.HandlerBase;
 import jdos.win.utils.Error;
 
+
 public class IDirectDrawClipper extends IUnknown {
+
     static final int VTABLE_SIZE = 6;
 
     static final int OFFSET_HWND = 0;
@@ -34,13 +36,14 @@ public class IDirectDrawClipper extends IUnknown {
         address = add(address, SetHWnd);
         return result;
     }
-    
+
     // HRESULT GetClipList(this, LPRECT lpRect, LPRGNDATA lpClipList, LPDWORD lpdwSize)
     static private final Callback.Handler GetClipList = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawClipper.GetClipList";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -57,6 +60,7 @@ public class IDirectDrawClipper extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawClipper.GetHWnd";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -76,6 +80,7 @@ public class IDirectDrawClipper extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawClipper.Initialize";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -91,6 +96,7 @@ public class IDirectDrawClipper extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawClipper.IsClipListChanged";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -105,6 +111,7 @@ public class IDirectDrawClipper extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawClipper.SetClipList";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -120,6 +127,7 @@ public class IDirectDrawClipper extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawClipper.SetHWnd";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

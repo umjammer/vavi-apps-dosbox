@@ -9,6 +9,7 @@ import jdos.win.Win;
 
 
 public class WinFatFile extends WinFile {
+
     static public WinFile create(String name, Drive_fat.fatFile file, int shareMode, int attributes) {
         return new WinFatFile(nextObjectId(), name, file, shareMode, attributes);
     }

@@ -4,7 +4,9 @@ import jdos.win.builtin.winmm.WAVEFORMATEX;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 
+
 public class Msacm32 extends BuiltinModule {
+
     public Msacm32(Loader loader, int handle) {
         super(loader, "Msacm32.dll", handle);
 

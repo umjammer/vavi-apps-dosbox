@@ -5,7 +5,9 @@ import jdos.win.builtin.WinAPI;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
+
 public class KPath extends WinAPI {
+
     // UINT WINAPI GetSystemDirectory(LPTSTR lpBuffer, UINT uSize)
     static public int GetSystemDirectoryA(int lpBuffer, int uSize) {
         return StringUtil.strncpy(lpBuffer, "C:\\Windows\\System32", uSize); // verified no trailing slash on WinXP

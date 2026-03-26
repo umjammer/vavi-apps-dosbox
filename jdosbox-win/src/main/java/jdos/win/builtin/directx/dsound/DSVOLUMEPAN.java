@@ -1,6 +1,7 @@
 package jdos.win.builtin.directx.dsound;
 
 public class DSVOLUMEPAN {
+
     public DSVOLUMEPAN() {
 
     }
@@ -14,6 +15,7 @@ public class DSVOLUMEPAN {
         this.dwPanLeftAmpFactor = vol.dwPanLeftAmpFactor;
         this.dwPanRightAmpFactor = vol.dwPanRightAmpFactor;
     }
+
     public int dwTotalLeftAmpFactor;
     public int dwTotalRightAmpFactor;
     public int lVolume;

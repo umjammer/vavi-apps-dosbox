@@ -7,7 +7,9 @@ import jdos.cpu.Flags;
 import jdos.cpu.core_share.Constants;
 import jdos.cpu.core_share.Data;
 
+
 abstract public class Op {
+
     static final public int EAX = 1;
 
     static final public int ES = 0x01;
@@ -20,8 +22,8 @@ abstract public class Op {
     static final public int FROM_STACK = 0x20;
     static final public int FROM_MEMORY = 0x30;
 
-    public int c=-1;
-    public int eip_count=0;
+    public int c = -1;
+    public int eip_count = 0;
     public Op next;
     public int cycle = 0;
 
@@ -48,22 +50,49 @@ abstract public class Op {
         return Constants.BR_CallBack;
     }
 
-    public int sets() { return 0; }
-    public int gets() { return 0; }
+    public int sets() {
+        return 0;
+    }
 
-    public boolean returnsIllegal() {return false;}
-    public int setsSeg() {return 0;}
-    public String description() {return this.toString();}
+    public int gets() {
+        return 0;
+    }
 
-//    public boolean throwsException() {return true;}
+    public boolean returnsIllegal() {
+        return false;
+    }
+
+    public int setsSeg() {
+        return 0;
+    }
+
+    public String description() {
+        return this.toString();
+    }
+
+    //    public boolean throwsException() {return true;}
 //    public boolean accessesMemory() {return true;}
 //    public  boolean usesEip() {return true;}
 //    public  boolean setsEip() {return true;}
-    public boolean throwsException() {return false;}
-    public boolean accessesMemory() {return false;}
-    public boolean usesEip() {return false;}
-    public boolean setsEip() {return false;}
-    public int getFlagType() {return FLAG_TYPE_NONE;}
+    public boolean throwsException() {
+        return false;
+    }
+
+    public boolean accessesMemory() {
+        return false;
+    }
+
+    public boolean usesEip() {
+        return false;
+    }
+
+    public boolean setsEip() {
+        return false;
+    }
+
+    public int getFlagType() {
+        return FLAG_TYPE_NONE;
+    }
 
 
     public static final int FLAG_TYPE_NONE = 0;

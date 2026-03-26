@@ -1,8 +1,8 @@
 /* Couldn't find a real spec for the NE2000 out there, hence this is adapted heavily from Bochs */
 
-/////////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////////
 // $Id: ne2k.cc,v 1.56.2.1 2004/02/02 22:37:22 cbothamy Exp $
-/////////////////////////////////////////////////////////////////////////
+/// //////////////////////////////////////////////////////////////////////
 //
 //  Copyright (C) 2002  MandrakeSoft S.A.
 //
@@ -79,6 +79,7 @@ public class NE2000 extends Module_base {
         //
         //  Command Register - 00h read/write
         public static final class CR_t {
+
             public int stop;        // STP - Software Reset command
             public int start;        // START - start the NIC
             public int tx_packet;    // TXP - initiate packet transmission
@@ -90,6 +91,7 @@ public class NE2000 extends Module_base {
 
         // Interrupt Status Register - 07h read/write
         public static final class ISR_t {
+
             public int pkt_rx;           // PRX - packet received with no errors
             public int pkt_tx;           // PTX - packet transmitted with no errors
             public int rx_err;    // RXE - packet received with 1 or more errors
@@ -104,6 +106,7 @@ public class NE2000 extends Module_base {
 
         // Interrupt Mask Register - 0fh write
         public static final class IMR_t {
+
             public int rx_inte;    // PRXE - packet rx interrupt enable
             public int tx_inte;    // PTXE - packet tx interrput enable
             public int rxerr_inte;    // RXEE - rx error interrupt enable
@@ -118,6 +121,7 @@ public class NE2000 extends Module_base {
 
         // Data Configuration Register - 0eh write
         public static final class DCR_t {
+
             public int wdsize;    // WTS - 8/16-bit select
             public int endian;    // BOS - byte-order select
             public int longaddr;    // LAS - long-address select
@@ -130,6 +134,7 @@ public class NE2000 extends Module_base {
 
         // Transmit Configuration Register - 0dh write
         public static final class TCR_t {
+
             public int crc_disable;    // CRC - inhibit tx CRC
             public /*Bit8u*/ short loop_cntl;    // LB0,LB1 - loopback control
             public int ext_stoptx;    // ATD - allow tx disable by external mcast
@@ -141,6 +146,7 @@ public class NE2000 extends Module_base {
 
         // Transmit Status Register - 04h read
         public static final class TSR_t {
+
             public int tx_ok;        // PTX - tx complete without error
             public int reserved;    //  D1 - reserved
             public int collided;    // COL - tx collided >= 1 times
@@ -155,6 +161,7 @@ public class NE2000 extends Module_base {
 
         // Receive Configuration Register - 0ch write
         public static final class RCR_t {
+
             public int errors_ok;    // SEP - accept pkts with rx errors
             public int runts_ok;    // AR  - accept < 64-byte runts
             public int broadcast;    // AB  - accept eth broadcast address
@@ -168,6 +175,7 @@ public class NE2000 extends Module_base {
 
         // Receive Status Register - 0ch read
         public static final class RSR_t {
+
             public int rx_ok;        // PRX - rx complete without error
             public int bad_crc;    // CRC - Bad CRC detected
             public int bad_falign;    // FAE - frame alignment error
@@ -238,6 +246,7 @@ public class NE2000 extends Module_base {
     }
 
     public static final class bx_ne2k_c implements RxFrame {
+
         final bx_ne2k_t s = new bx_ne2k_t();
 
         public bx_ne2k_c() {
@@ -1272,7 +1281,7 @@ public class NE2000 extends Module_base {
          */
         @Override
         public boolean rx_frame(Ptr buf, /*unsigned*/int io_len) {
-            if((s.DCR.loop == 0) || (s.TCR.loop_cntl != 0))
+            if ((s.DCR.loop == 0) || (s.TCR.loop_cntl != 0))
                 return false;
             int pages;
             int avail;
@@ -1283,7 +1292,7 @@ public class NE2000 extends Module_base {
             byte[] pkthdr = new byte[4];
             Ptr pktbuf = buf;
             Ptr startptr;
-            byte[] bcast_addr = new byte[]{(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
+            byte[] bcast_addr = new byte[] {(byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff, (byte) 0xff};
 
             if (io_len != 60) {
                 if (BX_DEBUG)
@@ -1486,17 +1495,17 @@ public class NE2000 extends Module_base {
         if (mode.equalsIgnoreCase("pcap")) {
             try {
                 Class<?> c = Class.forName("jdos.host.PCapEthernet");
-                ethernet = (Ethernet)c.newInstance();
+                ethernet = (Ethernet) c.newInstance();
                 if (!ethernet.open(section, mac)) {
                     ethernet = null;
                 }
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
             }
-        }  else if (mode.equalsIgnoreCase("pcaphost")) {
+        } else if (mode.equalsIgnoreCase("pcaphost")) {
             try {
                 Class<?> c = Class.forName("jdos.host.FowardPCapEthernet");
-                ethernet = (Ethernet)c.newInstance();
+                ethernet = (Ethernet) c.newInstance();
                 if (!ethernet.open(section, mac))
                     ethernet = null;
             } catch (Exception e) {
@@ -1509,7 +1518,7 @@ public class NE2000 extends Module_base {
             }
         }
         if (ethernet == null) {
-            logger.log(Level.DEBUG, "Network card disabled. mode="+mode+" not found.");
+            logger.log(Level.DEBUG, "Network card disabled. mode=" + mode + " not found.");
             load_success = false;
             return;
         }
@@ -1533,7 +1542,7 @@ public class NE2000 extends Module_base {
     }
 
     public void close() {
-        if (ethernet!=null)
+        if (ethernet != null)
             ethernet.close();
         Timer.TIMER_DelTickHandler(NE2000_Poller);
         Pic.PIC_RemoveEvents(NE2000_TX_Event);

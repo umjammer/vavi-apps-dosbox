@@ -3,7 +3,9 @@ package jdos.win.system;
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 
+
 public class WinRect extends WinAPI {
+
     public static final int SIZE = 16;
 
     public int left;
@@ -40,10 +42,10 @@ public class WinRect extends WinAPI {
     }
 
     public void inflate(int dx, int dy) {
-        left-=dx;
-        right+=dx;
-        top-=dy;
-        bottom+=dy;
+        left -= dx;
+        right += dx;
+        top -= dy;
+        bottom += dy;
     }
 
     public boolean intersect(WinRect src1, WinRect src2) {
@@ -51,9 +53,9 @@ public class WinRect extends WinAPI {
             setEmpty();
             return false;
         }
-        left   = Math.max(src1.left, src2.left);
-        right  = Math.min(src1.right,src2.right);
-        top    = Math.max(src1.top, src2.top);
+        left = Math.max(src1.left, src2.left);
+        right = Math.min(src1.right, src2.right);
+        top = Math.max(src1.top, src2.top);
         bottom = Math.min(src1.bottom, src2.bottom);
         return !isEmpty();
     }
@@ -66,8 +68,9 @@ public class WinRect extends WinAPI {
             bottom = Math.max(bottom, rect.bottom);
         }
     }
+
     public boolean isEmpty() {
-        return left>=right || top>=bottom;
+        return left >= right || top >= bottom;
     }
 
     public void setEmpty() {
@@ -76,6 +79,7 @@ public class WinRect extends WinAPI {
         top = 0;
         bottom = 0;
     }
+
     public void set(int left, int top, int right, int bottom) {
         this.left = left;
         this.top = top;
@@ -84,17 +88,17 @@ public class WinRect extends WinAPI {
     }
 
     public void offset(int x, int y) {
-        left+=x;
-        right+=x;
-        top+=y;
-        bottom+=y;
+        left += x;
+        right += x;
+        top += y;
+        bottom += y;
     }
 
     public void copy(int address) {
         left = Memory.mem_readd(address);
-        top = Memory.mem_readd(address+4);
-        right = Memory.mem_readd(address+8);
-        bottom = Memory.mem_readd(address+12);
+        top = Memory.mem_readd(address + 4);
+        right = Memory.mem_readd(address + 8);
+        bottom = Memory.mem_readd(address + 12);
     }
 
     public void copy(WinRect rect) {
@@ -105,7 +109,7 @@ public class WinRect extends WinAPI {
     }
 
     public boolean equals(WinRect rect) {
-        return left==rect.left && top==rect.top && right==rect.right && bottom==rect.bottom;
+        return left == rect.left && top == rect.top && right == rect.right && bottom == rect.bottom;
     }
 
     public void write(int address) {
@@ -114,17 +118,17 @@ public class WinRect extends WinAPI {
 
     public static void write(int address, int left, int top, int right, int bottom) {
         Memory.mem_writed(address, left);
-        Memory.mem_writed(address+4, top);
-        Memory.mem_writed(address+8, right);
-        Memory.mem_writed(address+12, bottom);
+        Memory.mem_writed(address + 4, top);
+        Memory.mem_writed(address + 8, right);
+        Memory.mem_writed(address + 12, bottom);
     }
 
     public boolean contains(int x, int y) {
-        return (x>=left && x<=right && y>=top && y<=bottom);
+        return (x >= left && x <= right && y >= top && y <= bottom);
     }
 
     public boolean contains(WinPoint p) {
-        return (p.x>=left && p.x<=right && p.y>=top && p.y<=bottom);
+        return (p.x >= left && p.x <= right && p.y >= top && p.y <= bottom);
     }
 
     public int width() {
@@ -136,7 +140,7 @@ public class WinRect extends WinAPI {
     }
 
     public String toString() {
-        return "("+left+","+top+") - ("+right+","+bottom+")";
+        return "(" + left + "," + top + ") - (" + right + "," + bottom + ")";
     }
 
     public WinRect copy() {

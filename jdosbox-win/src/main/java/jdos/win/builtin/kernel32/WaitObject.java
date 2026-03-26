@@ -9,6 +9,7 @@ import jdos.win.system.WinObject;
 
 
 public class WaitObject extends WinObject {
+
     static public WaitObject create() {
         return new WaitObject(nextObjectId());
     }
@@ -17,7 +18,7 @@ public class WaitObject extends WinObject {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof WaitObject))
             return null;
-        return (WaitObject)object;
+        return (WaitObject) object;
     }
 
     static public final int WAIT_ABANDONED = 0x00000080;
@@ -35,7 +36,7 @@ public class WaitObject extends WinObject {
     }
 
     protected int internalWait(WinThread thread, int timeout) {
-        for (int i=0;i<waiting.size();i++) {
+        for (int i = 0; i < waiting.size(); i++) {
             if (waiting.get(i).thread == thread) {
                 waiting.remove(i);
                 return WAIT_TIMEOUT;
@@ -52,7 +53,7 @@ public class WaitObject extends WinObject {
             CPU_Regs.reg_eax.dword = WAIT_OBJECT_0;
             return 0;
         }
-        if (timeout !=0) {
+        if (timeout != 0) {
             return internalWait(thread, timeout);
         }
         return WAIT_TIMEOUT;
@@ -60,7 +61,7 @@ public class WaitObject extends WinObject {
 
     public void release() {
         owner = null;
-        for (int i=0;i<waiting.size();i++) {
+        for (int i = 0; i < waiting.size(); i++) {
             if (waiting.get(i).released()) {
                 i--; // released will remove the wait object from waiting
             }

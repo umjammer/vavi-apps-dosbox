@@ -1,13 +1,15 @@
 package jdos.win.loader.winpe;
 
-import jdos.win.system.WinFile;
-import jdos.win.utils.LittleEndian;
-
 import java.io.IOException;
 import java.io.OutputStream;
 
+import jdos.win.system.WinFile;
+import jdos.win.utils.LittleEndian;
+
+
 public class HeaderImageSection {
-    public static final int SIZE=40;
+
+    public static final int SIZE = 40;
 
     public static final int IMAGE_SIZEOF_SHORT_NAME = 8;
 
@@ -18,8 +20,8 @@ public class HeaderImageSection {
     public long PointerToRawData;
     public long PointerToRelocations;
     public long PointerToLinenumbers;
-    public int  NumberOfRelocations;
-    public int  NumberOfLinenumbers;
+    public int NumberOfRelocations;
+    public int NumberOfLinenumbers;
     public long Characteristics;
 
     public void load(OutputStream os, WinFile fis) throws IOException {

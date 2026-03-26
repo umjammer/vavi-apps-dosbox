@@ -2,14 +2,16 @@ package jdos.dos;
 
 import jdos.util.IntRef;
 
-public class Dos_keyboard_layout {
-	static public final int KEYB_NOERROR=0;
-	static public final int KEYB_FILENOTFOUND=1;
-	static public final int KEYB_INVALIDFILE=2;
-	static public final int KEYB_LAYOUTNOTFOUND=3;
-	static public final int KEYB_INVALIDCPFILE=4;
 
-//    static private RandomAccessFile OpenDosboxFile(String name) {
+public class Dos_keyboard_layout {
+
+    static public final int KEYB_NOERROR = 0;
+    static public final int KEYB_FILENOTFOUND = 1;
+    static public final int KEYB_INVALIDFILE = 2;
+    static public final int KEYB_LAYOUTNOTFOUND = 3;
+    static public final int KEYB_INVALIDCPFILE = 4;
+
+    //    static private RandomAccessFile OpenDosboxFile(String name) {
 //        ShortRef drive = new ShortRef();
 //        StringRef fullname = new StringRef();
 //
@@ -114,7 +116,7 @@ public class Dos_keyboard_layout {
 //        return this->read_keyboard_file(keyboard_file_name, -1, req_cp);
 //    }
 //
-//// switch to a different layout
+    /// / switch to a different layout
 //    void keyboard_layout::read_keyboard_file(Bit32s specific_layout) {
 //        if (strcmp(current_keyboard_file_name,"none"))
 //            this->read_keyboard_file(current_keyboard_file_name, specific_layout, dos.loaded_codepage);
@@ -1004,7 +1006,7 @@ public class Dos_keyboard_layout {
 //    }
 //
 //
-    static private final keyboard_layout loaded_layout=null;
+    static private final keyboard_layout loaded_layout = null;
 //
 //// CTRL-ALT-F2 switches between foreign and US-layout using this function
 ///* static void switch_keyboard_layout(bool pressed) {
@@ -1013,7 +1015,8 @@ public class Dos_keyboard_layout {
 //	if (loaded_layout) loaded_layout->switch_foreign_layout();
 //} */
 //
-//// called by int9-handler
+
+    /// / called by int9-handler
 //    bool DOS_LayoutKey(Bitu key, Bit8u flags1, Bit8u flags2, Bit8u flags3) {
 //        if (loaded_layout) return loaded_layout->layout_key(key, flags1, flags2, flags3);
 //        else return false;
@@ -1037,7 +1040,8 @@ public class Dos_keyboard_layout {
 //        loaded_layout=temp_layout;
         return KEYB_NOERROR;
     }
-//
+
+    //
     static public /*Bitu*/int DOS_SwitchKeyboardLayout(String new_layout, /*Bit32s*/IntRef tried_cp) {
         if (loaded_layout != null) {
 //            keyboard_layout* changed_layout=NULL;
@@ -1051,7 +1055,8 @@ public class Dos_keyboard_layout {
             return 0xff; // TODO remove
         } else return 0xff;
     }
-//
+
+    //
 // get currently loaded layout name (NULL if no layout is loaded)
     static public String DOS_GetLoadedLayout() {
 //        if (loaded_layout) {

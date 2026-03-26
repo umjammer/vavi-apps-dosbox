@@ -1,5 +1,7 @@
 package jdos.win.builtin.gdi32;
 
+import java.awt.image.BufferedImage;
+
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.builtin.user32.Resource;
@@ -9,12 +11,13 @@ import jdos.win.system.WinObject;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Pixel;
 
-import java.awt.image.BufferedImage;
 
 public class WinBitmap extends WinGDI {
+
     static public WinBitmap create(int address, boolean owner) {
         return new WinBitmap(nextObjectId(), address, DIB_RGB_COLORS, 0, owner);
     }
+
     static public WinBitmap create(int width, int height, int bpp, int data, int[] palette, boolean keepData) {
         return new WinBitmap(nextObjectId(), width, height, bpp, data, palette, keepData);
     }
@@ -23,13 +26,13 @@ public class WinBitmap extends WinGDI {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof WinBitmap))
             return null;
-        return (WinBitmap)object;
+        return (WinBitmap) object;
     }
 
     // HBITMAP CreateBitmap(int nWidth, int nHeight, UINT cPlanes, UINT cBitsPerPel, const VOID *lpvBits)
     static public int CreateBitmap(int nWidth, int nHeight, int cPlanes, int cBitsPerPel, int lpvBits) {
         if (cPlanes != 1) {
-            warn("CreateBitmap does not support "+cPlanes+" planes.");
+            warn("CreateBitmap does not support " + cPlanes + " planes.");
             SetLastError(ERROR_INVALID_PARAMETER);
             return 0;
         }
@@ -77,11 +80,11 @@ public class WinBitmap extends WinGDI {
 
     public WinBitmap(int handle, int width, int height, int bpp, int data, int[] palette, boolean keepData) {
         super(handle);
-        if (width<0)
+        if (width < 0)
             width = -width;
-        if (height<0)
+        if (height < 0)
             height = -height;
-        if (height==0 || width == 0) {
+        if (height == 0 || width == 0) {
             height = 1;
             width = 1;
             data = 0;
@@ -96,8 +99,8 @@ public class WinBitmap extends WinGDI {
                 bits = data;
             } else {
                 int stride = (bpp * width / 8 + 3) & ~3;
-                bits = WinSystem.getCurrentProcess().heap.alloc(stride*height, false);
-                Memory.mem_memcpy(bits, data, stride*height);
+                bits = WinSystem.getCurrentProcess().heap.alloc(stride * height, false);
+                Memory.mem_memcpy(bits, data, stride * height);
             }
         } else {
             bits = WinSystem.getCurrentProcess().heap.alloc(4, false);
@@ -108,7 +111,7 @@ public class WinBitmap extends WinGDI {
     @Override
     protected void onFree() {
         if (bitsOwner) {
-            if (address!=0)
+            if (address != 0)
                 WinSystem.getCurrentProcess().heap.free(address);
             else
                 WinSystem.getCurrentProcess().heap.free(bits);
@@ -125,8 +128,9 @@ public class WinBitmap extends WinGDI {
     }
 
     public String toString() {
-        return "BITMAP "+width+"x"+height+"@"+bitCount+"bpp";
+        return "BITMAP " + width + "x" + height + "@" + bitCount + "bpp";
     }
+
     private void parseBitmap(int address, int iUsuage, int hPalette) {
         LittleEndianFile is = new LittleEndianFile(address);
         int biSize = is.readInt();
@@ -146,12 +150,12 @@ public class WinBitmap extends WinGDI {
             refPalette = WinPalette.get(hPalette).palette;
 
         if (biSizeImage == 0) {
-            if (bitCount<8)
-                biSizeImage = (((bitCount * width + 7) / 8 + 3) & ~3)* Math.abs(height);
+            if (bitCount < 8)
+                biSizeImage = (((bitCount * width + 7) / 8 + 3) & ~3) * Math.abs(height);
             else
-                biSizeImage = (((bitCount + 7) / 8 * width + 3) & ~3)* Math.abs(height);
+                biSizeImage = (((bitCount + 7) / 8 * width + 3) & ~3) * Math.abs(height);
         }
-        bits = address+40;
+        bits = address + 40;
 
         if (height < 0) {
             Win.panic("Top down bitmaps not supported yet");
@@ -163,17 +167,18 @@ public class WinBitmap extends WinGDI {
             if (biClrUsed == 0)
                 biClrUsed = 2;
         } else { // if (bitCount != 15 && bitCount != 16 && bitCount != 24) {
-            Win.panic("Was not expecting to load a bitmap with "+bitCount+" bits per pixel");
+            Win.panic("Was not expecting to load a bitmap with " + bitCount + " bits per pixel");
         }
-        bits+=4*biClrUsed;
+        bits += 4 * biClrUsed;
         palette = new int[biClrUsed];
-        for (int i=0;i<palette.length;i++) {
+        for (int i = 0; i < palette.length; i++) {
             if (iUsuage == DIB_RGB_COLORS)
                 palette[i] = Pixel.BGRtoRGB(is.readInt());
             else
-                palette[i] = 0xFF000000|refPalette[is.readUnsignedShort()];
+                palette[i] = 0xFF000000 | refPalette[is.readUnsignedShort()];
         }
     }
+
     /*
     typedef struct tagBITMAP {
       LONG   bmType;
@@ -190,16 +195,16 @@ public class WinBitmap extends WinGDI {
     public int get(int address, int size) {
         if (address == 0)
             return BITMAP_SIZE;
-        if (size<BITMAP_SIZE) {
-            Win.panic("GetObject for bitmap: "+size+" < "+BITMAP_SIZE);
+        if (size < BITMAP_SIZE) {
+            Win.panic("GetObject for bitmap: " + size + " < " + BITMAP_SIZE);
         }
         Memory.mem_writed(address, 0);
-        Memory.mem_writed(address+4, width);
-        Memory.mem_writed(address+8, height);
-        Memory.mem_writed(address+12, width * (((bitCount + 7) / 8)+3)/4);
+        Memory.mem_writed(address + 4, width);
+        Memory.mem_writed(address + 8, height);
+        Memory.mem_writed(address + 12, width * (((bitCount + 7) / 8) + 3) / 4);
         Memory.mem_writew(address + 16, planes);
         Memory.mem_writew(address + 18, bitCount);
-        Memory.mem_writed(address+20, bits);
+        Memory.mem_writed(address + 20, bits);
         return BITMAP_SIZE;
     }
 

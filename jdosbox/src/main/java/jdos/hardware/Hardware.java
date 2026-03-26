@@ -7,12 +7,13 @@ import jdos.gui.Render;
 import jdos.misc.setup.Module_base;
 import jdos.misc.setup.Section;
 
+
 public class Hardware extends Module_base {
 
     private static final Logger logger = System.getLogger(Hardware.class.getName());
 
     // OPL_Mode
-	static public final int OPL_none = 0;
+    static public final int OPL_none = 0;
     static public final int OPL_cms = 1;
     static public final int OPL_opl2 = 2;
     static public final int OPL_dualopl2 = 3;
@@ -38,6 +39,6 @@ public class Hardware extends Module_base {
     public Hardware(Section configuration) {
         super(configuration);
     }
-    
-    public static final Section.SectionFunction HARDWARE_Init = section -> logger.log(Level.DEBUG,"HARDWARE_Init not finished yet: NO SCREEN SHOTS");
+
+    public static final Section.SectionFunction HARDWARE_Init = section -> logger.log(Level.DEBUG, "HARDWARE_Init not finished yet: NO SCREEN SHOTS");
 }

@@ -1,5 +1,8 @@
 package jdos.win.builtin.winmm;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import jdos.cpu.CPU_Regs;
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
@@ -11,10 +14,9 @@ import jdos.win.utils.FilePath;
 import jdos.win.utils.Path;
 import jdos.win.utils.StringUtil;
 
-import java.util.HashMap;
-import java.util.Map;
 
 public class Mmio extends WinAPI {
+
     static final public int MMIOM_READ = MMIO_READ;       /* read */
     static final public int MMIOM_WRITE = MMIO_WRITE;       /* write */
     static final public int MMIOM_SEEK = 2;       /* seek to a new position in file */
@@ -517,12 +519,14 @@ public class Mmio extends WinAPI {
     }
 
     public interface IOProc {
+
         int proc(MMIOINFO lpmmioinfo, int uMessage, int lParam1, int lParam2);
     }
 
     static private final Map<Integer, IOProc> defaultProcs = new HashMap<>();
 
     static private class CustomIOProc implements IOProc {
+
         final int pIOProc;
 
         public CustomIOProc(int pIOProc) {
@@ -544,11 +548,11 @@ public class Mmio extends WinAPI {
         switch (uMessage) {
             case MMIOM_OPEN: {
                 /* Parameters:
-                * lParam1 = szFileName parameter from mmioOpen
-                * lParam2 = reserved
-                * Returns: zero on success, error code on error
-                * NOTE: lDiskOffset automatically set to zero
-                */
+                 * lParam1 = szFileName parameter from mmioOpen
+                 * lParam2 = reserved
+                 * Returns: zero on success, error code on error
+                 * NOTE: lDiskOffset automatically set to zero
+                 */
                 int szFileName = lParam1;
 
                 if ((lpmmioinfo.dwFlags & MMIO_GETTEMP) != 0) {
@@ -577,10 +581,10 @@ public class Mmio extends WinAPI {
 
             case MMIOM_CLOSE:
                 /* Parameters:
-                * lParam1 = wFlags parameter from mmioClose
-                * lParam2 = unused
-                * Returns: zero on success, error code on error
-                */
+                 * lParam1 = wFlags parameter from mmioClose
+                 * lParam2 = unused
+                 * Returns: zero on success, error code on error
+                 */
                 if ((lParam1 & MMIO_FHOPEN) == 0) {
                     WinFile file = WinFile.get(lpmmioinfo.adwInfo[0]);
                     if (file != null) {
@@ -591,11 +595,11 @@ public class Mmio extends WinAPI {
 
             case MMIOM_READ:
                 /* Parameters:
-                * lParam1 = huge pointer to read buffer
-                * lParam2 = number of bytes to read
-                * Returns: number of bytes read, 0 for EOF, -1 for error (error code
-                *	   in wErrorRet)
-                */
+                 * lParam1 = huge pointer to read buffer
+                 * lParam2 = number of bytes to read
+                 * Returns: number of bytes read, 0 for EOF, -1 for error (error code
+                 *	   in wErrorRet)
+                 */
             {
                 WinFile file = WinFile.get(lpmmioinfo.adwInfo[0]);
                 if (file != null) {
@@ -611,11 +615,11 @@ public class Mmio extends WinAPI {
                 /* no internal buffering, so WRITEFLUSH handled same as WRITE */
 
                 /* Parameters:
-                * lParam1 = huge pointer to write buffer
-                * lParam2 = number of bytes to write
-                * Returns: number of bytes written, -1 for error (error code in
-                *		wErrorRet)
-                */
+                 * lParam1 = huge pointer to write buffer
+                 * lParam2 = number of bytes to write
+                 * Returns: number of bytes written, -1 for error (error code in
+                 *		wErrorRet)
+                 */
             {
                 WinFile file = WinFile.get(lpmmioinfo.adwInfo[0]);
                 if (file != null) {
@@ -628,10 +632,10 @@ public class Mmio extends WinAPI {
 
             case MMIOM_SEEK:
                 /* Parameters:
-                * lParam1 = new position
-                * lParam2 = from whence to seek (SEEK_SET, SEEK_CUR, SEEK_END)
-                * Returns: new file postion, -1 on error
-                */
+                 * lParam1 = new position
+                 * lParam2 = from whence to seek (SEEK_SET, SEEK_CUR, SEEK_END)
+                 * Returns: new file postion, -1 on error
+                 */
             {
                 WinFile file = WinFile.get(lpmmioinfo.adwInfo[0]);
                 if (file != null) {
@@ -644,10 +648,10 @@ public class Mmio extends WinAPI {
 
             case MMIOM_RENAME:
                 /* Parameters:
-                * lParam1 = old name
-                * lParam2 = new name
-                * Returns: zero on success, non-zero on failure
-                */
+                 * lParam1 = old name
+                 * lParam2 = new name
+                 * Returns: zero on success, non-zero on failure
+                 */
                 if (WinPath.MoveFileA(lParam1, lParam2) == 0)
                     ret = MMIOERR_FILENOTFOUND;
                 break;

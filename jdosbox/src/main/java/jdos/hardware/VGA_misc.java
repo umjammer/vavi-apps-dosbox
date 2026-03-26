@@ -3,28 +3,31 @@ package jdos.hardware;
 import jdos.Dosbox;
 import jdos.types.MachineType;
 
+
 public class VGA_misc {
+
     /*Bitu*//*Bitu*//*Bitu*/
     public static final IoHandler.IO_ReadHandler vga_read_p3da = (port, iolen) -> {
-        /*Bit8u*/int retval=0;
-        double timeInFrame = Pic.PIC_FullIndex()-VGA.vga.draw.delay.framestart;
+        /*Bit8u*/
+        int retval = 0;
+        double timeInFrame = Pic.PIC_FullIndex() - VGA.vga.draw.delay.framestart;
 
-        VGA.vga.internal.attrindex=false;
-        VGA.vga.tandy.pcjr_flipflop=false;
+        VGA.vga.internal.attrindex = false;
+        VGA.vga.tandy.pcjr_flipflop = false;
 
         // 3DAh (R):  Status Register
         // bit   0  Horizontal or Vertical blanking
         //       3  Vertical sync
 
         if (timeInFrame >= VGA.vga.draw.delay.vrstart &&
-            timeInFrame <= VGA.vga.draw.delay.vrend)
+                timeInFrame <= VGA.vga.draw.delay.vrend)
             retval |= 8;
         if (timeInFrame >= VGA.vga.draw.delay.vdend) {
             retval |= 1;
         } else {
-            double timeInLine=timeInFrame % VGA.vga.draw.delay.htotal;
+            double timeInLine = timeInFrame % VGA.vga.draw.delay.htotal;
             if (timeInLine >= VGA.vga.draw.delay.hblkstart &&
-                timeInLine <= VGA.vga.draw.delay.hblkend) {
+                    timeInLine <= VGA.vga.draw.delay.hblkend) {
                 retval |= 1;
             }
         }
@@ -33,34 +36,34 @@ public class VGA_misc {
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_WriteHandler write_p3c2 = (port, val, iolen) -> {
-        VGA.vga.misc_output=(short)val;
-        if ((val & 0x1)!=0) {
-            IoHandler.IO_RegisterWriteHandler(0x3d4,VGA_crtc.vga_write_p3d4,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3d4,VGA_crtc.vga_read_p3d4,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3da,vga_read_p3da,IoHandler.IO_MB);
+        VGA.vga.misc_output = (short) val;
+        if ((val & 0x1) != 0) {
+            IoHandler.IO_RegisterWriteHandler(0x3d4, VGA_crtc.vga_write_p3d4, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3d4, VGA_crtc.vga_read_p3d4, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3da, vga_read_p3da, IoHandler.IO_MB);
 
-            IoHandler.IO_RegisterWriteHandler(0x3d5,VGA_crtc.vga_write_p3d5,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3d5,VGA_crtc.vga_read_p3d5,IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3d5, VGA_crtc.vga_write_p3d5, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3d5, VGA_crtc.vga_read_p3d5, IoHandler.IO_MB);
 
-            IoHandler.IO_FreeWriteHandler(0x3b4,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3b4,IoHandler.IO_MB);
-            IoHandler.IO_FreeWriteHandler(0x3b5,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3b5,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3ba,IoHandler.IO_MB);
+            IoHandler.IO_FreeWriteHandler(0x3b4, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3b4, IoHandler.IO_MB);
+            IoHandler.IO_FreeWriteHandler(0x3b5, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3b5, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3ba, IoHandler.IO_MB);
         } else {
-            IoHandler.IO_RegisterWriteHandler(0x3b4,VGA_crtc.vga_write_p3d4,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3b4,VGA_crtc.vga_read_p3d4,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3ba,vga_read_p3da,IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3b4, VGA_crtc.vga_write_p3d4, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3b4, VGA_crtc.vga_read_p3d4, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3ba, vga_read_p3da, IoHandler.IO_MB);
 
-            IoHandler.IO_RegisterWriteHandler(0x3b5,VGA_crtc.vga_write_p3d5,IoHandler.IO_MB);
-            IoHandler.IO_RegisterReadHandler(0x3b5,VGA_crtc.vga_read_p3d5,IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3b5, VGA_crtc.vga_write_p3d5, IoHandler.IO_MB);
+            IoHandler.IO_RegisterReadHandler(0x3b5, VGA_crtc.vga_read_p3d5, IoHandler.IO_MB);
 
 
-            IoHandler.IO_FreeWriteHandler(0x3d4,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3d4,IoHandler.IO_MB);
-            IoHandler.IO_FreeWriteHandler(0x3d5,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3d5,IoHandler.IO_MB);
-            IoHandler.IO_FreeReadHandler(0x3da,IoHandler.IO_MB);
+            IoHandler.IO_FreeWriteHandler(0x3d4, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3d4, IoHandler.IO_MB);
+            IoHandler.IO_FreeWriteHandler(0x3d5, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3d5, IoHandler.IO_MB);
+            IoHandler.IO_FreeReadHandler(0x3da, IoHandler.IO_MB);
         }
         /*
             0	If set Color Emulation. Base Address=3Dxh else Mono Emulation. Base Address=3Bxh.
@@ -87,11 +90,12 @@ public class VGA_misc {
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_ReadHandler read_p3c2 = (port, iolen) -> {
-        /*Bit8u*/int retval=0;
+        /*Bit8u*/
+        int retval = 0;
 
-        if (Dosbox.machine== MachineType.MCH_EGA) retval = 0x0F;
+        if (Dosbox.machine == MachineType.MCH_EGA) retval = 0x0F;
         else if (Dosbox.IS_VGA_ARCH()) retval = 0x60;
-        if ((Dosbox.machine==MachineType.MCH_VGA) || (((VGA.vga.misc_output>>2)&3)==0) || (((VGA.vga.misc_output>>2)&3)==3)) {
+        if ((Dosbox.machine == MachineType.MCH_VGA) || (((VGA.vga.misc_output >> 2) & 3) == 0) || (((VGA.vga.misc_output >> 2) & 3) == 3)) {
             retval |= 0x10;
         }
 
@@ -113,18 +117,18 @@ public class VGA_misc {
 
     static public void VGA_SetupMisc() {
         if (Dosbox.IS_EGAVGA_ARCH()) {
-            VGA.vga.draw.vret_triggered=false;
-            IoHandler.IO_RegisterReadHandler(0x3c2,read_p3c2,IoHandler.IO_MB);
-            IoHandler.IO_RegisterWriteHandler(0x3c2,write_p3c2,IoHandler.IO_MB);
+            VGA.vga.draw.vret_triggered = false;
+            IoHandler.IO_RegisterReadHandler(0x3c2, read_p3c2, IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3c2, write_p3c2, IoHandler.IO_MB);
             if (Dosbox.IS_VGA_ARCH()) {
-                IoHandler.IO_RegisterReadHandler(0x3ca,read_p3ca,IoHandler.IO_MB);
-                IoHandler.IO_RegisterReadHandler(0x3cc,read_p3cc,IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3ca, read_p3ca, IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3cc, read_p3cc, IoHandler.IO_MB);
             } else {
-                IoHandler.IO_RegisterReadHandler(0x3c8,read_p3c8,IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3c8, read_p3c8, IoHandler.IO_MB);
             }
-        } else if (Dosbox.machine==MachineType.MCH_CGA || Dosbox.IS_TANDY_ARCH()) {
-            IoHandler.IO_RegisterReadHandler(0x3da,vga_read_p3da,IoHandler.IO_MB);
+        } else if (Dosbox.machine == MachineType.MCH_CGA || Dosbox.IS_TANDY_ARCH()) {
+            IoHandler.IO_RegisterReadHandler(0x3da, vga_read_p3da, IoHandler.IO_MB);
         }
     }
-    
+
 }

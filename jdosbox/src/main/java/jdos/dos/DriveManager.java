@@ -7,6 +7,7 @@ import java.util.List;
 
 import jdos.misc.setup.Section;
 
+
 public class DriveManager {
 
     private static final Logger logger = System.getLogger(DriveManager.class.getName());
@@ -43,10 +44,10 @@ public class DriveManager {
         return result;
     }
 
-//	static void CycleDrive(bool pressed);
+    //	static void CycleDrive(bool pressed);
 //	static void CycleDisk(bool pressed);
     static public void CycleAllDisks() {
-        for (int idrive=0; idrive<Dos_files.DOS_DRIVES; idrive++) {
+        for (int idrive = 0; idrive < Dos_files.DOS_DRIVES; idrive++) {
             int numDisks = driveInfos[idrive].disks.size();
             if (numDisks > 1) {
                 // cycle disk
@@ -60,26 +61,29 @@ public class DriveManager {
                 newDisk.curdir = oldDisk.curdir;
                 newDisk.Activate();
                 Dos_files.Drives[idrive] = newDisk;
-                logger.log(Level.DEBUG, "Drive "+ ('A' + idrive) +": disk "+ (currentDisk + 1) +" of "+numDisks+" now active");
+                logger.log(Level.DEBUG, "Drive " + ('A' + idrive) + ": disk " + (currentDisk + 1) + " of " + numDisks + " now active");
             }
         }
     }
+
     static public void Init(Section sec) {
         // setup driveInfos structure
         currentDrive = 0;
-        for(int i = 0; i < Dos_files.DOS_DRIVES; i++) {
+        for (int i = 0; i < Dos_files.DOS_DRIVES; i++) {
             driveInfos[i] = new DriveInfo();
             driveInfos[i].currentDisk = 0;
-    	}
+        }
     }
 
 //	MAPPER_AddHandler(&CycleDisk, MK_f3, MMOD1, "cycledisk", "Cycle Disk");
 //	MAPPER_AddHandler(&CycleDrive, MK_f3, MMOD2, "cycledrive", "Cycle Drv");
 
     static private class DriveInfo {
+
         final List<Dos_Drive> disks = new ArrayList<>();
-        /*Bit32u*/int currentDisk;
+        /*Bit32u*/ int currentDisk;
     }
+
     static private final DriveInfo[] driveInfos = new DriveInfo[Dos_files.DOS_DRIVES];
     static int currentDrive;
 }

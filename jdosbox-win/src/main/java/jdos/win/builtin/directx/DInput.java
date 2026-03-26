@@ -9,7 +9,9 @@ import jdos.win.builtin.directx.dinput.IDirectInput;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 
-public class DInput  extends BuiltinModule {
+
+public class DInput extends BuiltinModule {
+
     public DInput(Loader loader, int handle) {
         super(loader, "DInput.dll", handle);
         add(DirectInputCreateA);
@@ -21,6 +23,7 @@ public class DInput  extends BuiltinModule {
         public String getName() {
             return "DInput.DirectInputCreateA";
         }
+
         @Override
         public void onCall() {
             int hinst = CPU.CPU_Pop32();

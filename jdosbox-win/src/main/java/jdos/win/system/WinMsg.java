@@ -1,18 +1,22 @@
 package jdos.win.system;
 
-import jdos.win.builtin.kernel32.WinThread;
-
 import java.util.BitSet;
 
+import jdos.win.builtin.kernel32.WinThread;
+
+
 public class WinMsg {
+
     public WinMsg(int hWnd, int message, int wParam, int lParam, WinThread callingThread) {
         this(hWnd, message, wParam, lParam);
         this.callingThread = callingThread;
     }
+
     public WinMsg(int hWnd, int message, int wParam, int lParam, BitSet keyState) {
         this(hWnd, message, wParam, lParam);
         this.keyState = keyState;
     }
+
     public WinMsg(int hWnd, int message, int wParam, int lParam) {
         this.hwnd = hWnd;
         this.message = message;
@@ -22,6 +26,7 @@ public class WinMsg {
         this.x = StaticData.currentPos.x;
         this.y = StaticData.currentPos.y;
     }
+
     public BitSet keyState;
     public WinThread callingThread;
     public int sendResult;

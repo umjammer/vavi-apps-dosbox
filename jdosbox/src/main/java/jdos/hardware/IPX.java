@@ -1,5 +1,16 @@
 package jdos.hardware;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
+
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.dos.Dos_misc;
@@ -7,8 +18,6 @@ import jdos.dos.Dos_system;
 import jdos.dos.Dos_tables;
 import jdos.dos.drives.Drive_virtual;
 import jdos.gui.Main;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import jdos.misc.Program;
 import jdos.misc.setup.Config;
 import jdos.misc.setup.Module_base;
@@ -16,10 +25,6 @@ import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 import jdos.util.IntRef;
 
-import java.io.*;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 
 public class IPX extends Module_base {
 
@@ -29,83 +34,97 @@ public class IPX extends Module_base {
     static final int IPXBUFFERSIZE = 1424;
 
     // In Use Flag codes
-    static private final int USEFLAG_AVAILABLE  = 0x00;
-    static private final int USEFLAG_AESTEMP    = 0xe0;
-    static private final int USEFLAG_IPXCRIT    = 0xf8;
-    static private final int USEFLAG_SPXLISTEN  = 0xf9;
+    static private final int USEFLAG_AVAILABLE = 0x00;
+    static private final int USEFLAG_AESTEMP = 0xe0;
+    static private final int USEFLAG_IPXCRIT = 0xf8;
+    static private final int USEFLAG_SPXLISTEN = 0xf9;
     static private final int USEFLAG_PROCESSING = 0xfa;
-    static private final int USEFLAG_HOLDING    = 0xfb;
+    static private final int USEFLAG_HOLDING = 0xfb;
     static private final int USEFLAG_AESWAITING = 0xfc;
-    static private final int USEFLAG_AESCOUNT   = 0xfd;
-    static private final int USEFLAG_LISTENING  = 0xfe;
-    static private final int USEFLAG_SENDING    = 0xff;
+    static private final int USEFLAG_AESCOUNT = 0xfd;
+    static private final int USEFLAG_LISTENING = 0xfe;
+    static private final int USEFLAG_SENDING = 0xff;
 
     // Completion codes
-    static private final int COMP_SUCCESS         = 0x00;
-    static private final int COMP_REMOTETERM      = 0xec;
-    static private final int COMP_DISCONNECT      = 0xed;
-    static private final int COMP_INVALIDID       = 0xee;
-    static private final int COMP_SPXTABLEFULL    = 0xef;
-    static private final int COMP_EVENTNOTCANCELED= 0xf9;
-    static private final int COMP_NOCONNECTION    = 0xfa;
-    static private final int COMP_CANCELLED       = 0xfc;
-    static private final int COMP_MALFORMED       = 0xfd;
-    static private final int COMP_UNDELIVERABLE   = 0xfe;
-    static private final int COMP_HARDWAREERROR   = 0xff;
+    static private final int COMP_SUCCESS = 0x00;
+    static private final int COMP_REMOTETERM = 0xec;
+    static private final int COMP_DISCONNECT = 0xed;
+    static private final int COMP_INVALIDID = 0xee;
+    static private final int COMP_SPXTABLEFULL = 0xef;
+    static private final int COMP_EVENTNOTCANCELED = 0xf9;
+    static private final int COMP_NOCONNECTION = 0xfa;
+    static private final int COMP_CANCELLED = 0xfc;
+    static private final int COMP_MALFORMED = 0xfd;
+    static private final int COMP_UNDELIVERABLE = 0xfe;
+    static private final int COMP_HARDWAREERROR = 0xff;
 
     static final class IPXAddress {
+
         InetAddress address;
         int host;
         int port;
     }
 
     static public final class packetBuffer {
-        /*Bit8u*/byte[] buffer = new byte[1024];
-        /*Bit16s*/short packetSize;  // Packet size remaining in read
-        /*Bit16s*/short packetRead;  // Bytes read of total packet
+
+        /*Bit8u*/ byte[] buffer = new byte[1024];
+        /*Bit16s*/ short packetSize;  // Packet size remaining in read
+        /*Bit16s*/ short packetRead;  // Bytes read of total packet
         boolean inPacket;      // In packet reception flag
-        boolean connected;		// Connected flag
+        boolean connected;        // Connected flag
         boolean waitsize;
     }
 
     static public final class nodeType {
-	    public final /*Uint8*/byte[] node = new byte[6];
+
+        public final /*Uint8*/ byte[] node = new byte[6];
     }
 
     static final class IPXHeader {
-        /*Uint8*/short checkSum;
-        /*Uint8*/short length = 30;
-        /*Uint8*/short transControl; // Transport control
-        /*Uint8*/short pType; // Packet type
+
+        /*Uint8*/ short checkSum;
+        /*Uint8*/ short length = 30;
+        /*Uint8*/ short transControl; // Transport control
+        /*Uint8*/ short pType; // Packet type
 
         static public class transport {
-            /*Uint8*/int network;
+
+            /*Uint8*/ int network;
+
             static public class addrtype {
+
                 //nodeType byNode = new nodeType();
                 final nodeType byNode = new nodeType();
+
                 public void setHost(int host) {
-                    byNode.node[0] = (byte)(host & 0xFF);
-                    byNode.node[1] = (byte)((host >> 8) & 0xFF);
-                    byNode.node[2] = (byte)((host >> 16) & 0xFF);
-                    byNode.node[3] = (byte)((host >> 24) & 0xFF);
+                    byNode.node[0] = (byte) (host & 0xFF);
+                    byNode.node[1] = (byte) ((host >> 8) & 0xFF);
+                    byNode.node[2] = (byte) ((host >> 16) & 0xFF);
+                    byNode.node[3] = (byte) ((host >> 24) & 0xFF);
                 }
+
                 public void setPort(int port) {
-                    byNode.node[4] = (byte)(port & 0xFF);
-                    byNode.node[5] = (byte)((port >> 8) & 0xFF);
+                    byNode.node[4] = (byte) (port & 0xFF);
+                    byNode.node[5] = (byte) ((port >> 8) & 0xFF);
                 }
+
                 public int host() {
                     return (byNode.node[0] & 0xFF) | ((byNode.node[1] & 0xFF) << 8) | ((byNode.node[2] & 0xFF) << 16) | ((byNode.node[3] & 0xFF) << 24);
                 }
+
                 public String hostAsString() {
-                    return (byNode.node[0] & 0xFF) +"."+ (byNode.node[1] & 0xFF) +"."+ (byNode.node[2] & 0xFF) +"."+ (byNode.node[3] & 0xFF);
+                    return (byNode.node[0] & 0xFF) + "." + (byNode.node[1] & 0xFF) + "." + (byNode.node[2] & 0xFF) + "." + (byNode.node[3] & 0xFF);
                 }
+
                 public int port() {
                     return (byNode.node[4] & 0xFF) | ((byNode.node[5] & 0xFF) << 8);
                 }
             }
+
             final addrtype addr = new addrtype();
-            /*Uint8*/short socket;
+            /*Uint8*/ short socket;
         }
+
         final transport dest = new transport();
         final transport src = new transport();
 
@@ -132,8 +151,8 @@ public class IPX extends Module_base {
             try {
                 checkSum = read16(bis);
                 length = read16(bis);
-                transControl = (short)bis.read();
-                pType = (short)bis.read();
+                transControl = (short) bis.read();
+                pType = (short) bis.read();
                 dest.network = read32(bis);
                 bis.read(dest.addr.byNode.node);
                 dest.socket = read16(bis);
@@ -147,11 +166,13 @@ public class IPX extends Module_base {
     }
 
     final static private class IPaddress {
-        /*Uint32*/int host;            /* 32-bit IPv4 host address */
-        /*Uint16*/int port;            /* 16-bit protocol port */
+
+        /*Uint32*/ int host;            /* 32-bit IPv4 host address */
+        /*Uint16*/ int port;            /* 16-bit protocol port */
     }
 
     final static private class ipxnetaddr {
+
         /*Uint8*/final byte[] netnum = new byte[4];   // Both are big endian
         /*Uint8*/final byte[] netnode = new byte[6];
 
@@ -167,59 +188,61 @@ public class IPX extends Module_base {
         }
 
         public void netnum(int num) {
-            netnum[3] = (byte)(num & 0xFF);
-            netnum[2] = (byte)((num >> 8)& 0xFF);
-            netnum[1] = (byte)((num >> 16)& 0xFF);
-            netnum[0] = (byte)((num >> 24)& 0xFF);
+            netnum[3] = (byte) (num & 0xFF);
+            netnum[2] = (byte) ((num >> 8) & 0xFF);
+            netnum[1] = (byte) ((num >> 16) & 0xFF);
+            netnum[0] = (byte) ((num >> 24) & 0xFF);
         }
     }
 
     final static private class fragmentDescriptor {
-        /*Bit16u*/int offset;
-        /*Bit16u*/int segment;
-        /*Bit16u*/int size;
+
+        /*Bit16u*/ int offset;
+        /*Bit16u*/ int segment;
+        /*Bit16u*/ int size;
     }
 
     static private final ipxnetaddr localIpxAddr = new ipxnetaddr();
 
-    static private/*Bit32u*/int udpPort;
+    static private/*Bit32u*/ int udpPort;
     static private boolean isIpxServer;
     static private boolean isIpxConnected;
-    static private InetAddress ipxServConnIp;			// IPAddress for client connection to server
+    static private InetAddress ipxServConnIp;            // IPAddress for client connection to server
     static private DatagramSocket ipxClientSocket;
 
-    private static /*RealPt*/int ipx_callback;
+    private static /*RealPt*/ int ipx_callback;
 
     static private final packetBuffer incomingPacket = new packetBuffer();
 
-    private static /*Bit16u*/int socketCount;
-    private static final /*Bit16u*/int[] opensockets = new int[SOCKETTABLESIZE];
+    private static /*Bit16u*/ int socketCount;
+    private static final /*Bit16u*/ int[] opensockets = new int[SOCKETTABLESIZE];
 
     private static /*Bit16u*/int swapByte(/*Bit16u*/int sockNum) {
         return (((sockNum >>> 8) & 0xFF) | ((sockNum & 0xFF) << 8));
     }
 
     //#ifdef IPX_DEBUGMSG
-    static private /*Bitu*/int ECBSerialNumber = 0;
-    static private /*Bitu*/int ECBAmount = 0;
+    static private /*Bitu*/ int ECBSerialNumber = 0;
+    static private /*Bitu*/ int ECBAmount = 0;
     //#endif
 
     static private ECBClass ECBList;  // Linked list of ECB's
-    static private ECBClass ESRList;	// ECBs waiting to be ESR notified
+    static private ECBClass ESRList;    // ECBs waiting to be ESR notified
 
     private static class ECBClass {
-        public final /*RealPt*/int ECBAddr;
+
+        public final /*RealPt*/ int ECBAddr;
         public boolean isInESRList;
-        ECBClass prevECB;	// Linked List
+        ECBClass prevECB;    // Linked List
         ECBClass nextECB;
 
-        public /*Bit8u*/int iuflag;		// Need to save data since we are not always in
-        public final /*Bit16u*/int mysocket;	// real mode
+        public /*Bit8u*/ int iuflag;        // Need to save data since we are not always in
+        public final /*Bit16u*/ int mysocket;    // real mode
 
-        public /*Bit8u*/byte[] databuffer;	// received data is stored here until we get called
-        public /*Bitu*/int buflen;		// by Interrupt
+        public /*Bit8u*/ byte[] databuffer;    // received data is stored here until we get called
+        public /*Bitu*/ int buflen;        // by Interrupt
 
-        public /*Bitu*/int SerialNumber;
+        public /*Bitu*/ int SerialNumber;
 
         public ECBClass(/*Bit16u*/int segment, /*Bit16u*/int offset) {
             ECBAddr = Memory.RealMake(segment, offset);
@@ -233,9 +256,9 @@ public class IPX extends Module_base {
                 logger.log(Level.DEBUG, "ECB: SN%7d created.   Number of ECBs: %3d, ESR %4x:%4x, ECB %4x:%4x".formatted(
                         SerialNumber,
                         ECBAmount,
-                        Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+6),
-                        Memory.real_readw(Memory.RealSeg(ECBAddr),Memory.RealOff(ECBAddr)+4),
-                        segment,offset));
+                        Memory.real_readw(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 6),
+                        Memory.real_readw(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 4),
+                        segment, offset));
             }
 
             isInESRList = false;
@@ -248,7 +271,7 @@ public class IPX extends Module_base {
                 // Transverse the list until we hit the end
                 ECBClass useECB = ECBList;
 
-                while(useECB.nextECB != null)
+                while (useECB.nextECB != null)
                     useECB = useECB.nextECB;
 
                 useECB.nextECB = this;
@@ -264,7 +287,7 @@ public class IPX extends Module_base {
         }
 
         public /*Bit8u*/byte getInUseFlag() {
-            return (byte)Memory.real_readb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 0x8);
+            return (byte) Memory.real_readb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 0x8);
         }
 
         public void setInUseFlag(/*Bit8u*/int flagval) {
@@ -281,25 +304,29 @@ public class IPX extends Module_base {
         }
 
         public boolean writeData() {
-            /*Bitu*/int length=buflen;
-            /*Bit8u*/byte[] buffer = databuffer;
+            /*Bitu*/
+            int length = buflen;
+            /*Bit8u*/
+            byte[] buffer = databuffer;
             fragmentDescriptor tmpFrag = new fragmentDescriptor();
             setInUseFlag(USEFLAG_AVAILABLE);
-            /*Bitu*/int fragCount = getFragCount();
-            /*Bitu*/int bufoffset = 0;
-            for(/*Bitu*/int i = 0;i < fragCount;i++) {
-                getFragDesc(i,tmpFrag);
-                for(/*Bitu*/int t = 0;t < tmpFrag.size;t++) {
+            /*Bitu*/
+            int fragCount = getFragCount();
+            /*Bitu*/
+            int bufoffset = 0;
+            for (/*Bitu*/int i = 0; i < fragCount; i++) {
+                getFragDesc(i, tmpFrag);
+                for (/*Bitu*/int t = 0; t < tmpFrag.size; t++) {
                     Memory.real_writeb(tmpFrag.segment, tmpFrag.offset + t, buffer[bufoffset]);
                     bufoffset++;
-                    if(bufoffset >= length) {
+                    if (bufoffset >= length) {
                         setCompletionFlag(COMP_SUCCESS);
                         setImmAddress(buffer, 22);  // Write in source node
                         return true;
                     }
                 }
             }
-            if(bufoffset < length) {
+            if (bufoffset < length) {
                 setCompletionFlag(COMP_MALFORMED);
                 return false;
             }
@@ -309,11 +336,12 @@ public class IPX extends Module_base {
         public void writeDataBuffer(/*Bit8u*/byte[] buffer, /*Bit16u*/int length) {
             databuffer = new /*Bit8u*/byte[length];
             System.arraycopy(buffer, 0, databuffer, 0, length);
-            buflen=length;
+            buflen = length;
         }
 
         public void getFragDesc(/*Bit16u*/int descNum, fragmentDescriptor fragDesc) {
-            /*Bit16u*/int memoff = Memory.RealOff(ECBAddr) + 30 + ((descNum+1) * 6);
+            /*Bit16u*/
+            int memoff = Memory.RealOff(ECBAddr) + 30 + ((descNum + 1) * 6);
             fragDesc.offset = Memory.real_readw(Memory.RealSeg(ECBAddr), memoff);
             memoff += 2;
             fragDesc.segment = Memory.real_readw(Memory.RealSeg(ECBAddr), memoff);
@@ -323,33 +351,34 @@ public class IPX extends Module_base {
 
         public /*RealPt*/int getESRAddr() {
             return Memory.RealMake(Memory.real_readw(Memory.RealSeg(ECBAddr),
-            Memory.RealOff(ECBAddr)+6),
-            Memory.real_readw(Memory.RealSeg(ECBAddr),
-            Memory.RealOff(ECBAddr)+4));
+                            Memory.RealOff(ECBAddr) + 6),
+                    Memory.real_readw(Memory.RealSeg(ECBAddr),
+                            Memory.RealOff(ECBAddr) + 4));
         }
 
         public void NotifyESR() {
-            /*Bit32u*/long ESRval = Memory.real_readd(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr)+4);
-            if(ESRval!=0 || databuffer!=null) { // databuffer: write data at realmode/v86 time
+            /*Bit32u*/
+            long ESRval = Memory.real_readd(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 4);
+            if (ESRval != 0 || databuffer != null) { // databuffer: write data at realmode/v86 time
                 // LOG_IPX("ECB: SN%7d to be notified.", SerialNumber);
                 // take the ECB out of the current list
-                if(prevECB == null) {	// was the first in the list
+                if (prevECB == null) {    // was the first in the list
                     ECBList = nextECB;
-                    if(ECBList != null) ECBList.prevECB = null;
-                } else {		// not the first
+                    if (ECBList != null) ECBList.prevECB = null;
+                } else {        // not the first
                     prevECB.nextECB = nextECB;
-                    if(nextECB != null) nextECB.prevECB = prevECB;
+                    if (nextECB != null) nextECB.prevECB = prevECB;
                 }
 
                 nextECB = null;
                 // put it to the notification queue
-                if(ESRList==null) {
+                if (ESRList == null) {
                     ESRList = this;
                     prevECB = null;
-                } else  {// put to end of ESR list
+                } else {// put to end of ESR list
                     ECBClass useECB = ESRList;
 
-                    while(useECB.nextECB != null)
+                    while (useECB.nextECB != null)
                         useECB = useECB.nextECB;
 
                     useECB.nextECB = this;
@@ -363,63 +392,65 @@ public class IPX extends Module_base {
         }
 
         public void setImmAddress(/*Bit8u*/byte[] immAddr, int off) {
-            for(/*Bitu*/int i=0;i<6;i++)
-                Memory.real_writeb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr)+28+i, immAddr[i+off]);
+            for (/*Bitu*/int i = 0; i < 6; i++)
+                Memory.real_writeb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 28 + i, immAddr[i + off]);
         }
+
         public void getImmAddress(/*Bit8u*/byte[] immAddr) {
-            for(/*Bitu*/int i=0;i<6;i++)
-                immAddr[i] = (byte)Memory.real_readb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr)+28+i);
+            for (/*Bitu*/int i = 0; i < 6; i++)
+                immAddr[i] = (byte) Memory.real_readb(Memory.RealSeg(ECBAddr), Memory.RealOff(ECBAddr) + 28 + i);
         }
 
         public void close() {
             if (Config.IPX_DEBUGMSG) {
                 ECBAmount--;
-                logger.log(Level.DEBUG, "ECB: SN%7d destroyed. Remaining ECBs: %3d".formatted(SerialNumber,ECBAmount));
+                logger.log(Level.DEBUG, "ECB: SN%7d destroyed. Remaining ECBs: %3d".formatted(SerialNumber, ECBAmount));
             }
 
-            if(isInESRList) {
+            if (isInESRList) {
                 // in ESR list, always the first element is deleted.
-                ESRList=nextECB;
+                ESRList = nextECB;
             } else {
-                if(prevECB == null) {	// was the first in the list
+                if (prevECB == null) {    // was the first in the list
                     ECBList = nextECB;
-                    if(ECBList != null) ECBList.prevECB = null;
-                } else {	// not the first
+                    if (ECBList != null) ECBList.prevECB = null;
+                } else {    // not the first
                     prevECB.nextECB = nextECB;
-                    if(nextECB != null) nextECB.prevECB = prevECB;
+                    if (nextECB != null) nextECB.prevECB = prevECB;
                 }
             }
         }
     }
 
     private static boolean sockInUse(/*Bit16u*/int sockNum) {
-        for(/*Bitu*/int i=0;i<socketCount;i++) {
+        for (/*Bitu*/int i = 0; i < socketCount; i++) {
             if (opensockets[i] == sockNum) return true;
         }
         return false;
     }
 
     private static void OpenSocket() {
-        /*Bit16u*/int sockNum, sockAlloc;
+        /*Bit16u*/
+        int sockNum, sockAlloc;
         sockNum = swapByte(CPU_Regs.reg_edx.word());
 
-        if(socketCount >= SOCKETTABLESIZE) {
+        if (socketCount >= SOCKETTABLESIZE) {
             CPU_Regs.reg_eax.low(0xfe); // Socket table full
             return;
         }
 
-        if(sockNum == 0x0000) {
+        if (sockNum == 0x0000) {
             // Dynamic socket allocation
             sockAlloc = 0x4002;
-            while(sockInUse(sockAlloc) && (sockAlloc < 0x7fff)) sockAlloc++;
-            if(sockAlloc > 0x7fff) {
+            while (sockInUse(sockAlloc) && (sockAlloc < 0x7fff)) sockAlloc++;
+            if (sockAlloc > 0x7fff) {
                 // I have no idea how this could happen if the IPX driver
                 // is limited to 150 open sockets at a time
                 logger.log(Level.DEBUG, "IPX: Out of dynamic sockets");
             }
             sockNum = sockAlloc;
         } else {
-            if(sockInUse(sockNum)) {
+            if (sockInUse(sockNum)) {
                 CPU_Regs.reg_eax.low(0xff); // Socket already open
                 return;
             }
@@ -433,27 +464,28 @@ public class IPX extends Module_base {
     }
 
     private static void CloseSocket() {
-        /*Bit16u*/int sockNum, i;
+        /*Bit16u*/
+        int sockNum, i;
         ECBClass tmpECB = ECBList;
         ECBClass tmp2ECB = ECBList;
 
         sockNum = swapByte(CPU_Regs.reg_edx.word());
-        if(!sockInUse(sockNum)) return;
+        if (!sockInUse(sockNum)) return;
 
-        for(i=0;i<socketCount-1;i++) {
+        for (i = 0; i < socketCount - 1; i++) {
             if (opensockets[i] == sockNum) {
                 // Realign list of open sockets
-                for (int j=i;j< SOCKETTABLESIZE -1;j++)
-                    opensockets[j] = opensockets[j+1];
+                for (int j = i; j < SOCKETTABLESIZE - 1; j++)
+                    opensockets[j] = opensockets[j + 1];
                 break;
             }
         }
         --socketCount;
 
         // delete all ECBs of that socket
-        while(tmpECB!=null) {
+        while (tmpECB != null) {
             tmp2ECB = tmpECB.nextECB;
-            if(tmpECB.getSocket()==sockNum) {
+            if (tmpECB.getSocket() == sockNum) {
                 tmpECB.setCompletionFlag(COMP_CANCELLED);
                 tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                 tmpECB.close();
@@ -467,7 +499,7 @@ public class IPX extends Module_base {
     private static final Dos_system.MultiplexHandler IPX_Multiplex = new Dos_system.MultiplexHandler() {
         @Override
         public boolean call() {
-            if(CPU_Regs.reg_eax.word() != 0x7a00) return false;
+            if (CPU_Regs.reg_eax.word() != 0x7a00) return false;
             CPU_Regs.reg_eax.low(0xff);
             CPU_Regs.SegSet16ES(Memory.RealSeg(ipx_callback));
             CPU_Regs.reg_edi.word(Memory.RealOff(ipx_callback));
@@ -483,9 +515,9 @@ public class IPX extends Module_base {
         public void call(/*Bitu*/int param) {
             ECBClass tmpECB = ECBList;
             ECBClass tmp2ECB;
-            while(tmpECB!=null) {
+            while (tmpECB != null) {
                 tmp2ECB = tmpECB.nextECB;
-                if(tmpECB.iuflag==USEFLAG_AESCOUNT && param==tmpECB.ECBAddr) {
+                if (tmpECB.iuflag == USEFLAG_AESCOUNT && param == tmpECB.ECBAddr) {
                     tmpECB.setCompletionFlag(COMP_SUCCESS);
                     tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                     tmpECB.NotifyESR();
@@ -494,7 +526,7 @@ public class IPX extends Module_base {
                 }
                 tmpECB = tmp2ECB;
             }
-            logger.log(Level.DEBUG, "!!!! Rouge AES !!!!" );
+            logger.log(Level.DEBUG, "!!!! Rouge AES !!!!");
         }
     };
 
@@ -502,31 +534,31 @@ public class IPX extends Module_base {
         ECBClass tmpECB;
 
         switch (CPU_Regs.reg_ebx.word()) {
-            case 0x0000:	// Open socket
+            case 0x0000:    // Open socket
                 OpenSocket();
                 logger.log(Level.DEBUG, "IPX: Open socket %4x".formatted(swapByte(CPU_Regs.reg_edx.word())));
                 break;
-            case 0x0001:	// Close socket
+            case 0x0001:    // Close socket
                 logger.log(Level.DEBUG, "IPX: Close socket %4x".formatted(swapByte(CPU_Regs.reg_edx.word())));
                 CloseSocket();
                 break;
-            case 0x0002:	// get local target
-                            // es:si
-                            // Currently no support for multiple networks
+            case 0x0002:    // get local target
+                // es:si
+                // Currently no support for multiple networks
 
-                for(/*Bitu*/int i = 0; i < 6; i++)
-                    Memory.real_writeb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_edi.word()+i,Memory.real_readb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i+4));
+                for (/*Bitu*/int i = 0; i < 6; i++)
+                    Memory.real_writeb(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_edi.word() + i, Memory.real_readb(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word() + i + 4));
 
-                CPU_Regs.reg_ecx.word(1);		// time ticks expected
-                CPU_Regs.reg_eax.low(0x00);	//success
+                CPU_Regs.reg_ecx.word(1);        // time ticks expected
+                CPU_Regs.reg_eax.low(0x00);    //success
                 break;
 
-            case 0x0003:		// Send packet
-                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
-                if(!incomingPacket.connected) {
+            case 0x0003:        // Send packet
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word());
+                if (!incomingPacket.connected) {
                     tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                     tmpECB.setCompletionFlag(COMP_UNDELIVERABLE);
-                    tmpECB.close();	// not notify?
+                    tmpECB.close();    // not notify?
                     CPU_Regs.reg_eax.low(0xff); // Failure
                 } else {
                     tmpECB.setInUseFlag(USEFLAG_SENDING);
@@ -537,9 +569,9 @@ public class IPX extends Module_base {
 
                 break;
             case 0x0004:  // Listen for packet
-                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word());
                 // LOG_IPX("ECB: SN%7d RECEIVE.", tmpECB.SerialNumber);
-                if(!sockInUse(tmpECB.getSocket())) {  // Socket is not open
+                if (!sockInUse(tmpECB.getSocket())) {  // Socket is not open
                     CPU_Regs.reg_eax.low(0xff);
                     tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                     tmpECB.setCompletionFlag(COMP_HARDWAREERROR);
@@ -554,42 +586,43 @@ public class IPX extends Module_base {
                 }
                 break;
 
-            case 0x0005:	// SCHEDULE IPX EVENT
-            case 0x0007:	// SCHEDULE SPECIAL IPX EVENT
+            case 0x0005:    // SCHEDULE IPX EVENT
+            case 0x0007:    // SCHEDULE SPECIAL IPX EVENT
             {
-                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
+                tmpECB = new ECBClass(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word());
                 // LOG_IPX("ECB: SN%7d AES. T=%fms.", tmpECB.SerialNumber,
                 //	(1000.0f/(1193182.0f/65536.0f))*(float)CPU_Regs.reg_eax.word();
-                Pic.PIC_AddEvent(IPX_AES_EventHandler, (1000.0f/(1193182.0f/65536.0f))*(float)CPU_Regs.reg_eax.word(), tmpECB.ECBAddr);
+                Pic.PIC_AddEvent(IPX_AES_EventHandler, (1000.0f / (1193182.0f / 65536.0f)) * (float) CPU_Regs.reg_eax.word(), tmpECB.ECBAddr);
                 tmpECB.setInUseFlag(USEFLAG_AESCOUNT);
                 break;
             }
-            case 0x0006:	// cancel operation
+            case 0x0006:    // cancel operation
             {
-                /*RealPt*/int ecbaddress = Memory.RealMake(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word());
-                tmpECB= ECBList;
+                /*RealPt*/
+                int ecbaddress = Memory.RealMake(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word());
+                tmpECB = ECBList;
                 ECBClass tmp2ECB;
-                while (tmpECB!=null) {
-                    tmp2ECB=tmpECB.nextECB;
-                    if(tmpECB.ECBAddr == ecbaddress) {
-                        if(tmpECB.getInUseFlag()==USEFLAG_AESCOUNT)
+                while (tmpECB != null) {
+                    tmp2ECB = tmpECB.nextECB;
+                    if (tmpECB.ECBAddr == ecbaddress) {
+                        if (tmpECB.getInUseFlag() == USEFLAG_AESCOUNT)
                             Pic.PIC_RemoveSpecificEvents(IPX_AES_EventHandler, ecbaddress);
                         tmpECB.setInUseFlag(USEFLAG_AVAILABLE);
                         tmpECB.setCompletionFlag(COMP_CANCELLED);
                         tmpECB.close();
-                        CPU_Regs.reg_eax.low(0);	// Success
+                        CPU_Regs.reg_eax.low(0);    // Success
                         logger.log(Level.DEBUG, "IPX: ECB canceled.");
                         return;
                     }
-                    tmpECB=tmp2ECB;
+                    tmpECB = tmp2ECB;
                 }
-                CPU_Regs.reg_eax.low(0xff);	// Fail
+                CPU_Regs.reg_eax.low(0xff);    // Fail
                 break;
             }
-            case 0x0008:		// Get interval marker
+            case 0x0008:        // Get interval marker
                 CPU_Regs.reg_eax.word(Memory.mem_readw(0x46c)); // BIOS_TIMER
                 break;
-            case 0x0009:		// Get internetwork address
+            case 0x0009:        // Get internetwork address
             {
                 logger.log(Level.DEBUG, "IPX: Get internetwork address %2x:%2x:%2x:%2x:%2x:%2x".formatted(localIpxAddr.netnode[5] & 0xFF, localIpxAddr.netnode[4] & 0xFF,
                         localIpxAddr.netnode[3] & 0xFF, localIpxAddr.netnode[2] & 0xFF,
@@ -597,29 +630,29 @@ public class IPX extends Module_base {
 
                 //Bit8u * addrptr = (Bit8u *)&localIpxAddr;
                 byte[] addrptr = localIpxAddr.toByteArray();
-                for(/*Bit16u*/int i=0;i<10;i++)
-                    Memory.real_writeb(CPU_Regs.reg_esVal.dword,CPU_Regs.reg_esi.word()+i,addrptr[i]);
+                for (/*Bit16u*/int i = 0; i < 10; i++)
+                    Memory.real_writeb(CPU_Regs.reg_esVal.dword, CPU_Regs.reg_esi.word() + i, addrptr[i]);
                 break;
             }
-            case 0x000a:		// Relinquish control
-                break;			// Idle thingy
+            case 0x000a:        // Relinquish control
+                break;            // Idle thingy
 
-            case 0x000b:		// Disconnect from Target
-                break;			// We don't even connect
+            case 0x000b:        // Disconnect from Target
+                break;            // We don't even connect
 
-            case 0x000d:		// get packet size
-                CPU_Regs.reg_ecx.word(0);		// retry count
-                CPU_Regs.reg_eax.word(1024);	// real implementation returns 1024
+            case 0x000d:        // get packet size
+                CPU_Regs.reg_ecx.word(0);        // retry count
+                CPU_Regs.reg_eax.word(1024);    // real implementation returns 1024
                 break;
 
-            case 0x0010:		// SPX install check
-                CPU_Regs.reg_eax.low(0);		// SPX not installed
+            case 0x0010:        // SPX install check
+                CPU_Regs.reg_eax.low(0);        // SPX not installed
                 break;
 
-            case 0x001a:		// get driver maximum packet size
-                CPU_Regs.reg_ecx.word(0);		// retry count
-                CPU_Regs.reg_eax.word(IPXBUFFERSIZE);	// max packet size: something near the
-                                        // ethernet packet size
+            case 0x001a:        // get driver maximum packet size
+                CPU_Regs.reg_ecx.word(0);        // retry count
+                CPU_Regs.reg_eax.word(IPXBUFFERSIZE);    // max packet size: something near the
+                // ethernet packet size
                 break;
 
             default:
@@ -635,6 +668,7 @@ public class IPX extends Module_base {
             handleIpxRequest();
             return Callback.CBRET_NONE;
         }
+
         @Override
         public String getName() {
             return "IPX";
@@ -648,6 +682,7 @@ public class IPX extends Module_base {
             handleIpxRequest();
             return Callback.CBRET_NONE;
         }
+
         @Override
         public String getName() {
             return "IPX INT 7A";
@@ -669,7 +704,7 @@ public class IPX extends Module_base {
     static private short read16(InputStream is) throws IOException {
         int b = is.read() & 0xFF;
         int a = is.read() & 0xFF;
-        return (short)(a | (b << 8));
+        return (short) (a | (b << 8));
     }
 
     static private int read32(InputStream is) throws IOException {
@@ -683,14 +718,14 @@ public class IPX extends Module_base {
     private static void pingAck(IPaddress retAddr) {
         IPXHeader regHeader = new IPXHeader();
 
-        regHeader.checkSum = (short)0xFFFF;
+        regHeader.checkSum = (short) 0xFFFF;
         regHeader.dest.network = 0;
         regHeader.dest.addr.setHost(retAddr.host);
         regHeader.dest.addr.setPort(retAddr.port);
         regHeader.dest.socket = 2;
         regHeader.src.network = 0;
         System.arraycopy(localIpxAddr.netnode, 0, regHeader.src.addr.byNode.node, 0, regHeader.src.addr.byNode.node.length);
-        regHeader.src.socket=2;
+        regHeader.src.socket = 2;
         regHeader.transControl = 0;
         regHeader.pType = 0x0;
 
@@ -707,14 +742,14 @@ public class IPX extends Module_base {
     private static void pingSend() {
         IPXHeader regHeader = new IPXHeader();
 
-        regHeader.checkSum = (short)0xFFFF;
+        regHeader.checkSum = (short) 0xFFFF;
         regHeader.dest.network = 0;
         regHeader.dest.addr.setHost(0xFFFFFFFF);
         regHeader.dest.addr.setPort(0xFFFF);
         regHeader.dest.socket = 2;
         regHeader.src.network = 0;
         System.arraycopy(localIpxAddr.netnode, 0, regHeader.src.addr.byNode.node, 0, regHeader.src.addr.byNode.node.length);
-        regHeader.src.socket=2;
+        regHeader.src.socket = 2;
         regHeader.transControl = 0;
         regHeader.pType = 0x0;
 
@@ -733,15 +768,16 @@ public class IPX extends Module_base {
         ECBClass nextECB;
         IPXHeader tmpHeader = new IPXHeader();
         tmpHeader.load(buffer);
-        /*Bit16u*/int useSocket = tmpHeader.dest.socket & 0xFFFF;
+        /*Bit16u*/
+        int useSocket = tmpHeader.dest.socket & 0xFFFF;
 
         // Check to see if ping packet
-        if(useSocket == 0x2) {
+        if (useSocket == 0x2) {
             // Is this a broadcast?
-            if((tmpHeader.dest.addr.host() == 0xffffffff) &&
-                (tmpHeader.dest.addr.port() == 0xffff)) {
+            if ((tmpHeader.dest.addr.host() == 0xffffffff) &&
+                    (tmpHeader.dest.addr.port() == 0xffff)) {
                 // Yes.  We should return the ping back to the sender
-                IPaddress tmpAddr=new IPaddress();
+                IPaddress tmpAddr = new IPaddress();
                 tmpAddr.host = tmpHeader.src.addr.host();
                 tmpAddr.port = tmpHeader.src.addr.port();
                 pingAck(tmpAddr);
@@ -750,10 +786,9 @@ public class IPX extends Module_base {
         }
 
         useECB = ECBList;
-        while(useECB != null)
-        {
+        while (useECB != null) {
             nextECB = useECB.nextECB;
-            if(useECB.iuflag == USEFLAG_LISTENING && useECB.mysocket == useSocket) {
+            if (useECB.iuflag == USEFLAG_LISTENING && useECB.mysocket == useSocket) {
                 useECB.writeDataBuffer(buffer, bufSize);
                 useECB.NotifyESR();
                 return;
@@ -765,7 +800,9 @@ public class IPX extends Module_base {
     }
 
     private static ReceiverThread receiverThread;
+
     static final class ReceiverThread extends Thread {
+
         boolean exit = false;
         final Object signal = new Object();
         boolean ready = false;
@@ -777,6 +814,7 @@ public class IPX extends Module_base {
         public ReceiverThread(DatagramSocket socket) {
             this.socket = socket;
         }
+
         public int next(IPXAddress address) {
             synchronized (signal) {
                 if (ready) {
@@ -793,6 +831,7 @@ public class IPX extends Module_base {
             }
             return 0;
         }
+
         @Override
         public void run() {
             exit = false;
@@ -809,62 +848,70 @@ public class IPX extends Module_base {
             }
         }
     }
+
     private static final Timer.TIMER_TickHandler IPX_ClientLoop = new Timer.TIMER_TickHandler() {
         @Override
         public void call() {
             int length = receiverThread.next(null);
-            if (length>0)
+            if (length > 0)
                 receivePacket(receiverThread.recvBuffer, length);
         }
     };
 
     static private void DisconnectFromServer(boolean unexpected) {
-        if(unexpected) logger.log(Level.DEBUG, "IPX: Server disconnected unexpectedly");
-        if(incomingPacket.connected) {
+        if (unexpected) logger.log(Level.DEBUG, "IPX: Server disconnected unexpectedly");
+        if (incomingPacket.connected) {
             incomingPacket.connected = false;
             Timer.TIMER_DelTickHandler(IPX_ClientLoop);
             ipxClientSocket.close();
         }
         receiverThread.exit = true;
-        try {receiverThread.join();} catch (Exception e){}
+        try {
+            receiverThread.join();
+        } catch (Exception e) {
+        }
     }
 
     private static void sendPacket(ECBClass sendecb) {
-        /*Bit8u*/byte[] outbuffer = new byte[IPXBUFFERSIZE];
+        /*Bit8u*/
+        byte[] outbuffer = new byte[IPXBUFFERSIZE];
         fragmentDescriptor tmpFrag = new fragmentDescriptor();
-        /*Bit16u*/int i, fragCount,t;
-        /*Bit16s*/int packetsize;
-        /*Bits*/int result;
+        /*Bit16u*/
+        int i, fragCount, t;
+        /*Bit16s*/
+        int packetsize;
+        /*Bits*/
+        int result;
 
         sendecb.setInUseFlag(USEFLAG_AVAILABLE);
         packetsize = 0;
         fragCount = sendecb.getFragCount();
-        for(i=0;i<fragCount;i++) {
-            sendecb.getFragDesc(i,tmpFrag);
-            if(i==0) {
+        for (i = 0; i < fragCount; i++) {
+            sendecb.getFragDesc(i, tmpFrag);
+            if (i == 0) {
                 // Fragment containing IPX header
                 // Must put source address into header
 
                 // source netnum
-                for(/*Bit16u*/int m=0;m<4;m++) {
-                    Memory.real_writeb(tmpFrag.segment,tmpFrag.offset+m+18,localIpxAddr.netnum[m]);
+                for (/*Bit16u*/int m = 0; m < 4; m++) {
+                    Memory.real_writeb(tmpFrag.segment, tmpFrag.offset + m + 18, localIpxAddr.netnum[m]);
                 }
                 // source node number
-                for(/*Bit16u*/int m=0;m<6;m++) {
-                    Memory.real_writeb(tmpFrag.segment,tmpFrag.offset+m+22,localIpxAddr.netnode[m]);
+                for (/*Bit16u*/int m = 0; m < 6; m++) {
+                    Memory.real_writeb(tmpFrag.segment, tmpFrag.offset + m + 22, localIpxAddr.netnode[m]);
                 }
                 // Source socket
-                Memory.real_writew(tmpFrag.segment,tmpFrag.offset+28, swapByte(sendecb.getSocket()));
+                Memory.real_writew(tmpFrag.segment, tmpFrag.offset + 28, swapByte(sendecb.getSocket()));
 
                 // blank checksum
-                Memory.real_writew(tmpFrag.segment,tmpFrag.offset, 0xffff);
+                Memory.real_writew(tmpFrag.segment, tmpFrag.offset, 0xffff);
             }
 
-            for(t=0;t<tmpFrag.size;t++) {
-                outbuffer[packetsize] = (byte)Memory.real_readb(tmpFrag.segment, tmpFrag.offset + t);
+            for (t = 0; t < tmpFrag.size; t++) {
+                outbuffer[packetsize] = (byte) Memory.real_readb(tmpFrag.segment, tmpFrag.offset + t);
                 packetsize++;
-                if(packetsize>=IPXBUFFERSIZE) {
-                    logger.log(Level.DEBUG, "IPX: Packet size to be sent greater than "+IPXBUFFERSIZE+" bytes.");
+                if (packetsize >= IPXBUFFERSIZE) {
+                    logger.log(Level.DEBUG, "IPX: Packet size to be sent greater than " + IPXBUFFERSIZE + " bytes.");
                     sendecb.setCompletionFlag(COMP_UNDELIVERABLE);
                     sendecb.NotifyESR();
                     return;
@@ -876,32 +923,33 @@ public class IPX extends Module_base {
         // Blank CRC
         //wordptr[0] = 0xffff;
         // Length
-        outbuffer[3] = (byte)(packetsize & 0xFF);
-        outbuffer[2] = (byte)((packetsize >> 8) & 0xFF);
+        outbuffer[3] = (byte) (packetsize & 0xFF);
+        outbuffer[2] = (byte) ((packetsize >> 8) & 0xFF);
         // Source socket
         //wordptr[14] = swapByte(sendecb.getSocket());
 
-        sendecb.getFragDesc(0,tmpFrag);
-        Memory.real_writew(tmpFrag.segment,tmpFrag.offset+2, swapByte(packetsize));
+        sendecb.getFragDesc(0, tmpFrag);
+        Memory.real_writew(tmpFrag.segment, tmpFrag.offset + 2, swapByte(packetsize));
 
 
-        /*Bit8u*/byte[] immedAddr = new byte[6];
+        /*Bit8u*/
+        byte[] immedAddr = new byte[6];
         sendecb.getImmAddress(immedAddr);
         // filter out broadcasts and local loopbacks
         // Real implementation uses the ImmedAddr to check wether this is a broadcast
 
-        boolean islocalbroadcast=true;
-        boolean isloopback=true;
+        boolean islocalbroadcast = true;
+        boolean isloopback = true;
 
-        for(/*Bitu*/int m=0;m<4;m++) {
-            if(localIpxAddr.netnum[m]!=outbuffer[m+0x6])isloopback=false;
+        for (/*Bitu*/int m = 0; m < 4; m++) {
+            if (localIpxAddr.netnum[m] != outbuffer[m + 0x6]) isloopback = false;
         }
-        for(/*Bitu*/int m=0;m<6;m++) {
-            if(localIpxAddr.netnode[m]!=outbuffer[m+0xa])isloopback=false;
-            if(immedAddr[m]!=(byte)0xff) islocalbroadcast=false;
+        for (/*Bitu*/int m = 0; m < 6; m++) {
+            if (localIpxAddr.netnode[m] != outbuffer[m + 0xa]) isloopback = false;
+            if (immedAddr[m] != (byte) 0xff) islocalbroadcast = false;
         }
         //LOG_IPX("SEND crc:%2x",packetCRC(&outbuffer[0], packetsize));
-        if(!isloopback) {
+        if (!isloopback) {
             // Since we're using a channel, we won't send the IP address again
             DatagramPacket outPacket = new DatagramPacket(outbuffer, packetsize, ipxServConnIp, udpPort);
             try {
@@ -916,23 +964,23 @@ public class IPX extends Module_base {
             }
             sendecb.setCompletionFlag(COMP_SUCCESS);
             if (Config.IPX_DEBUGMSG)
-                logger.log(Level.DEBUG, "Packet sent: size: "+packetsize);
+                logger.log(Level.DEBUG, "Packet sent: size: " + packetsize);
         } else {
             sendecb.setCompletionFlag(COMP_SUCCESS);
         }
 
-        if(isloopback||islocalbroadcast) {
+        if (isloopback || islocalbroadcast) {
             // Send packet back to ourselves.
-            receivePacket(outbuffer,packetsize);
+            receivePacket(outbuffer, packetsize);
             if (Config.IPX_DEBUGMSG)
-                logger.log(Level.DEBUG, "Packet back: loopback:"+isloopback+", broadcast:"+islocalbroadcast);
+                logger.log(Level.DEBUG, "Packet back: loopback:" + isloopback + ", broadcast:" + islocalbroadcast);
         }
         sendecb.NotifyESR();
     }
 
     private static boolean pingCheck(IPXHeader outHeader) {
         int length = receiverThread.next(null);
-        if (length>0) {
+        if (length > 0) {
             byte[] buffer = new byte[1024];
             System.arraycopy(receiverThread.recvBuffer, 0, buffer, 0, length);
             outHeader.load(buffer);
@@ -948,7 +996,7 @@ public class IPX extends Module_base {
             receiverThread = new ReceiverThread(ipxClientSocket);
             receiverThread.start();
             IPXHeader regHeader = new IPXHeader();
-            regHeader.checkSum = (short)0xFFFF;
+            regHeader.checkSum = (short) 0xFFFF;
             regHeader.dest.network = 0;
             regHeader.dest.addr.setHost(0);
             regHeader.dest.addr.setPort(0);
@@ -965,27 +1013,35 @@ public class IPX extends Module_base {
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 logger.log(Level.DEBUG, "IPX: Unable to connect to server");
-                try {ipxClientSocket.close();} catch (Exception e1) {}
+                try {
+                    ipxClientSocket.close();
+                } catch (Exception e1) {
+                }
                 return false;
             }
 
             // Wait for return packet from server.
             // This will contain our IPX address and port num
-            /*Bits*/int result;
-            /*Bit32u*/long ticks, elapsed;
+            /*Bits*/
+            int result;
+            /*Bit32u*/
+            long ticks, elapsed;
             ticks = Main.GetTicks();
 
-            while(true) {
+            while (true) {
                 elapsed = Main.GetTicks() - ticks;
-                if(elapsed > 5000) {
-                    logger.log(Level.DEBUG, "Timeout connecting to server at "+strAddr);
-                    try {ipxClientSocket.close();} catch (Exception e) {}
+                if (elapsed > 5000) {
+                    logger.log(Level.DEBUG, "Timeout connecting to server at " + strAddr);
+                    try {
+                        ipxClientSocket.close();
+                    } catch (Exception e) {
+                    }
                     return false;
                 }
                 Callback.CALLBACK_Idle();
 
                 int length = receiverThread.next(null);
-                if (length>0) {
+                if (length > 0) {
                     regHeader.load(receiverThread.recvBuffer);
                     System.arraycopy(regHeader.dest.addr.byNode.node, 0, localIpxAddr.netnode, 0, localIpxAddr.netnode.length);
                     localIpxAddr.netnum(regHeader.dest.network);
@@ -1022,9 +1078,10 @@ public class IPX extends Module_base {
     }
 
     private static class IPXNET extends Program {
+
         void HelpCommand(String helpStr) {
             // Help on connect command
-            if("connect".equals(helpStr)) {
+            if ("connect".equals(helpStr)) {
                 writeOut("IPXNET CONNECT opens a connection to an IPX tunneling server running on another\n");
                 writeOut("DosBox session.  The \"address\" parameter specifies the IP address or host name\n");
                 writeOut("of the server computer.  One can also specify the UDP port to use.  By default\n");
@@ -1034,14 +1091,14 @@ public class IPX extends Module_base {
                 return;
             }
             // Help on the disconnect command
-            if("disconnect".equals(helpStr)) {
+            if ("disconnect".equals(helpStr)) {
                 writeOut("IPXNET DISCONNECT closes the connection to the IPX tunneling server.\n\n");
                 writeOut("The syntax for IPXNET DISCONNECT is:\n\n");
                 writeOut("IPXNET DISCONNECT\n\n");
                 return;
             }
             // Help on the startserver command
-            if("startserver".equals(helpStr)) {
+            if ("startserver".equals(helpStr)) {
                 writeOut("IPXNET STARTSERVER starts and IPX tunneling server on this DosBox session.  By\n");
                 writeOut("default, the server will accept connections on UDP port 213, though this can be\n");
                 writeOut("changed.  Once the server is started, DosBox will automatically start a client\n");
@@ -1051,7 +1108,7 @@ public class IPX extends Module_base {
                 return;
             }
             // Help on the stop server command
-            if("stopserver".equals(helpStr)) {
+            if ("stopserver".equals(helpStr)) {
                 writeOut("IPXNET STOPSERVER stops the IPX tunneling server running on this DosBox\nsession.");
                 writeOut("  Care should be taken to ensure that all other connections have\nterminated ");
                 writeOut("as well sinnce stoping the server may cause lockups on other\nmachines still using ");
@@ -1061,7 +1118,7 @@ public class IPX extends Module_base {
                 return;
             }
             // Help on the ping command
-            if("ping".equals(helpStr)) {
+            if ("ping".equals(helpStr)) {
                 writeOut("IPXNET PING broadcasts a ping request through the IPX tunneled network.  In    \n");
                 writeOut("response, all other connected computers will respond to the ping and report\n");
                 writeOut("the time it took to receive and send the ping message.\n\n");
@@ -1070,7 +1127,7 @@ public class IPX extends Module_base {
                 return;
             }
             // Help on the status command
-            if("status".equals(helpStr)) {
+            if ("status".equals(helpStr)) {
                 writeOut("IPXNET STATUS reports the current state of this DosBox's sessions IPX tunneling\n");
                 writeOut("network.  For a list of the computers connected to the network use the IPXNET \n");
                 writeOut("PING command.\n\n");
@@ -1081,16 +1138,15 @@ public class IPX extends Module_base {
         }
 
         @Override
-        public void run()
-        {
+        public void run() {
             writeOut("IPX Tunneling utility for DosBox\n\n");
-            if(cmd.getCount()==0) {
+            if (cmd.getCount() == 0) {
                 writeOut("The syntax of this command is:\n\n");
                 writeOut("IPXNET [ CONNECT | DISCONNECT | STARTSERVER | STOPSERVER | PING | HELP |\n         STATUS ]\n\n");
                 return;
             }
 
-            if((temp_line=cmd.findCommand(1))!=null) {
+            if ((temp_line = cmd.findCommand(1)) != null) {
                 temp_line = temp_line.toLowerCase();
                 switch (temp_line) {
                     case "help" -> {
@@ -1245,22 +1301,22 @@ public class IPX extends Module_base {
         @Override
         public /*Bitu*/int call() {
             if (Config.IPX_DEBUGMSG)
-                logger.log(Level.DEBUG, "ESR: >>>>>>>>>>>>>>>" );
-            while(ESRList!=null) {
+                logger.log(Level.DEBUG, "ESR: >>>>>>>>>>>>>>>");
+            while (ESRList != null) {
                 // LOG_IPX("ECB: SN%7d notified.", ESRList.SerialNumber);
-                if(ESRList.databuffer!=null) ESRList.writeData();
-                if(ESRList.getESRAddr()!=0) {
+                if (ESRList.databuffer != null) ESRList.writeData();
+                if (ESRList.getESRAddr() != 0) {
                     // setup registers
                     CPU_Regs.SegSet16ES(Memory.RealSeg(ESRList.ECBAddr));
                     CPU_Regs.reg_esi.word(Memory.RealOff(ESRList.ECBAddr));
                     CPU_Regs.reg_eax.low(0xff);
-                    Callback.CALLBACK_RunRealFar(Memory.RealSeg(ESRList.getESRAddr()),Memory.RealOff(ESRList.getESRAddr()));
+                    Callback.CALLBACK_RunRealFar(Memory.RealSeg(ESRList.getESRAddr()), Memory.RealOff(ESRList.getESRAddr()));
                 }
                 ESRList.close();
-            }	// while
+            }    // while
 
-            IO.IO_WriteB(0xa0,0x63);	//EOI11
-            IO.IO_WriteB(0x20,0x62);	//EOI2
+            IO.IO_WriteB(0xa0, 0x63);    //EOI11
+            IO.IO_WriteB(0x20, 0x62);    //EOI2
             if (Config.IPX_DEBUGMSG)
                 logger.log(Level.DEBUG, "ESR: <<<<<<<<<<<<<<<");
             return Callback.CBRET_NONE;
@@ -1276,13 +1332,13 @@ public class IPX extends Module_base {
     private final Callback callback_ipx = new Callback();
     private final Callback callback_esr = new Callback();
     private final Callback callback_ipxint = new Callback();
-    private final /*RealPt*/IntRef old_73_vector = new IntRef(0);
-    private static /*Bit16u*/int dospage;
+    private final /*RealPt*/ IntRef old_73_vector = new IntRef(0);
+    private static /*Bit16u*/ int dospage;
 
     private IPX(Section configuration) {
         super(configuration);
-        Section_prop section=(Section_prop)configuration;
-        if(!section.Get_bool("ipx")) return;
+        Section_prop section = (Section_prop) configuration;
+        if (!section.Get_bool("ipx")) return;
 
         ECBList = null;
         ESRList = null;
@@ -1292,63 +1348,66 @@ public class IPX extends Module_base {
 
         Dos_misc.DOS_AddMultiplexHandler(IPX_Multiplex);
 
-        callback_ipx.Install(IPX_Handler,Callback.CB_RETF,"IPX Handler");
+        callback_ipx.Install(IPX_Handler, Callback.CB_RETF, "IPX Handler");
         ipx_callback = callback_ipx.Get_RealPointer();
 
-        callback_ipxint.Install(IPX_IntHandler,Callback.CB_IRET,"IPX (int 7a)");
+        callback_ipxint.Install(IPX_IntHandler, Callback.CB_IRET, "IPX (int 7a)");
         callback_ipxint.Set_RealVec(0x7a);
 
-        callback_esr.Allocate(IPX_ESRHandler,"IPX_ESR");
-        /*Bit16u*/int call_ipxesr1 = callback_esr.Get_callback();
+        callback_esr.Allocate(IPX_ESRHandler, "IPX_ESR");
+        /*Bit16u*/
+        int call_ipxesr1 = callback_esr.Get_callback();
 
-        if(dospage==0) dospage = Dos_tables.DOS_GetMemory(2); // can not be freed yet
+        if (dospage == 0) dospage = Dos_tables.DOS_GetMemory(2); // can not be freed yet
 
-        /*PhysPt*/int phyDospage = Memory.PhysMake(dospage,0);
+        /*PhysPt*/
+        int phyDospage = Memory.PhysMake(dospage, 0);
 
         if (Config.IPX_DEBUGMSG)
-            logger.log(Level.DEBUG, "ESR callback address: "+Long.toString(phyDospage, 16)+", HandlerID "+call_ipxesr1);
+            logger.log(Level.DEBUG, "ESR callback address: " + Long.toString(phyDospage, 16) + ", HandlerID " + call_ipxesr1);
 
         //save registers
-        Memory.phys_writeb(phyDospage+0,0xFA);    // CLI
-        Memory.phys_writeb(phyDospage+1,0x60);    // PUSHA
-        Memory.phys_writeb(phyDospage+2,0x1E);    // PUSH DS
-        Memory.phys_writeb(phyDospage+3,0x06);    // PUSH ES
-        Memory.phys_writew(phyDospage+4,0xA00F); // PUSH FS
-        Memory.phys_writew(phyDospage+6,0xA80F); // PUSH GS
+        Memory.phys_writeb(phyDospage + 0, 0xFA);    // CLI
+        Memory.phys_writeb(phyDospage + 1, 0x60);    // PUSHA
+        Memory.phys_writeb(phyDospage + 2, 0x1E);    // PUSH DS
+        Memory.phys_writeb(phyDospage + 3, 0x06);    // PUSH ES
+        Memory.phys_writew(phyDospage + 4, 0xA00F); // PUSH FS
+        Memory.phys_writew(phyDospage + 6, 0xA80F); // PUSH GS
 
         // callback
-        Memory.phys_writeb(phyDospage+8,0xFE);  // GRP 4
-        Memory.phys_writeb(phyDospage+9,0x38);  // Extra Callback instruction
-        Memory.phys_writew(phyDospage+10,call_ipxesr1);        // Callback identifier
+        Memory.phys_writeb(phyDospage + 8, 0xFE);  // GRP 4
+        Memory.phys_writeb(phyDospage + 9, 0x38);  // Extra Callback instruction
+        Memory.phys_writew(phyDospage + 10, call_ipxesr1);        // Callback identifier
 
         // register recreation
-        Memory.phys_writew(phyDospage+12,0xA90F); // POP GS
-        Memory.phys_writew(phyDospage+14,0xA10F); // POP FS
-        Memory.phys_writeb(phyDospage+16,0x07);    // POP ES
-        Memory.phys_writeb(phyDospage+17,0x1F);    // POP DS
-        Memory.phys_writeb(phyDospage+18,0x61);    // POPA
-        Memory.phys_writeb(phyDospage+19,0xCF);    // IRET: restores flags, CS, IP
+        Memory.phys_writew(phyDospage + 12, 0xA90F); // POP GS
+        Memory.phys_writew(phyDospage + 14, 0xA10F); // POP FS
+        Memory.phys_writeb(phyDospage + 16, 0x07);    // POP ES
+        Memory.phys_writeb(phyDospage + 17, 0x1F);    // POP DS
+        Memory.phys_writeb(phyDospage + 18, 0x61);    // POPA
+        Memory.phys_writeb(phyDospage + 19, 0xCF);    // IRET: restores flags, CS, IP
 
         // IPX version 2.12
         //phys_writeb(phyDospage+27,(Bit8u)0x2);
         //phys_writeb(phyDospage+28,(Bit8u)0x12);
         //IPXVERpointer = RealMake(dospage,27);
 
-        /*RealPt*/int ESRRoutineBase = Memory.RealMake(dospage, 0);
+        /*RealPt*/
+        int ESRRoutineBase = Memory.RealMake(dospage, 0);
 
         // Interrupt enabling
-        Memory.RealSetVec(0x73,ESRRoutineBase,old_73_vector);	// IRQ11
-        IO.IO_WriteB(0xa1,IO.IO_ReadB(0xa1)&(~8));			// enable IRQ11
+        Memory.RealSetVec(0x73, ESRRoutineBase, old_73_vector);    // IRQ11
+        IO.IO_WriteB(0xa1, IO.IO_ReadB(0xa1) & (~8));            // enable IRQ11
 
-        Program.PROGRAMS_MakeFile("IPXNET.COM",IPXNET_ProgramStart);
+        Program.PROGRAMS_MakeFile("IPXNET.COM", IPXNET_ProgramStart);
     }
 
     private void close() {
-        Section_prop section=(Section_prop)m_configuration;
+        Section_prop section = (Section_prop) m_configuration;
         Pic.PIC_RemoveEvents(IPX_AES_EventHandler);
-        if(!section.Get_bool("ipx")) return;
+        if (!section.Get_bool("ipx")) return;
 
-        if(isIpxServer) {
+        if (isIpxServer) {
             isIpxServer = false;
             IPXServer.IPX_StopServer();
         }
@@ -1356,10 +1415,11 @@ public class IPX extends Module_base {
 
         Dos_misc.DOS_DelMultiplexHandler(IPX_Multiplex);
         Memory.RealSetVec(0x73, old_73_vector.value);
-        IO.IO_WriteB(0xa1, IO.IO_ReadB(0xa1) | 8);	// disable IRQ11
+        IO.IO_WriteB(0xa1, IO.IO_ReadB(0xa1) | 8);    // disable IRQ11
 
-        /*PhysPt*/int phyDospage = Memory.PhysMake(dospage, 0);
-        for(/*Bitu*/int i = 0;i < 32;i++)
+        /*PhysPt*/
+        int phyDospage = Memory.PhysMake(dospage, 0);
+        for (/*Bitu*/int i = 0; i < 32; i++)
             Memory.phys_writeb(phyDospage + i, 0x00);
 
         Drive_virtual.VFILE_Remove("IPXNET.COM");
@@ -1378,7 +1438,7 @@ public class IPX extends Module_base {
         @Override
         public void call(Section section) {
             test = new IPX(section);
-            section.addDestroyFunction(IPX_ShutDown,true);
+            section.addDestroyFunction(IPX_ShutDown, true);
         }
     };
 }

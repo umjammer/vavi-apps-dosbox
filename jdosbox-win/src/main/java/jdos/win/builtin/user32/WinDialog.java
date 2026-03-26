@@ -1,17 +1,23 @@
 package jdos.win.builtin.user32;
 
+import java.util.Iterator;
+
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.builtin.gdi32.GdiObj;
 import jdos.win.builtin.gdi32.WinDC;
 import jdos.win.builtin.gdi32.WinFont;
 import jdos.win.builtin.kernel32.WinProcess;
-import jdos.win.system.*;
+import jdos.win.system.StaticData;
+import jdos.win.system.WinPoint;
+import jdos.win.system.WinRect;
+import jdos.win.system.WinSize;
+import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
-import java.util.Iterator;
 
 public class WinDialog extends WinAPI {
+
     // HWND WINAPI CreateDialogIndirectParam(HINSTANCE hInstance, LPCDLGTEMPLATE lpTemplate, HWND hWndParent, DLGPROC lpDialogFunc, LPARAM lParamInit)
     public static int CreateDialogIndirectParamA(int hInstance, int lpTemplate, int hWndParent, int lpDialogFunc, int lParamInit) {
         return DIALOG_CreateIndirect(hInstance, lpTemplate, hWndParent, lpDialogFunc, lParamInit, false, false);
@@ -198,8 +204,8 @@ public class WinDialog extends WinAPI {
 
     // LRESULT WINAPI SendDlgItemMessage(HWND hDlg, int nIDDlgItem, UINT Msg, WPARAM wParam, LPARAM lParam)
     static public int SendDlgItemMessageA(int hwnd, int id, int msg, int wParam, int lParam) {
-        int hwndCtrl = GetDlgItem( hwnd, id );
-        if (hwndCtrl!=0) return Message.SendMessageA(hwndCtrl, msg, wParam, lParam);
+        int hwndCtrl = GetDlgItem(hwnd, id);
+        if (hwndCtrl != 0) return Message.SendMessageA(hwndCtrl, msg, wParam, lParam);
         else return 0;
     }
 
@@ -283,6 +289,7 @@ public class WinDialog extends WinAPI {
     }
 
     static private class DLG_TEMPLATE {
+
         int style;
         int exStyle;
         int helpId;
@@ -440,6 +447,7 @@ public class WinDialog extends WinAPI {
     }
 
     static private class DialogControlInfo {
+
         int style;
         int exStyle;
         int helpId;

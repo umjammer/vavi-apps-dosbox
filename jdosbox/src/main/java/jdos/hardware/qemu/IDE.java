@@ -25,16 +25,18 @@
 
 package jdos.hardware.qemu;
 
-import jdos.hardware.IoHandler;
-import jdos.hardware.Pic;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+
+import jdos.hardware.IoHandler;
+import jdos.hardware.Pic;
 import jdos.misc.setup.Config;
 import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 import jdos.util.BooleanRef;
 import jdos.util.FileIO;
 import jdos.util.IntRef;
+
 
 public class IDE extends Internal {
 
@@ -45,68 +47,66 @@ public class IDE extends Internal {
      * to make more sense in QEMU
      */
     static private final int[][] smart_attributes = new int[][] {
-        /* id,  flags, hflags, val, wrst, raw (6 bytes), threshold */
-        /* raw read error rate*/
-        { 0x01, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06},
-        /* spin up */
-        { 0x03, 0x03, 0x00, 0x64, 0x64, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        /* start stop count */
-        { 0x04, 0x02, 0x00, 0x64, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14},
-        /* remapped sectors */
-        { 0x05, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24},
-        /* power on hours */
-        { 0x09, 0x03, 0x00, 0x64, 0x64, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        /* power cycle count */
-        { 0x0c, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-        /* airflow-temperature-celsius */
-        { 190,  0x03, 0x00, 0x45, 0x45, 0x1f, 0x00, 0x1f, 0x1f, 0x00, 0x00, 0x32},
-        /* end of list */
-        { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
+            /* id,  flags, hflags, val, wrst, raw (6 bytes), threshold */
+            /* raw read error rate*/
+            {0x01, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06},
+            /* spin up */
+            {0x03, 0x03, 0x00, 0x64, 0x64, 0x10, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+            /* start stop count */
+            {0x04, 0x02, 0x00, 0x64, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x14},
+            /* remapped sectors */
+            {0x05, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x24},
+            /* power on hours */
+            {0x09, 0x03, 0x00, 0x64, 0x64, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+            /* power cycle count */
+            {0x0c, 0x03, 0x00, 0x64, 0x64, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+            /* airflow-temperature-celsius */
+            {190, 0x03, 0x00, 0x45, 0x45, 0x1f, 0x00, 0x1f, 0x1f, 0x00, 0x00, 0x32},
+            /* end of list */
+            {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}
     };
 
-    static private void padstr(byte[] buffer, int offset, String src, int len)
-    {
+    static private void padstr(byte[] buffer, int offset, String src, int len) {
         int i, v;
-        for (i = 0;i<src.length();i+=2) {
-            if (src.length()>i+1) {
-                 byte c = (byte)src.charAt(i+1);
-                if (c==0)
+        for (i = 0; i < src.length(); i += 2) {
+            if (src.length() > i + 1) {
+                byte c = (byte) src.charAt(i + 1);
+                if (c == 0)
                     c = ' ';
-                buffer[offset*2+i]=c;
+                buffer[offset * 2 + i] = c;
             } else {
-                buffer[offset*2+i]=' ';
+                buffer[offset * 2 + i] = ' ';
             }
-            byte c = (byte)src.charAt(i);
-            if (c==0)
+            byte c = (byte) src.charAt(i);
+            if (c == 0)
                 c = ' ';
-            buffer[offset*2+i+1]=c;
+            buffer[offset * 2 + i + 1] = c;
         }
         //System.arraycopy(src.getBytes(), 0, buffer, offset*2, src.length());
-        for(i = src.length(); i < len; i++) {
-            buffer[i+offset*2] = ' ';
+        for (i = src.length(); i < len; i++) {
+            buffer[i + offset * 2] = ' ';
         }
     }
 
     static private void put_le16(byte[] b, int offset, long value) {
-        b[offset*2]=(byte)(value);
-	    b[offset*2+1]=(byte)((value >> 8));
+        b[offset * 2] = (byte) (value);
+        b[offset * 2 + 1] = (byte) ((value >> 8));
     }
 
     static private void le16_to_cpu(byte[] b, int offset, int value) {
-        b[offset*2]=(byte)(value);
-	    b[offset*2+1]=(byte)((value >> 8));
+        b[offset * 2] = (byte) (value);
+        b[offset * 2 + 1] = (byte) ((value >> 8));
     }
 
-    static private void ide_identify(IDEState s)
-    {
-        IDEDevice dev = s.unit>0 ? s.bus.slave : s.bus.master;
+    static private void ide_identify(IDEState s) {
+        IDEDevice dev = s.unit > 0 ? s.bus.slave : s.bus.master;
 
         if (s.identify_set) {
             System.arraycopy(s.identify_data, 0, s.io_buffer, 0, s.identify_data.length);
             return;
         }
 
-        java.util.Arrays.fill(s.io_buffer, (byte)0);
+        java.util.Arrays.fill(s.io_buffer, (byte) 0);
         byte[] p = s.io_buffer;
         put_le16(p, 0, 0x0040);
         put_le16(p, 1, s.cylinders);
@@ -134,7 +134,7 @@ public class IDE extends Internal {
         int oldsize = s.cylinders * s.heads * s.sectors;
         put_le16(p, 57, oldsize);
         put_le16(p, 58, oldsize >>> 16);
-        if (s.mult_sectors>0)
+        if (s.mult_sectors > 0)
             put_le16(p, 59, 0x100 | s.mult_sectors);
         put_le16(p, 60, s.nb_sectors);
         put_le16(p, 61, s.nb_sectors >> 16);
@@ -145,7 +145,7 @@ public class IDE extends Internal {
         put_le16(p, 66, 120);
         put_le16(p, 67, 120);
         put_le16(p, 68, 120);
-        if (dev!=null && dev.conf.discard_granularity!=0) {
+        if (dev != null && dev.conf.discard_granularity != 0) {
             put_le16(p, 69, (1 << 14)); /* determinate TRIM behavior */
         }
 
@@ -160,22 +160,22 @@ public class IDE extends Internal {
         /* 14=NOP supported, 5=WCACHE supported, 0=SMART supported */
         put_le16(p, 82, (1 << 14) | (1 << 5) | 1);
         /* 13=flush_cache_ext,12=flush_cache,10=lba48 */
-        put_le16(p, 83, (1 << 14) | (1 << 13) | (1 <<12) | (1 << 10));
+        put_le16(p, 83, (1 << 14) | (1 << 13) | (1 << 12) | (1 << 10));
         /* 14=set to 1, 8=has WWN, 1=SMART self test, 0=SMART error logging */
-        if (s.wwn!=0) {
+        if (s.wwn != 0) {
             put_le16(p, 84, (1 << 14) | (1 << 8) | 0);
         } else {
             put_le16(p, 84, (1 << 14) | 0);
         }
         /* 14 = NOP supported, 5=WCACHE enabled, 0=SMART feature set enabled */
         if (Block.bdrv_enable_write_cache(s.bs))
-             put_le16(p, 85, (1 << 14) | (1 << 5) | 1);
+            put_le16(p, 85, (1 << 14) | (1 << 5) | 1);
         else
-             put_le16(p, 85, (1 << 14) | 1);
+            put_le16(p, 85, (1 << 14) | 1);
         /* 13=flush_cache_ext,12=flush_cache,10=lba48 */
-        put_le16(p, 86, (1 << 13) | (1 <<12) | (1 << 10));
+        put_le16(p, 86, (1 << 13) | (1 << 12) | (1 << 10));
         /* 14=set to 1, 8=has WWN, 1=SMART self test, 0=SMART error logging */
-        if (s.wwn!=0) {
+        if (s.wwn != 0) {
             put_le16(p, 87, (1 << 14) | (1 << 8) | 0);
         } else {
             put_le16(p, 87, (1 << 14) | 0);
@@ -187,30 +187,29 @@ public class IDE extends Internal {
         put_le16(p, 102, s.nb_sectors >>> 32);
         put_le16(p, 104, s.nb_sectors >>> 48);
 
-        if (dev!=null && dev.conf.physical_block_size!=0)
+        if (dev != null && dev.conf.physical_block_size != 0)
             put_le16(p, 106, 0x6000 | dev.conf.get_physical_block_exp());
-        if (s.wwn!=0) {
+        if (s.wwn != 0) {
             /* LE 16-bit words 111-108 contain 64-bit World Wide Name */
             put_le16(p, 108, s.wwn >>> 48);
             put_le16(p, 109, s.wwn >>> 32);
             put_le16(p, 110, s.wwn >>> 16);
             put_le16(p, 111, s.wwn);
         }
-        if (dev!=null && dev.conf.discard_granularity!=0) {
+        if (dev != null && dev.conf.discard_granularity != 0) {
             put_le16(p, 169, 1); /* TRIM support */
         }
         System.arraycopy(p, 0, s.identify_data, 0, s.identify_data.length);
         s.identify_set = true;
     }
 
-    static private void ide_atapi_identify(IDEState s)
-    {
+    static private void ide_atapi_identify(IDEState s) {
         if (s.identify_set) {
             System.arraycopy(s.identify_data, 0, s.io_buffer, 0, s.identify_data.length);
             return;
         }
 
-        java.util.Arrays.fill(s.io_buffer, (byte)0);
+        java.util.Arrays.fill(s.io_buffer, (byte) 0);
         byte[] p = s.io_buffer;
         /* Removable CDROM, 50us response, 12 byte packets */
         put_le16(p, 0, (2 << 14) | (5 << 8) | (1 << 7) | (2 << 5) | (0 << 0));
@@ -221,16 +220,16 @@ public class IDE extends Internal {
         padstr(p, 23, s.version, 8); /* firmware version */
         padstr(p, 27, s.drive_model_str, 40); /* model */
         put_le16(p, 48, 1); /* dword I/O (XXX: should not be set on CDROM) */
-    if (USE_DMA_CDROM) {
-        put_le16(p, 49, 1 << 9 | 1 << 8); /* DMA and LBA supported */
-        put_le16(p, 53, 7); /* words 64-70, 54-58, 88 valid */
-        put_le16(p, 62, 7);  /* single word dma0-2 supported */
-        put_le16(p, 63, 7);  /* mdma0-2 supported */
-    } else {
-        put_le16(p, 49, 1 << 9); /* LBA supported, no DMA */
-        put_le16(p, 53, 3); /* words 64-70, 54-58 valid */
-        put_le16(p, 63, 0x103); /* DMA modes XXX: may be incorrect */
-    }
+        if (USE_DMA_CDROM) {
+            put_le16(p, 49, 1 << 9 | 1 << 8); /* DMA and LBA supported */
+            put_le16(p, 53, 7); /* words 64-70, 54-58, 88 valid */
+            put_le16(p, 62, 7);  /* single word dma0-2 supported */
+            put_le16(p, 63, 7);  /* mdma0-2 supported */
+        } else {
+            put_le16(p, 49, 1 << 9); /* LBA supported, no DMA */
+            put_le16(p, 53, 3); /* words 64-70, 54-58 valid */
+            put_le16(p, 63, 0x103); /* DMA modes XXX: may be incorrect */
+        }
         put_le16(p, 64, 3); /* pio3-4 supported */
         put_le16(p, 65, 0xb4); /* minimum DMA multiword tx cycle time */
         put_le16(p, 66, 0xb4); /* recommended DMA multiword tx cycle time */
@@ -240,85 +239,83 @@ public class IDE extends Internal {
         put_le16(p, 71, 30); /* in ns */
         put_le16(p, 72, 30); /* in ns */
 
-        if (s.ncq_queues!=0) {
+        if (s.ncq_queues != 0) {
             put_le16(p, 75, s.ncq_queues - 1);
             /* NCQ supported */
             put_le16(p, 76, (1 << 8));
         }
 
         put_le16(p, 80, 0x1e); /* support up to ATA/ATAPI-4 */
-    if (USE_DMA_CDROM) {
-        put_le16(p, 88, 0x3f | (1 << 13)); /* udma5 set and supported */
-    }
+        if (USE_DMA_CDROM) {
+            put_le16(p, 88, 0x3f | (1 << 13)); /* udma5 set and supported */
+        }
         System.arraycopy(p, 0, s.identify_data, 0, s.identify_data.length);
         s.identify_set = true;
     }
 
-    static private void ide_cfata_identify(IDEState s)
-    {
+    static private void ide_cfata_identify(IDEState s) {
         if (s.identify_set) {
             System.arraycopy(s.identify_data, 0, s.io_buffer, 0, s.identify_data.length);
             return;
         }
 
-        java.util.Arrays.fill(s.io_buffer, (byte)0);
+        java.util.Arrays.fill(s.io_buffer, (byte) 0);
         byte[] p = s.io_buffer;
 
         long cur_sec = s.cylinders * s.heads * s.sectors;
 
-        put_le16(p, 0, 0x848a);			/* CF Storage Card signature */
-        put_le16(p, 1, s.cylinders);		/* Default cylinders */
-        put_le16(p, 3, s.heads);			/* Default heads */
-        put_le16(p, 6, s.sectors);		/* Default sectors per track */
-        put_le16(p, 7, s.nb_sectors >> 16);	/* Sectors per card */
-        put_le16(p, 8, s.nb_sectors);		/* Sectors per card */
+        put_le16(p, 0, 0x848a);            /* CF Storage Card signature */
+        put_le16(p, 1, s.cylinders);        /* Default cylinders */
+        put_le16(p, 3, s.heads);            /* Default heads */
+        put_le16(p, 6, s.sectors);        /* Default sectors per track */
+        put_le16(p, 7, s.nb_sectors >> 16);    /* Sectors per card */
+        put_le16(p, 8, s.nb_sectors);        /* Sectors per card */
         padstr(p, 10, s.drive_serial_str, 20); /* serial number */
-        put_le16(p, 22, 0x0004);			/* ECC bytes */
-        padstr(p, 23, s.version, 8);	/* Firmware Revision */
+        put_le16(p, 22, 0x0004);            /* ECC bytes */
+        padstr(p, 23, s.version, 8);    /* Firmware Revision */
         padstr(p, 27, s.drive_model_str, 40);/* Model number */
-    if (MAX_MULT_SECTORS > 1) {
-        put_le16(p, 47, 0x8000 | MAX_MULT_SECTORS);
-    } else {
-        put_le16(p, 47, 0x0000);
-    }
-        put_le16(p, 49, 0x0f00);			/* Capabilities */
-        put_le16(p, 51, 0x0002);			/* PIO cycle timing mode */
-        put_le16(p, 52, 0x0001);			/* DMA cycle timing mode */
-        put_le16(p, 53, 0x0003);			/* Translation params valid */
-        put_le16(p, 54, s.cylinders);		/* Current cylinders */
-        put_le16(p, 55, s.heads);			/* Current heads */
-        put_le16(p, 56, s.sectors);		/* Current sectors */
-        put_le16(p, 57, cur_sec);			/* Current capacity */
-        put_le16(p, 58, cur_sec >>> 16);		/* Current capacity */
-        if (s.mult_sectors != 0)			/* Multiple sector setting */
+        if (MAX_MULT_SECTORS > 1) {
+            put_le16(p, 47, 0x8000 | MAX_MULT_SECTORS);
+        } else {
+            put_le16(p, 47, 0x0000);
+        }
+        put_le16(p, 49, 0x0f00);            /* Capabilities */
+        put_le16(p, 51, 0x0002);            /* PIO cycle timing mode */
+        put_le16(p, 52, 0x0001);            /* DMA cycle timing mode */
+        put_le16(p, 53, 0x0003);            /* Translation params valid */
+        put_le16(p, 54, s.cylinders);        /* Current cylinders */
+        put_le16(p, 55, s.heads);            /* Current heads */
+        put_le16(p, 56, s.sectors);        /* Current sectors */
+        put_le16(p, 57, cur_sec);            /* Current capacity */
+        put_le16(p, 58, cur_sec >>> 16);        /* Current capacity */
+        if (s.mult_sectors != 0)            /* Multiple sector setting */
             put_le16(p, 59, 0x100 | s.mult_sectors);
-        put_le16(p, 60, s.nb_sectors);		/* Total LBA sectors */
-        put_le16(p, 61, s.nb_sectors >> 16);	/* Total LBA sectors */
-        put_le16(p, 63, 0x0203);			/* Multiword DMA capability */
-        put_le16(p, 64, 0x0001);			/* Flow Control PIO support */
-        put_le16(p, 65, 0x0096);			/* Min. Multiword DMA cycle */
-        put_le16(p, 66, 0x0096);			/* Rec. Multiword DMA cycle */
-        put_le16(p, 68, 0x00b4);			/* Min. PIO cycle time */
-        put_le16(p, 82, 0x400c);			/* Command Set supported */
-        put_le16(p, 83, 0x7068);			/* Command Set supported */
-        put_le16(p, 84, 0x4000);			/* Features supported */
-        put_le16(p, 85, 0x000c);			/* Command Set enabled */
-        put_le16(p, 86, 0x7044);			/* Command Set enabled */
-        put_le16(p, 87, 0x4000);			/* Features enabled */
-        put_le16(p, 91, 0x4060);			/* Current APM level */
-        put_le16(p, 129, 0x0002);			/* Current features option */
-        put_le16(p, 130, 0x0005);			/* Reassigned sectors */
-        put_le16(p, 131, 0x0001);			/* Initial power mode */
-        put_le16(p, 132, 0x0000);			/* User signature */
-        put_le16(p, 160, 0x8100);			/* Power requirement */
-        put_le16(p, 161, 0x8001);			/* CF command set */
+        put_le16(p, 60, s.nb_sectors);        /* Total LBA sectors */
+        put_le16(p, 61, s.nb_sectors >> 16);    /* Total LBA sectors */
+        put_le16(p, 63, 0x0203);            /* Multiword DMA capability */
+        put_le16(p, 64, 0x0001);            /* Flow Control PIO support */
+        put_le16(p, 65, 0x0096);            /* Min. Multiword DMA cycle */
+        put_le16(p, 66, 0x0096);            /* Rec. Multiword DMA cycle */
+        put_le16(p, 68, 0x00b4);            /* Min. PIO cycle time */
+        put_le16(p, 82, 0x400c);            /* Command Set supported */
+        put_le16(p, 83, 0x7068);            /* Command Set supported */
+        put_le16(p, 84, 0x4000);            /* Features supported */
+        put_le16(p, 85, 0x000c);            /* Command Set enabled */
+        put_le16(p, 86, 0x7044);            /* Command Set enabled */
+        put_le16(p, 87, 0x4000);            /* Features enabled */
+        put_le16(p, 91, 0x4060);            /* Current APM level */
+        put_le16(p, 129, 0x0002);            /* Current features option */
+        put_le16(p, 130, 0x0005);            /* Reassigned sectors */
+        put_le16(p, 131, 0x0001);            /* Initial power mode */
+        put_le16(p, 132, 0x0000);            /* User signature */
+        put_le16(p, 160, 0x8100);            /* Power requirement */
+        put_le16(p, 161, 0x8001);            /* CF command set */
 
         s.identify_set = true;
         System.arraycopy(p, 0, s.identify_data, 0, s.identify_data.length);
     }
 
-    static private void ide_set_signature(IDEState s)
-    {
+    static private void ide_set_signature(IDEState s) {
         s.select &= 0xf0; /* clear head */
         /* put signature */
         s.nsector = 1;
@@ -326,7 +323,7 @@ public class IDE extends Internal {
         if (s.drive_kind == IDE_CD) {
             s.lcyl = 0x14;
             s.hcyl = 0xeb;
-        } else if (s.bs!=null) {
+        } else if (s.bs != null) {
             s.lcyl = 0;
             s.hcyl = 0;
         } else {
@@ -336,7 +333,7 @@ public class IDE extends Internal {
     }
 
 
-//    typedef struct TrimAIOCB {
+    //    typedef struct TrimAIOCB {
 //        BlockDriverAIOCB common;
 //        QEMUBH *bh;
 //        int ret;
@@ -402,20 +399,18 @@ public class IDE extends Internal {
         return null;
     };
 
-    static private void ide_abort_command(IDEState s)
-    {
+    static private void ide_abort_command(IDEState s) {
         s.status = READY_STAT | ERR_STAT;
         s.error = ABRT_ERR;
     }
 
     /* prepare data transfer and tell what to do after */
-    static public void ide_transfer_start(IDEState s, byte[] buf, int offset, int size, EndTransferFunc end_transfer_func)
-    {
+    static public void ide_transfer_start(IDEState s, byte[] buf, int offset, int size, EndTransferFunc end_transfer_func) {
         s.end_transfer_func = end_transfer_func;
         s.data_ptr = buf;
         s.data_ptr_offset = offset;
-        s.data_end = offset+size;
-        if ((s.status & ERR_STAT)==0) {
+        s.data_end = offset + size;
+        if ((s.status & ERR_STAT) == 0) {
             s.status |= DRQ_STAT;
         }
         s.bus.dma.ops.start_transfer.call(s.bus.dma);
@@ -435,52 +430,50 @@ public class IDE extends Internal {
         ide_transfer_stop.call(s);
     }
 
-    static private long ide_get_sector(IDEState s)
-    {
+    static private long ide_get_sector(IDEState s) {
         long sector_num;
-        if ((s.select & 0x40)!=0) {
+        if ((s.select & 0x40) != 0) {
             /* lba */
-        if (s.lba48==0) {
-            sector_num = ((s.select & 0x0f) << 24) | (s.hcyl << 16) |
-            (s.lcyl << 8) | s.sector;
-        } else {
-            sector_num = ((long)s.hob_hcyl << 40) |
-            ((long) s.hob_lcyl << 32) |
-            ((long) s.hob_sector << 24) |
-            ((long) s.hcyl << 16) |
-            ((long) s.lcyl << 8) | s.sector;
-        }
+            if (s.lba48 == 0) {
+                sector_num = ((s.select & 0x0f) << 24) | (s.hcyl << 16) |
+                        (s.lcyl << 8) | s.sector;
+            } else {
+                sector_num = ((long) s.hob_hcyl << 40) |
+                        ((long) s.hob_lcyl << 32) |
+                        ((long) s.hob_sector << 24) |
+                        ((long) s.hcyl << 16) |
+                        ((long) s.lcyl << 8) | s.sector;
+            }
         } else {
             sector_num = ((s.hcyl << 8) | s.lcyl) * s.heads * s.sectors +
-                (s.select & 0x0f) * s.sectors + (s.sector - 1);
+                    (s.select & 0x0f) * s.sectors + (s.sector - 1);
         }
         return sector_num;
     }
 
-    static private void ide_set_sector(IDEState s, long sector_num)
-    {
+    static private void ide_set_sector(IDEState s, long sector_num) {
         long cyl, r;
-        if ((s.select & 0x40)!=0) {
-            if (s.lba48==0) {
-                s.select = (int)(((s.select & 0xf0) | (sector_num >>> 24)) & 0xFF);
-                s.hcyl = (int)((sector_num >> 16) & 0xFF);
-                s.lcyl = (int)((sector_num >> 8) & 0xFF);
-                s.sector = (int)(sector_num & 0xFF);
-        } else {
-            s.sector = (int)(sector_num & 0xFF);
-            s.lcyl = (int)((sector_num >> 8) & 0xFF);
-            s.hcyl = (int)((sector_num >> 16) & 0xFF);
-            s.hob_sector = (int)((sector_num >> 24) & 0xFF);
-            s.hob_lcyl = (int)((sector_num >> 32) & 0xFF);
-            s.hob_hcyl = (int)((sector_num >> 40) & 0xFF);
-        }
+        if ((s.select & 0x40) != 0) {
+            if (s.lba48 == 0) {
+                s.select = (int) (((s.select & 0xf0) | (sector_num >>> 24)) & 0xFF);
+                s.hcyl = (int) ((sector_num >> 16) & 0xFF);
+                s.lcyl = (int) ((sector_num >> 8) & 0xFF);
+                s.sector = (int) (sector_num & 0xFF);
+            } else {
+                s.sector = (int) (sector_num & 0xFF);
+                s.lcyl = (int) ((sector_num >> 8) & 0xFF);
+                s.hcyl = (int) ((sector_num >> 16) & 0xFF);
+                s.hob_sector = (int) ((sector_num >> 24) & 0xFF);
+                s.hob_lcyl = (int) ((sector_num >> 32) & 0xFF);
+                s.hob_hcyl = (int) ((sector_num >> 40) & 0xFF);
+            }
         } else {
             cyl = sector_num / (s.heads * s.sectors);
             r = sector_num % (s.heads * s.sectors);
-            s.hcyl = (int)((cyl >> 8) & 0xFF);
-            s.lcyl = (int)(cyl & 0xFF);
-            s.select = (int)((s.select & 0xf0) | ((r / s.sectors) & 0x0f) & 0xFF);
-            s.sector = (int)(((r % s.sectors) + 1) & 0xFF);
+            s.hcyl = (int) ((cyl >> 8) & 0xFF);
+            s.lcyl = (int) (cyl & 0xFF);
+            s.select = (int) ((s.select & 0xf0) | ((r / s.sectors) & 0x0f) & 0xFF);
+            s.sector = (int) (((r % s.sectors) + 1) & 0xFF);
         }
     }
 
@@ -492,7 +485,7 @@ public class IDE extends Internal {
     static final private Block.BlockDriverCompletionFunc ide_sector_read_cb = new Block.BlockDriverCompletionFunc() {
         @Override
         public void call(Object opaque, int ret) {
-            IDEState s = (IDEState)opaque;
+            IDEState s = (IDEState) opaque;
             int n;
 
             s.pio_aiocb = null;
@@ -522,8 +515,7 @@ public class IDE extends Internal {
 
     private static final EndTransferFunc ide_sector_read = IDE::ide_sector_read;
 
-    static private void ide_sector_read(IDEState s)
-    {
+    static private void ide_sector_read(IDEState s) {
         long sector_num;
         int n;
 
@@ -544,30 +536,27 @@ public class IDE extends Internal {
         }
 
         if (DEBUG_IDE) {
-            logger.log(Level.DEBUG,"read sector=" + sector_num);
+            logger.log(Level.DEBUG, "read sector=" + sector_num);
         }
 
         s.iov.iov_base = s.io_buffer;
-        s.iov.iov_len  = n * Block.BDRV_SECTOR_SIZE;
+        s.iov.iov_len = n * Block.BDRV_SECTOR_SIZE;
         QemuCommon.qemu_iovec_init_external(s.qiov, s.iov, 1);
 
         Block.bdrv_acct_start(s.bs, s.acct, n * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_READ);
         s.pio_aiocb = Block.bdrv_aio_readv(s.bs, sector_num, s.qiov, n, ide_sector_read_cb, s);
     }
 
-    static private void dma_buf_commit(IDEState s)
-    {
+    static private void dma_buf_commit(IDEState s) {
         DMAHelpers.qemu_sglist_destroy(s.sg);
     }
 
-    static void ide_set_inactive(IDEState s)
-    {
+    static void ide_set_inactive(IDEState s) {
         s.bus.dma.aiocb = null;
         s.bus.dma.ops.set_inactive.call(s.bus.dma);
     }
 
-    static private void ide_dma_error(IDEState s)
-    {
+    static private void ide_dma_error(IDEState s) {
         ide_transfer_stop(s);
         s.error = ABRT_ERR;
         s.status = READY_STAT | ERR_STAT;
@@ -575,9 +564,8 @@ public class IDE extends Internal {
         ide_set_irq(s.bus);
     }
 
-    static private boolean ide_handle_rw_error(IDEState s, int error, int op)
-    {
-        boolean is_read = (op & BM_STATUS_RETRY_READ)!=0;
+    static private boolean ide_handle_rw_error(IDEState s, int error, int op) {
+        boolean is_read = (op & BM_STATUS_RETRY_READ) != 0;
         Block.BlockErrorAction action = Block.bdrv_get_on_error(s.bs, is_read);
 
         if (action == Block.BlockErrorAction.BLOCK_ERR_IGNORE) {
@@ -592,7 +580,7 @@ public class IDE extends Internal {
             Qemu.vm_stop(Runstate.RUN_STATE_IO_ERROR);
             Block.bdrv_iostatus_set_err(s.bs, error);
         } else {
-            if ((op & BM_STATUS_DMA_RETRY)!=0) {
+            if ((op & BM_STATUS_DMA_RETRY) != 0) {
                 dma_buf_commit(s);
                 ide_dma_error(s);
             } else {
@@ -607,7 +595,7 @@ public class IDE extends Internal {
     static private final Block.BlockDriverCompletionFunc ide_dma_cb = new Block.BlockDriverCompletionFunc() {
         @Override
         public void call(Object opaque, int ret) {
-            IDEState s = (IDEState)opaque;
+            IDEState s = (IDEState) opaque;
             int n;
             long sector_num;
 
@@ -645,30 +633,30 @@ public class IDE extends Internal {
                 n = s.nsector;
                 s.io_buffer_index = 0;
                 s.io_buffer_size = n * 512;
-                if (s.bus.dma.ops.prepare_buf.call(s.bus.dma, s.ide_cmd_is_read()?1:0) == 0) { // TODO is this right? ahci and pci both lable this as isWrite
+                if (s.bus.dma.ops.prepare_buf.call(s.bus.dma, s.ide_cmd_is_read() ? 1 : 0) == 0) { // TODO is this right? ahci and pci both lable this as isWrite
                     /* The PRDs were too short. Reset the Active bit, but don't raise an
                      * interrupt. */
                     break;
                 }
 
                 if (DEBUG_AIO) {
-                    logger.log(Level.DEBUG,"ide_dma_cb: sector_num="+sector_num+" n="+n+", cmd_cmd="+s.dma_cmd);
+                    logger.log(Level.DEBUG, "ide_dma_cb: sector_num=" + sector_num + " n=" + n + ", cmd_cmd=" + s.dma_cmd);
                 }
 
                 switch (s.dma_cmd) {
-                case IDE_DMA_READ:
-                    s.bus.dma.aiocb = DMAHelpers.dma_bdrv_read(s.bs, s.sg, sector_num, ide_dma_cb, s);
-                    break;
-                case IDE_DMA_WRITE:
-                    s.bus.dma.aiocb = DMAHelpers.dma_bdrv_write(s.bs, s.sg, sector_num, ide_dma_cb, s);
-                    break;
-                case IDE_DMA_TRIM:
-                    s.bus.dma.aiocb = DMAHelpers.dma_bdrv_io(s.bs, s.sg, sector_num, ide_issue_trim, ide_dma_cb, s, DMA.DMA_DIRECTION_TO_DEVICE);
-                    break;
+                    case IDE_DMA_READ:
+                        s.bus.dma.aiocb = DMAHelpers.dma_bdrv_read(s.bs, s.sg, sector_num, ide_dma_cb, s);
+                        break;
+                    case IDE_DMA_WRITE:
+                        s.bus.dma.aiocb = DMAHelpers.dma_bdrv_write(s.bs, s.sg, sector_num, ide_dma_cb, s);
+                        break;
+                    case IDE_DMA_TRIM:
+                        s.bus.dma.aiocb = DMAHelpers.dma_bdrv_io(s.bs, s.sg, sector_num, ide_issue_trim, ide_dma_cb, s, DMA.DMA_DIRECTION_TO_DEVICE);
+                        break;
                 }
                 return;
             }
-        //eot:
+            //eot:
             if (s.dma_cmd == ide_dma_cmd.IDE_DMA_READ || s.dma_cmd == ide_dma_cmd.IDE_DMA_WRITE) {
                 Block.bdrv_acct_done(s.bs, s.acct);
             }
@@ -676,38 +664,35 @@ public class IDE extends Internal {
         }
     };
 
-    static private void ide_sector_start_dma(IDEState s, ide_dma_cmd dma_cmd)
-    {
+    static private void ide_sector_start_dma(IDEState s, ide_dma_cmd dma_cmd) {
         s.status = READY_STAT | SEEK_STAT | DRQ_STAT | BUSY_STAT;
         s.io_buffer_index = 0;
         s.io_buffer_size = 0;
         s.dma_cmd = dma_cmd;
 
         switch (dma_cmd) {
-        case IDE_DMA_READ:
-            Block.bdrv_acct_start(s.bs, s.acct, s.nsector * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_READ);
-            break;
-        case IDE_DMA_WRITE:
-            Block.bdrv_acct_start(s.bs, s.acct, s.nsector * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_WRITE);
-            break;
-        default:
-            break;
+            case IDE_DMA_READ:
+                Block.bdrv_acct_start(s.bs, s.acct, s.nsector * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_READ);
+                break;
+            case IDE_DMA_WRITE:
+                Block.bdrv_acct_start(s.bs, s.acct, s.nsector * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_WRITE);
+                break;
+            default:
+                break;
         }
 
         s.bus.dma.ops.start_dma.call(s.bus.dma, s, ide_dma_cb);
     }
 
-    static private void ide_sector_write_timer_cb(Object opaque)
-    {
-        IDEState s = (IDEState)opaque;
+    static private void ide_sector_write_timer_cb(Object opaque) {
+        IDEState s = (IDEState) opaque;
         ide_set_irq(s.bus);
     }
 
     static private final Block.BlockDriverCompletionFunc ide_sector_write_cb = new Block.BlockDriverCompletionFunc() {
         @Override
-        public void call(Object opaque, int ret)
-        {
-            IDEState s = (IDEState)opaque;
+        public void call(Object opaque, int ret) {
+            IDEState s = (IDEState) opaque;
             int n;
 
             Block.bdrv_acct_done(s.bs, s.acct);
@@ -747,7 +732,7 @@ public class IDE extends Internal {
 //                   for normal use. */
 //                qemu_mod_timer(s.sector_write_timer, qemu_get_clock_ns(vm_clock) + (get_ticks_per_sec() / 1000));
 //            } else {
-                ide_set_irq(s.bus);
+            ide_set_irq(s.bus);
 //            }
         }
     };
@@ -759,14 +744,14 @@ public class IDE extends Internal {
         s.status = READY_STAT | SEEK_STAT | BUSY_STAT;
         sector_num = ide_get_sector(s);
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"sector=" + sector_num);
+            logger.log(Level.DEBUG, "sector=" + sector_num);
         n = s.nsector;
         if (n > s.req_nb_sectors) {
             n = s.req_nb_sectors;
         }
 
         s.iov.iov_base = s.io_buffer;
-        s.iov.iov_len  = n * Block.BDRV_SECTOR_SIZE;
+        s.iov.iov_len = n * Block.BDRV_SECTOR_SIZE;
         QemuCommon.qemu_iovec_init_external(s.qiov, s.iov, 1);
 
         Block.bdrv_acct_start(s.bs, s.acct, n * Block.BDRV_SECTOR_SIZE, Block.BDRV_ACCT_READ);
@@ -774,7 +759,7 @@ public class IDE extends Internal {
     };
 
     static private final Block.BlockDriverCompletionFunc ide_flush_cb = (opaque, ret) -> {
-        IDEState s = (IDEState)opaque;
+        IDEState s = (IDEState) opaque;
 
         if (ret < 0) {
             /* XXX: What sector number to set here? */
@@ -788,8 +773,7 @@ public class IDE extends Internal {
         ide_set_irq(s.bus);
     };
 
-    static private void ide_flush_cache(IDEState s)
-    {
+    static private void ide_flush_cache(IDEState s) {
         if (s.bs == null) {
             ide_flush_cb.call(s, 0);
             return;
@@ -800,33 +784,33 @@ public class IDE extends Internal {
     }
 
     static private void ide_cfata_metadata_inquiry(IDEState s) {
-        java.util.Arrays.fill(s.io_buffer, (byte)0);
+        java.util.Arrays.fill(s.io_buffer, (byte) 0);
         byte[] p = s.io_buffer;
 
         long spd = ((s.mdata_size - 1) >> 9) + 1;
 
-        put_le16(p, 0, 0x0001);			/* Data format revision */
-        put_le16(p, 1, 0x0000);			/* Media property: silicon */
-        put_le16(p, 2, s.media_changed);		/* Media status */
-        put_le16(p, 3, s.mdata_size & 0xffff);	/* Capacity in bytes (low) */
-        put_le16(p, 4, s.mdata_size >> 16);	/* Capacity in bytes (high) */
-        put_le16(p, 5, spd & 0xffff);		/* Sectors per device (low) */
-        put_le16(p, 6, spd >>> 16);			/* Sectors per device (high) */
+        put_le16(p, 0, 0x0001);            /* Data format revision */
+        put_le16(p, 1, 0x0000);            /* Media property: silicon */
+        put_le16(p, 2, s.media_changed);        /* Media status */
+        put_le16(p, 3, s.mdata_size & 0xffff);    /* Capacity in bytes (low) */
+        put_le16(p, 4, s.mdata_size >> 16);    /* Capacity in bytes (high) */
+        put_le16(p, 5, spd & 0xffff);        /* Sectors per device (low) */
+        put_le16(p, 6, spd >>> 16);            /* Sectors per device (high) */
     }
 
-    static private void ide_cfata_metadata_read(IDEState s){
+    static private void ide_cfata_metadata_read(IDEState s) {
         if (((s.hcyl << 16) | s.lcyl) << 9 > s.mdata_size + 2) {
             s.status = ERR_STAT;
             s.error = ABRT_ERR;
             return;
         }
 
-        java.util.Arrays.fill(s.io_buffer, (byte)0);
+        java.util.Arrays.fill(s.io_buffer, (byte) 0);
         byte[] p = s.io_buffer;
 
-        put_le16(p, 0, s.media_changed);		/* Media status */
+        put_le16(p, 0, s.media_changed);        /* Media status */
 
-        System.arraycopy(s.mdata_storage, (((s.hcyl << 16) | s.lcyl) << 9), p, 1, (int)Math.min(Math.min(s.mdata_size - (((s.hcyl << 16) | s.lcyl) << 9), s.nsector << 9), 0x200 - 2));
+        System.arraycopy(s.mdata_storage, (((s.hcyl << 16) | s.lcyl) << 9), p, 1, (int) Math.min(Math.min(s.mdata_size - (((s.hcyl << 16) | s.lcyl) << 9), s.nsector << 9), 0x200 - 2));
     }
 
     static private void ide_cfata_metadata_write(IDEState s) {
@@ -841,9 +825,8 @@ public class IDE extends Internal {
     }
 
     /* called when the inserted state of the media has changed */
-    static private void ide_cd_change_cb(Object opaque, boolean load)
-    {
-        IDEState s = (IDEState)opaque;
+    static private void ide_cd_change_cb(Object opaque, boolean load) {
+        IDEState s = (IDEState) opaque;
 
         s.tray_open = !load;
         s.nb_sectors = Block.bdrv_get_geometry(s.bs);
@@ -861,9 +844,8 @@ public class IDE extends Internal {
         ide_set_irq(s.bus);
     }
 
-    static private void ide_cd_eject_request_cb(Object opaque, boolean force)
-    {
-        IDEState s = (IDEState)opaque;
+    static private void ide_cd_eject_request_cb(Object opaque, boolean force) {
+        IDEState s = (IDEState) opaque;
 
         s.events.eject_request = true;
         if (force) {
@@ -901,145 +883,146 @@ public class IDE extends Internal {
     }
 
     static private void ide_ioport_write(Object opaque, int addr, int val) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
 
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"IDE: write addr=0x"+Integer.toHexString(addr)+" val=0x"+Integer.toHexString(val));
+            logger.log(Level.DEBUG, "IDE: write addr=0x" + Integer.toHexString(addr) + " val=0x" + Integer.toHexString(val));
 
         addr &= 7;
 
         /* ignore writes to command block while busy with previous command */
-        if (addr != 7 && (idebus_active_if(bus).status & (BUSY_STAT|DRQ_STAT))!=0)
+        if (addr != 7 && (idebus_active_if(bus).status & (BUSY_STAT | DRQ_STAT)) != 0)
             return;
 
-        switch(addr) {
-        case 0:
-            break;
-        case 1:
-        ide_clear_hob(bus);
-            /* NOTE: data is written to the two drives */
-        bus.ifs[0].hob_feature = bus.ifs[0].feature;
-        bus.ifs[1].hob_feature = bus.ifs[1].feature;
-            bus.ifs[0].feature = val;
-            bus.ifs[1].feature = val;
-            break;
-        case 2:
-        ide_clear_hob(bus);
-        bus.ifs[0].hob_nsector = bus.ifs[0].nsector;
-        bus.ifs[1].hob_nsector = bus.ifs[1].nsector;
-            bus.ifs[0].nsector = val;
-            bus.ifs[1].nsector = val;
-            break;
-        case 3:
-        ide_clear_hob(bus);
-        bus.ifs[0].hob_sector = bus.ifs[0].sector;
-        bus.ifs[1].hob_sector = bus.ifs[1].sector;
-            bus.ifs[0].sector = val;
-            bus.ifs[1].sector = val;
-            break;
-        case 4:
-        ide_clear_hob(bus);
-        bus.ifs[0].hob_lcyl = bus.ifs[0].lcyl;
-        bus.ifs[1].hob_lcyl = bus.ifs[1].lcyl;
-            bus.ifs[0].lcyl = val;
-            bus.ifs[1].lcyl = val;
-            break;
-        case 5:
-        ide_clear_hob(bus);
-        bus.ifs[0].hob_hcyl = bus.ifs[0].hcyl;
-        bus.ifs[1].hob_hcyl = bus.ifs[1].hcyl;
-            bus.ifs[0].hcyl = val;
-            bus.ifs[1].hcyl = val;
-            break;
-        case 6:
-        /* FIXME: HOB readback uses bit 7 */
-            bus.ifs[0].select = (val & ~0x10) | 0xa0;
-            bus.ifs[1].select = (val | 0x10) | 0xa0;
-            /* select drive */
-            bus.unit = (val >> 4) & 1;
-            break;
-        default:
-        case 7:
-            /* command */
-            ide_exec_cmd(bus, val);
-            break;
+        switch (addr) {
+            case 0:
+                break;
+            case 1:
+                ide_clear_hob(bus);
+                /* NOTE: data is written to the two drives */
+                bus.ifs[0].hob_feature = bus.ifs[0].feature;
+                bus.ifs[1].hob_feature = bus.ifs[1].feature;
+                bus.ifs[0].feature = val;
+                bus.ifs[1].feature = val;
+                break;
+            case 2:
+                ide_clear_hob(bus);
+                bus.ifs[0].hob_nsector = bus.ifs[0].nsector;
+                bus.ifs[1].hob_nsector = bus.ifs[1].nsector;
+                bus.ifs[0].nsector = val;
+                bus.ifs[1].nsector = val;
+                break;
+            case 3:
+                ide_clear_hob(bus);
+                bus.ifs[0].hob_sector = bus.ifs[0].sector;
+                bus.ifs[1].hob_sector = bus.ifs[1].sector;
+                bus.ifs[0].sector = val;
+                bus.ifs[1].sector = val;
+                break;
+            case 4:
+                ide_clear_hob(bus);
+                bus.ifs[0].hob_lcyl = bus.ifs[0].lcyl;
+                bus.ifs[1].hob_lcyl = bus.ifs[1].lcyl;
+                bus.ifs[0].lcyl = val;
+                bus.ifs[1].lcyl = val;
+                break;
+            case 5:
+                ide_clear_hob(bus);
+                bus.ifs[0].hob_hcyl = bus.ifs[0].hcyl;
+                bus.ifs[1].hob_hcyl = bus.ifs[1].hcyl;
+                bus.ifs[0].hcyl = val;
+                bus.ifs[1].hcyl = val;
+                break;
+            case 6:
+                /* FIXME: HOB readback uses bit 7 */
+                bus.ifs[0].select = (val & ~0x10) | 0xa0;
+                bus.ifs[1].select = (val | 0x10) | 0xa0;
+                /* select drive */
+                bus.unit = (val >> 4) & 1;
+                break;
+            default:
+            case 7:
+                /* command */
+                ide_exec_cmd(bus, val);
+                break;
         }
     }
 
-    static final private byte HD_OK = (byte)(1 << IDE_HD);
-    static final private byte CD_OK = (byte)(1 << IDE_CD);
-    static final private byte CFA_OK = (byte)(1 << IDE_CFATA);
-    static final private byte HD_CFA_OK = (byte)(HD_OK | CFA_OK);
-    static final private byte ALL_OK = (byte)(HD_OK | CD_OK | CFA_OK);
+    static final private byte HD_OK = (byte) (1 << IDE_HD);
+    static final private byte CD_OK = (byte) (1 << IDE_CD);
+    static final private byte CFA_OK = (byte) (1 << IDE_CFATA);
+    static final private byte HD_CFA_OK = (byte) (HD_OK | CFA_OK);
+    static final private byte ALL_OK = (byte) (HD_OK | CD_OK | CFA_OK);
 
     /* See ACS-2 T13/2015-D Table B.2 Command codes */
     static private final byte[] ide_cmd_table = new byte[0x100];
+
     static {
         /* NOP not implemented, mandatory for CD */
-        ide_cmd_table[CFA_REQ_EXT_ERROR_CODE]            = CFA_OK;
-        ide_cmd_table[WIN_DSM]                           = ALL_OK;
-        ide_cmd_table[WIN_DEVICE_RESET]                  = CD_OK;
-        ide_cmd_table[WIN_RECAL]                         = HD_CFA_OK;
-        ide_cmd_table[WIN_READ]                          = ALL_OK;
-        ide_cmd_table[WIN_READ_ONCE]                     = ALL_OK;
-        ide_cmd_table[WIN_READ_EXT]                      = HD_CFA_OK;
-        ide_cmd_table[WIN_READDMA_EXT]                   = HD_CFA_OK;
-        ide_cmd_table[WIN_READ_NATIVE_MAX_EXT]           = HD_CFA_OK;
-        ide_cmd_table[WIN_MULTREAD_EXT]                  = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITE]                         = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITE_ONCE]                    = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITE_EXT]                     = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITEDMA_EXT]                  = HD_CFA_OK;
-        ide_cmd_table[CFA_WRITE_SECT_WO_ERASE]           = CFA_OK;
-        ide_cmd_table[WIN_MULTWRITE_EXT]                 = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITE_VERIFY]                  = HD_CFA_OK;
-        ide_cmd_table[WIN_VERIFY]                        = HD_CFA_OK;
-        ide_cmd_table[WIN_VERIFY_ONCE]                   = HD_CFA_OK;
-        ide_cmd_table[WIN_VERIFY_EXT]                    = HD_CFA_OK;
-        ide_cmd_table[WIN_SEEK]                          = HD_CFA_OK;
-        ide_cmd_table[CFA_TRANSLATE_SECTOR]              = CFA_OK;
-        ide_cmd_table[WIN_DIAGNOSE]                      = ALL_OK;
-        ide_cmd_table[WIN_SPECIFY]                       = HD_CFA_OK;
-        ide_cmd_table[WIN_STANDBYNOW2]                   = ALL_OK;
-        ide_cmd_table[WIN_IDLEIMMEDIATE2]                = ALL_OK;
-        ide_cmd_table[WIN_STANDBY2]                      = ALL_OK;
-        ide_cmd_table[WIN_SETIDLE2]                      = ALL_OK;
-        ide_cmd_table[WIN_CHECKPOWERMODE2]               = ALL_OK;
-        ide_cmd_table[WIN_SLEEPNOW2]                     = ALL_OK;
-        ide_cmd_table[WIN_PACKETCMD]                     = CD_OK;
-        ide_cmd_table[WIN_PIDENTIFY]                     = CD_OK;
-        ide_cmd_table[WIN_SMART]                         = HD_CFA_OK;
-        ide_cmd_table[CFA_ACCESS_METADATA_STORAGE]       = CFA_OK;
-        ide_cmd_table[CFA_ERASE_SECTORS]                 = CFA_OK;
-        ide_cmd_table[WIN_MULTREAD]                      = HD_CFA_OK;
-        ide_cmd_table[WIN_MULTWRITE]                     = HD_CFA_OK;
-        ide_cmd_table[WIN_SETMULT]                       = HD_CFA_OK;
-        ide_cmd_table[WIN_READDMA]                       = HD_CFA_OK;
-        ide_cmd_table[WIN_READDMA_ONCE]                  = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITEDMA]                      = HD_CFA_OK;
-        ide_cmd_table[WIN_WRITEDMA_ONCE]                 = HD_CFA_OK;
-        ide_cmd_table[CFA_WRITE_MULTI_WO_ERASE]          = CFA_OK;
-        ide_cmd_table[WIN_STANDBYNOW1]                   = ALL_OK;
-        ide_cmd_table[WIN_IDLEIMMEDIATE]                 = ALL_OK;
-        ide_cmd_table[WIN_STANDBY]                       = ALL_OK;
-        ide_cmd_table[WIN_SETIDLE1]                      = ALL_OK;
-        ide_cmd_table[WIN_CHECKPOWERMODE1]               = ALL_OK;
-        ide_cmd_table[WIN_SLEEPNOW1]                     = ALL_OK;
-        ide_cmd_table[WIN_FLUSH_CACHE]                   = ALL_OK;
-        ide_cmd_table[WIN_FLUSH_CACHE_EXT]               = HD_CFA_OK;
-        ide_cmd_table[WIN_IDENTIFY]                      = ALL_OK;
-        ide_cmd_table[WIN_SETFEATURES]                   = ALL_OK;
-        ide_cmd_table[IBM_SENSE_CONDITION]               = CFA_OK;
-        ide_cmd_table[CFA_WEAR_LEVEL]                    = HD_CFA_OK;
-        ide_cmd_table[WIN_READ_NATIVE_MAX]               = ALL_OK;
+        ide_cmd_table[CFA_REQ_EXT_ERROR_CODE] = CFA_OK;
+        ide_cmd_table[WIN_DSM] = ALL_OK;
+        ide_cmd_table[WIN_DEVICE_RESET] = CD_OK;
+        ide_cmd_table[WIN_RECAL] = HD_CFA_OK;
+        ide_cmd_table[WIN_READ] = ALL_OK;
+        ide_cmd_table[WIN_READ_ONCE] = ALL_OK;
+        ide_cmd_table[WIN_READ_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_READDMA_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_READ_NATIVE_MAX_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_MULTREAD_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITE] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITE_ONCE] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITE_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITEDMA_EXT] = HD_CFA_OK;
+        ide_cmd_table[CFA_WRITE_SECT_WO_ERASE] = CFA_OK;
+        ide_cmd_table[WIN_MULTWRITE_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITE_VERIFY] = HD_CFA_OK;
+        ide_cmd_table[WIN_VERIFY] = HD_CFA_OK;
+        ide_cmd_table[WIN_VERIFY_ONCE] = HD_CFA_OK;
+        ide_cmd_table[WIN_VERIFY_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_SEEK] = HD_CFA_OK;
+        ide_cmd_table[CFA_TRANSLATE_SECTOR] = CFA_OK;
+        ide_cmd_table[WIN_DIAGNOSE] = ALL_OK;
+        ide_cmd_table[WIN_SPECIFY] = HD_CFA_OK;
+        ide_cmd_table[WIN_STANDBYNOW2] = ALL_OK;
+        ide_cmd_table[WIN_IDLEIMMEDIATE2] = ALL_OK;
+        ide_cmd_table[WIN_STANDBY2] = ALL_OK;
+        ide_cmd_table[WIN_SETIDLE2] = ALL_OK;
+        ide_cmd_table[WIN_CHECKPOWERMODE2] = ALL_OK;
+        ide_cmd_table[WIN_SLEEPNOW2] = ALL_OK;
+        ide_cmd_table[WIN_PACKETCMD] = CD_OK;
+        ide_cmd_table[WIN_PIDENTIFY] = CD_OK;
+        ide_cmd_table[WIN_SMART] = HD_CFA_OK;
+        ide_cmd_table[CFA_ACCESS_METADATA_STORAGE] = CFA_OK;
+        ide_cmd_table[CFA_ERASE_SECTORS] = CFA_OK;
+        ide_cmd_table[WIN_MULTREAD] = HD_CFA_OK;
+        ide_cmd_table[WIN_MULTWRITE] = HD_CFA_OK;
+        ide_cmd_table[WIN_SETMULT] = HD_CFA_OK;
+        ide_cmd_table[WIN_READDMA] = HD_CFA_OK;
+        ide_cmd_table[WIN_READDMA_ONCE] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITEDMA] = HD_CFA_OK;
+        ide_cmd_table[WIN_WRITEDMA_ONCE] = HD_CFA_OK;
+        ide_cmd_table[CFA_WRITE_MULTI_WO_ERASE] = CFA_OK;
+        ide_cmd_table[WIN_STANDBYNOW1] = ALL_OK;
+        ide_cmd_table[WIN_IDLEIMMEDIATE] = ALL_OK;
+        ide_cmd_table[WIN_STANDBY] = ALL_OK;
+        ide_cmd_table[WIN_SETIDLE1] = ALL_OK;
+        ide_cmd_table[WIN_CHECKPOWERMODE1] = ALL_OK;
+        ide_cmd_table[WIN_SLEEPNOW1] = ALL_OK;
+        ide_cmd_table[WIN_FLUSH_CACHE] = ALL_OK;
+        ide_cmd_table[WIN_FLUSH_CACHE_EXT] = HD_CFA_OK;
+        ide_cmd_table[WIN_IDENTIFY] = ALL_OK;
+        ide_cmd_table[WIN_SETFEATURES] = ALL_OK;
+        ide_cmd_table[IBM_SENSE_CONDITION] = CFA_OK;
+        ide_cmd_table[CFA_WEAR_LEVEL] = HD_CFA_OK;
+        ide_cmd_table[WIN_READ_NATIVE_MAX] = ALL_OK;
     }
 
-    static private boolean ide_cmd_permitted(IDEState s, int cmd)
-    {
-        return cmd < ide_cmd_table.length && (ide_cmd_table[cmd] & (1 << s.drive_kind))!=0;
+    static private boolean ide_cmd_permitted(IDEState s, int cmd) {
+        return cmd < ide_cmd_table.length && (ide_cmd_table[cmd] & (1 << s.drive_kind)) != 0;
     }
 
     static private class AbortException extends Exception {
+
     }
 
     static private void ide_exec_cmd(IDEBus bus, int val) {
@@ -1048,7 +1031,7 @@ public class IDE extends Internal {
         int lba48 = 0;
 
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"ide: CMD=" + Integer.toHexString(val));
+            logger.log(Level.DEBUG, "ide: CMD=" + Integer.toHexString(val));
 
         s = idebus_active_if(bus);
         /* ignore commands to non existent slave */
@@ -1076,7 +1059,7 @@ public class IDE extends Internal {
                     }
                     break;
                 case WIN_IDENTIFY:
-                    if (s.bs!=null && s.drive_kind != IDE_CD) {
+                    if (s.bs != null && s.drive_kind != IDE_CD) {
                         if (s.drive_kind != IDE_CFATA)
                             ide_identify(s);
                         else
@@ -1323,13 +1306,13 @@ public class IDE extends Internal {
                     ide_set_signature(s);
                     if (s.drive_kind == IDE_CD)
                         s.status = 0; /* ATAPI spec (v6) section 9.10 defines packet
-                                    * devices to return a clear status register
-                                    * with READY_STAT *not* set. */
+                         * devices to return a clear status register
+                         * with READY_STAT *not* set. */
                     else
                         s.status = READY_STAT | SEEK_STAT;
                     s.error = 0x01; /* Device 0 passed, Device 1 passed or not
-                                  * present.
-                                  */
+                     * present.
+                     */
                     ide_set_irq(s.bus);
                     break;
                 case WIN_DEVICE_RESET:
@@ -1339,7 +1322,7 @@ public class IDE extends Internal {
                     break;
                 case WIN_PACKETCMD:
                     /* overlapping commands not supported */
-                    if ((s.feature & 0x02)!=0)
+                    if ((s.feature & 0x02) != 0)
                         throw new AbortException();
                     s.status = READY_STAT | SEEK_STAT;
                     s.atapi_dma = s.feature & 1;
@@ -1355,7 +1338,7 @@ public class IDE extends Internal {
                 case CFA_ERASE_SECTORS:
                 case CFA_WEAR_LEVEL:
                     /* This one has the same ID as CFA_WEAR_LEVEL and is required for Windows 8 to work with AHCI */
-                //case WIN_SECURITY_FREEZE_LOCK:
+                    //case WIN_SECURITY_FREEZE_LOCK:
                     if (val == CFA_WEAR_LEVEL)
                         s.nsector = 0;
                     if (val == CFA_ERASE_SECTORS)
@@ -1367,14 +1350,14 @@ public class IDE extends Internal {
                 case CFA_TRANSLATE_SECTOR:
                     s.error = 0x00;
                     s.status = READY_STAT | SEEK_STAT;
-                    java.util.Arrays.fill(s.io_buffer, (byte)0);
-                    s.io_buffer[0x00] = (byte)s.hcyl;            /* Cyl MSB */
-                    s.io_buffer[0x01] = (byte)s.lcyl;            /* Cyl LSB */
-                    s.io_buffer[0x02] = (byte)s.select;            /* Head */
-                    s.io_buffer[0x03] = (byte)s.sector;            /* Sector */
-                    s.io_buffer[0x04] = (byte)(ide_get_sector(s) >>> 16);    /* LBA MSB */
-                    s.io_buffer[0x05] = (byte)(ide_get_sector(s) >>> 8);    /* LBA */
-                    s.io_buffer[0x06] = (byte)(ide_get_sector(s) >> 0);    /* LBA LSB */
+                    java.util.Arrays.fill(s.io_buffer, (byte) 0);
+                    s.io_buffer[0x00] = (byte) s.hcyl;            /* Cyl MSB */
+                    s.io_buffer[0x01] = (byte) s.lcyl;            /* Cyl LSB */
+                    s.io_buffer[0x02] = (byte) s.select;            /* Head */
+                    s.io_buffer[0x03] = (byte) s.sector;            /* Sector */
+                    s.io_buffer[0x04] = (byte) (ide_get_sector(s) >>> 16);    /* LBA MSB */
+                    s.io_buffer[0x05] = (byte) (ide_get_sector(s) >>> 8);    /* LBA */
+                    s.io_buffer[0x06] = (byte) (ide_get_sector(s) >> 0);    /* LBA LSB */
                     s.io_buffer[0x13] = 0x00;                /* Erase flag */
                     s.io_buffer[0x18] = 0x00;                /* Hot count */
                     s.io_buffer[0x19] = 0x00;                /* Hot count */
@@ -1443,7 +1426,7 @@ public class IDE extends Internal {
                             ide_set_irq(s.bus);
                             break;
                         case SMART_STATUS:
-                            if (s.smart_errors==0) {
+                            if (s.smart_errors == 0) {
                                 s.hcyl = 0xc2;
                                 s.lcyl = 0x4f;
                             } else {
@@ -1454,23 +1437,23 @@ public class IDE extends Internal {
                             ide_set_irq(s.bus);
                             break;
                         case SMART_READ_THRESH:
-                            java.util.Arrays.fill(s.io_buffer, (byte)0);
+                            java.util.Arrays.fill(s.io_buffer, (byte) 0);
                             s.io_buffer[0] = 0x01; /* smart struct version */
                             for (n = 0; n < 30; n++) {
                                 if (smart_attributes[n][0] == 0)
                                     break;
-                                s.io_buffer[2 + 0 + (n * 12)] = (byte)smart_attributes[n][0];
-                                s.io_buffer[2 + 1 + (n * 12)] = (byte)smart_attributes[n][11];
+                                s.io_buffer[2 + 0 + (n * 12)] = (byte) smart_attributes[n][0];
+                                s.io_buffer[2 + 1 + (n * 12)] = (byte) smart_attributes[n][11];
                             }
                             for (n = 0; n < 511; n++) /* checksum */
                                 s.io_buffer[511] += s.io_buffer[n];
-                            s.io_buffer[511] = (byte)(0x100 - (s.io_buffer[511] & 0xFF));
+                            s.io_buffer[511] = (byte) (0x100 - (s.io_buffer[511] & 0xFF));
                             s.status = READY_STAT | SEEK_STAT;
                             ide_transfer_start(s, s.io_buffer, 0, 0x200, ide_transfer_stop);
                             ide_set_irq(s.bus);
                             break;
                         case SMART_READ_DATA:
-                            java.util.Arrays.fill(s.io_buffer, (byte)0);
+                            java.util.Arrays.fill(s.io_buffer, (byte) 0);
                             s.io_buffer[0] = 0x01; /* smart struct version */
                             for (n = 0; n < 30; n++) {
                                 if (smart_attributes[n][0] == 0) {
@@ -1478,10 +1461,10 @@ public class IDE extends Internal {
                                 }
                                 int i;
                                 for (i = 0; i < 11; i++) {
-                                    s.io_buffer[2 + i + (n * 12)] = (byte)smart_attributes[n][i];
+                                    s.io_buffer[2 + i + (n * 12)] = (byte) smart_attributes[n][i];
                                 }
                             }
-                            s.io_buffer[362] = (byte)(0x02 | (s.smart_autosave ? 0x80 : 0x00));
+                            s.io_buffer[362] = (byte) (0x02 | (s.smart_autosave ? 0x80 : 0x00));
                             if (s.smart_selftest_count == 0) {
                                 s.io_buffer[363] = 0;
                             } else {
@@ -1500,7 +1483,7 @@ public class IDE extends Internal {
 
                             for (n = 0; n < 511; n++)
                                 s.io_buffer[511] += s.io_buffer[n];
-                            s.io_buffer[511] = (byte)(0x100 - (s.io_buffer[511] & 0xFF));
+                            s.io_buffer[511] = (byte) (0x100 - (s.io_buffer[511] & 0xFF));
                             s.status = READY_STAT | SEEK_STAT;
                             ide_transfer_start(s, s.io_buffer, 0, 0x200, ide_transfer_stop);
                             ide_set_irq(s.bus);
@@ -1508,29 +1491,29 @@ public class IDE extends Internal {
                         case SMART_READ_LOG:
                             switch (s.sector) {
                                 case 0x01: /* summary smart error log */
-                                    java.util.Arrays.fill(s.io_buffer, (byte)0);
+                                    java.util.Arrays.fill(s.io_buffer, (byte) 0);
                                     s.io_buffer[0] = 0x01;
                                     s.io_buffer[1] = 0x00; /* no error entries */
-                                    s.io_buffer[452] = (byte)(s.smart_errors & 0xff);
-                                    s.io_buffer[453] = (byte)((s.smart_errors & 0xff00) >> 8);
+                                    s.io_buffer[452] = (byte) (s.smart_errors & 0xff);
+                                    s.io_buffer[453] = (byte) ((s.smart_errors & 0xff00) >> 8);
 
                                     for (n = 0; n < 511; n++)
                                         s.io_buffer[511] += s.io_buffer[n];
-                                    s.io_buffer[511] = (byte)(0x100 - (s.io_buffer[511] & 0xFF));
+                                    s.io_buffer[511] = (byte) (0x100 - (s.io_buffer[511] & 0xFF));
                                     break;
                                 case 0x06: /* smart self test log */
-                                    java.util.Arrays.fill(s.io_buffer, (byte)0);
+                                    java.util.Arrays.fill(s.io_buffer, (byte) 0);
                                     s.io_buffer[0] = 0x01;
                                     if (s.smart_selftest_count == 0) {
                                         s.io_buffer[508] = 0;
                                     } else {
-                                        s.io_buffer[508] = (byte)s.smart_selftest_count;
+                                        s.io_buffer[508] = (byte) s.smart_selftest_count;
                                         for (n = 2; n < 506; n++)
                                             s.io_buffer[n] = s.smart_selftest_data[n];
                                     }
                                     for (n = 0; n < 511; n++)
                                         s.io_buffer[511] += s.io_buffer[n];
-                                    s.io_buffer[511] = (byte)(0x100 - (s.io_buffer[511] & 0xFF));
+                                    s.io_buffer[511] = (byte) (0x100 - (s.io_buffer[511] & 0xFF));
                                     break;
                                 default:
                                     throw new AbortException();
@@ -1548,7 +1531,7 @@ public class IDE extends Internal {
                                     if (s.smart_selftest_count > 21)
                                         s.smart_selftest_count = 0;
                                     n = 2 + (s.smart_selftest_count - 1) * 24;
-                                    s.smart_selftest_data[n] = (byte)s.sector;
+                                    s.smart_selftest_data[n] = (byte) s.sector;
                                     s.smart_selftest_data[n + 1] = 0x00; /* OK and finished */
                                     s.smart_selftest_data[n + 2] = 0x34; /* hour count lsb */
                                     s.smart_selftest_data[n + 3] = 0x12; /* hour count msb */
@@ -1574,7 +1557,7 @@ public class IDE extends Internal {
     }
 
     static private int ide_ioport_read(Object opaque, int addr1) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
         int addr;
         int ret, hob;
@@ -1583,103 +1566,103 @@ public class IDE extends Internal {
         /* FIXME: HOB readback uses bit 7, but it's always set right now */
         //hob = s.select & (1 << 7);
         hob = 0;
-        switch(addr) {
-        case 0:
-            ret = 0xff;
-            break;
-        case 1:
-            if ((bus.ifs[0].bs==null && bus.ifs[1].bs==null) || (s != bus.ifs[0] && s.bs==null))
-                ret = 0;
-            else if (hob==0)
-                ret = s.error;
-        else
-            ret = s.hob_feature;
-            break;
-        case 2:
-            if (bus.ifs[0].bs == null && bus.ifs[1].bs==null)
-                ret = 0;
-            else if (hob==0)
-                ret = s.nsector & 0xff;
-        else
-            ret = s.hob_nsector;
-            break;
-        case 3:
-            if (bus.ifs[0].bs==null && bus.ifs[1].bs==null)
-                ret = 0;
-            else if (hob==0)
-                ret = s.sector;
-        else
-            ret = s.hob_sector;
-            break;
-        case 4:
-            if (bus.ifs[0].bs==null && bus.ifs[1].bs==null)
-                ret = 0;
-            else if (hob==0)
-                ret = s.lcyl;
-            else
-                ret = s.hob_lcyl;
-            break;
-        case 5:
-            if (bus.ifs[0].bs==null && bus.ifs[1].bs==null)
-                ret = 0;
-            else if (hob==0)
-                ret = s.hcyl;
-        else
-            ret = s.hob_hcyl;
-            break;
-        case 6:
-            if (bus.ifs[0].bs==null && bus.ifs[1].bs==null)
-                ret = 0;
-            else
-                ret = s.select;
-            break;
-        default:
-        case 7:
-            if ((bus.ifs[0].bs==null && bus.ifs[1].bs==null) || (s != bus.ifs[0] && s.bs==null))
-                ret = 0;
-            else
-                ret = s.status;
-            Pic.PIC_DeActivateIRQ(bus.irq);
-            break;
+        switch (addr) {
+            case 0:
+                ret = 0xff;
+                break;
+            case 1:
+                if ((bus.ifs[0].bs == null && bus.ifs[1].bs == null) || (s != bus.ifs[0] && s.bs == null))
+                    ret = 0;
+                else if (hob == 0)
+                    ret = s.error;
+                else
+                    ret = s.hob_feature;
+                break;
+            case 2:
+                if (bus.ifs[0].bs == null && bus.ifs[1].bs == null)
+                    ret = 0;
+                else if (hob == 0)
+                    ret = s.nsector & 0xff;
+                else
+                    ret = s.hob_nsector;
+                break;
+            case 3:
+                if (bus.ifs[0].bs == null && bus.ifs[1].bs == null)
+                    ret = 0;
+                else if (hob == 0)
+                    ret = s.sector;
+                else
+                    ret = s.hob_sector;
+                break;
+            case 4:
+                if (bus.ifs[0].bs == null && bus.ifs[1].bs == null)
+                    ret = 0;
+                else if (hob == 0)
+                    ret = s.lcyl;
+                else
+                    ret = s.hob_lcyl;
+                break;
+            case 5:
+                if (bus.ifs[0].bs == null && bus.ifs[1].bs == null)
+                    ret = 0;
+                else if (hob == 0)
+                    ret = s.hcyl;
+                else
+                    ret = s.hob_hcyl;
+                break;
+            case 6:
+                if (bus.ifs[0].bs == null && bus.ifs[1].bs == null)
+                    ret = 0;
+                else
+                    ret = s.select;
+                break;
+            default:
+            case 7:
+                if ((bus.ifs[0].bs == null && bus.ifs[1].bs == null) || (s != bus.ifs[0] && s.bs == null))
+                    ret = 0;
+                else
+                    ret = s.status;
+                Pic.PIC_DeActivateIRQ(bus.irq);
+                break;
         }
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"ide: read addr=0x"+Integer.toHexString(addr1)+" val="+Integer.toHexString(ret));
+            logger.log(Level.DEBUG, "ide: read addr=0x" + Integer.toHexString(addr1) + " val=" + Integer.toHexString(ret));
         return ret;
     }
 
     private static int ide_status_read(Object opaque, int addr) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
         int ret;
 
-        if ((bus.ifs[0].bs==null && bus.ifs[1].bs==null) ||
-            (s != bus.ifs[0] && s.bs==null))
+        if ((bus.ifs[0].bs == null && bus.ifs[1].bs == null) ||
+                (s != bus.ifs[0] && s.bs == null))
             ret = 0;
         else
             ret = s.status;
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"ide: read status addr=0x"+Integer.toHexString(addr)+" val="+Integer.toHexString(ret));
+            logger.log(Level.DEBUG, "ide: read status addr=0x" + Integer.toHexString(addr) + " val=" + Integer.toHexString(ret));
         return ret;
     }
 
     private static void ide_cmd_write(Object opaque, int addr, int val) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s;
         int i;
 
         if (DEBUG_IDE)
-            logger.log(Level.DEBUG,"ide: write control addr=0x"+Integer.toHexString(addr)+" val="+Integer.toHexString(val));
+            logger.log(Level.DEBUG, "ide: write control addr=0x" + Integer.toHexString(addr) + " val=" + Integer.toHexString(val));
         /* common for both drives */
-        if ((bus.cmd & IDE_CMD_RESET)==0 && (val & IDE_CMD_RESET)!=0) {
+        if ((bus.cmd & IDE_CMD_RESET) == 0 && (val & IDE_CMD_RESET) != 0) {
             /* reset low to high */
-            for(i = 0;i < 2; i++) {
+            for (i = 0; i < 2; i++) {
                 s = bus.ifs[i];
                 s.status = BUSY_STAT | SEEK_STAT;
                 s.error = 0x01;
             }
-        } else if ((bus.cmd & IDE_CMD_RESET)!=0 && (val & IDE_CMD_RESET)==0) {
+        } else if ((bus.cmd & IDE_CMD_RESET) != 0 && (val & IDE_CMD_RESET) == 0) {
             /* high to low */
-            for(i = 0;i < 2; i++) {
+            for (i = 0; i < 2; i++) {
                 s = bus.ifs[i];
                 if (s.drive_kind == IDE_CD)
                     s.status = 0x00; /* NOTE: READY is _not_ set */
@@ -1697,81 +1680,80 @@ public class IDE extends Internal {
      */
     static private boolean ide_is_pio_out(IDEState s) {
         if (s.end_transfer_func == ide_sector_write ||
-            s.end_transfer_func == Atapi.ide_atapi_cmd) {
+                s.end_transfer_func == Atapi.ide_atapi_cmd) {
             return false;
         } else if (s.end_transfer_func == ide_sector_read ||
-                   s.end_transfer_func == ide_transfer_stop ||
-                   s.end_transfer_func == Atapi.ide_atapi_cmd_reply_end ||
-                   s.end_transfer_func == ide_dummy_transfer_stop) {
+                s.end_transfer_func == ide_transfer_stop ||
+                s.end_transfer_func == Atapi.ide_atapi_cmd_reply_end ||
+                s.end_transfer_func == ide_dummy_transfer_stop) {
             return true;
         }
         throw new IllegalStateException("Bad state in IDE.Core.ide_is_pio_out");
     }
 
     private static void ide_data_writew(Object opaque, int addr, int val) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
 
         /* PIO data access allowed only when DRQ bit is set. The result of a write
          * during PIO out is indeterminate, just ignore it. */
-        if ((s.status & DRQ_STAT)==0 || ide_is_pio_out(s)) {
+        if ((s.status & DRQ_STAT) == 0 || ide_is_pio_out(s)) {
             return;
         }
 
         writew(s.data_ptr, s.data_ptr_offset, val);
-        s.data_ptr_offset+=2;
+        s.data_ptr_offset += 2;
         if (s.data_ptr_offset >= s.data_end)
             s.end_transfer_func.call(s);
     }
 
     static private int ide_data_readw(Object opaque, int addr) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
         int ret;
 
         /* PIO data access allowed only when DRQ bit is set. The result of a read
          * during PIO in is indeterminate, return 0 and don't move forward. */
-        if ((s.status & DRQ_STAT)==0 || !ide_is_pio_out(s)) {
+        if ((s.status & DRQ_STAT) == 0 || !ide_is_pio_out(s)) {
             return 0;
         }
 
         ret = readw(s.data_ptr, s.data_ptr_offset);
-        s.data_ptr_offset+=2;
+        s.data_ptr_offset += 2;
         if (s.data_ptr_offset >= s.data_end)
             s.end_transfer_func.call(s);
         return ret;
     }
 
     static private void ide_data_writel(Object opaque, int addr, int val) {
-        IDEBus bus = (IDEBus)opaque;
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
 
         /* PIO data access allowed only when DRQ bit is set. The result of a write
          * during PIO out is indeterminate, just ignore it. */
-        if ((s.status & DRQ_STAT)==0 || ide_is_pio_out(s)) {
+        if ((s.status & DRQ_STAT) == 0 || ide_is_pio_out(s)) {
             return;
         }
 
         writed(s.data_ptr, s.data_ptr_offset, val);
-        s.data_ptr_offset+=4;
+        s.data_ptr_offset += 4;
         if (s.data_ptr_offset >= s.data_end)
             s.end_transfer_func.call(s);
     }
 
-    static private int ide_data_readl(Object opaque, int addr)
-    {
-        IDEBus bus = (IDEBus)opaque;
+    static private int ide_data_readl(Object opaque, int addr) {
+        IDEBus bus = (IDEBus) opaque;
         IDEState s = idebus_active_if(bus);
         int ret;
 
         /* PIO data access allowed only when DRQ bit is set. The result of a read
          * during PIO in is indeterminate, return 0 and don't move forward. */
-        if ((s.status & DRQ_STAT)==0 || !ide_is_pio_out(s)) {
+        if ((s.status & DRQ_STAT) == 0 || !ide_is_pio_out(s)) {
             return 0;
         }
 
         ret = readd(s.data_ptr, s.data_ptr_offset);
-        s.data_ptr_offset+=4;
+        s.data_ptr_offset += 4;
         if (s.data_ptr_offset >= s.data_end)
             s.end_transfer_func.call(s);
         return ret;
@@ -1780,18 +1762,17 @@ public class IDE extends Internal {
     final static private Internal.EndTransferFunc ide_dummy_transfer_stop = s -> {
         s.data_ptr = s.io_buffer;
         s.data_end = 0;
-        s.io_buffer[0] = (byte)0xff;
-        s.io_buffer[1] = (byte)0xff;
-        s.io_buffer[2] = (byte)0xff;
-        s.io_buffer[3] = (byte)0xff;
+        s.io_buffer[0] = (byte) 0xff;
+        s.io_buffer[1] = (byte) 0xff;
+        s.io_buffer[2] = (byte) 0xff;
+        s.io_buffer[3] = (byte) 0xff;
     };
 
-    static private void ide_reset(IDEState s)
-    {
+    static private void ide_reset(IDEState s) {
         if (DEBUG_IDE)
-        logger.log(Level.DEBUG,"ide: reset");
+            logger.log(Level.DEBUG, "ide: reset");
 
-        if (s.pio_aiocb!=null) {
+        if (s.pio_aiocb != null) {
             Block.bdrv_aio_cancel(s.pio_aiocb);
             s.pio_aiocb = null;
         }
@@ -1841,8 +1822,7 @@ public class IDE extends Internal {
         s.media_changed = 0;
     }
 
-    static private void ide_bus_reset(IDEBus bus)
-    {
+    static private void ide_bus_reset(IDEBus bus) {
         bus.unit = 0;
         bus.cmd = 0;
         ide_reset(bus.ifs[0]);
@@ -1852,7 +1832,7 @@ public class IDE extends Internal {
         /* pending async DMA */
         if (bus.dma.aiocb != null) {
             if (DEBUG_AIO)
-                logger.log(Level.DEBUG,"aio_cancel");
+                logger.log(Level.DEBUG, "aio_cancel");
             Block.bdrv_aio_cancel(bus.dma.aiocb);
             bus.dma.aiocb = null;
         }
@@ -1861,14 +1841,12 @@ public class IDE extends Internal {
         bus.dma.ops.reset.call(bus.dma);
     }
 
-    static private boolean ide_cd_is_tray_open(Object opaque)
-    {
-        return ((IDEState)opaque).tray_open;
+    static private boolean ide_cd_is_tray_open(Object opaque) {
+        return ((IDEState) opaque).tray_open;
     }
 
-    static private boolean ide_cd_is_medium_locked(Object opaque)
-    {
-        return ((IDEState)opaque).tray_locked;
+    static private boolean ide_cd_is_medium_locked(Object opaque) {
+        return ((IDEState) opaque).tray_locked;
     }
 
     static private final Block.BlockDevOps ide_cd_block_ops = new Block.BlockDevOps() {
@@ -1923,11 +1901,10 @@ public class IDE extends Internal {
     };
 
     static private int ide_init_drive(IDEState s, Block.BlockDriverState bs, int kind,
-                       String version, String serial, String model,
-                       long wwn,
-                       int cylinders, int heads, int secs,
-                       int chs_trans)
-    {
+                                      String version, String serial, String model,
+                                      long wwn,
+                                      int cylinders, int heads, int secs,
+                                      int chs_trans) {
         long nb_sectors;
 
         s.bs = bs;
@@ -1968,15 +1945,15 @@ public class IDE extends Internal {
             s.drive_model_str = model;
         } else {
             switch (kind) {
-            case IDE_CD:
-                s.drive_model_str = "QEMU DVD-ROM";
-                break;
-            case IDE_CFATA:
-                s.drive_model_str = "QEMU MICRODRIVE";
-                break;
-            default:
-                s.drive_model_str = "QEMU HARDDISK";
-                break;
+                case IDE_CD:
+                    s.drive_model_str = "QEMU DVD-ROM";
+                    break;
+                case IDE_CFATA:
+                    s.drive_model_str = "QEMU MICRODRIVE";
+                    break;
+                default:
+                    s.drive_model_str = "QEMU HARDDISK";
+                    break;
             }
         }
 
@@ -2000,7 +1977,7 @@ public class IDE extends Internal {
         s.unit = unit;
         s.drive_serial = drive_serial++;
         /* we need at least 2k alignment for accessing CDROMs using O_DIRECT */
-        s.io_buffer_total_len = IDE_DMA_BUF_SECTORS*512 + 4;
+        s.io_buffer_total_len = IDE_DMA_BUF_SECTORS * 512 + 4;
         s.io_buffer = new byte[s.io_buffer_total_len];
 
         s.smart_selftest_data = new byte[512];
@@ -2008,27 +1985,29 @@ public class IDE extends Internal {
     }
 
     static private final class IDEDMANop extends IDEDMAOps {
+
         public IDEDMANop() {
             start_dma = (dma, s, cb) -> {
             };
             start_transfer = dma -> 0;
-            prepare_buf    = (dma, x) -> 0;
-            rw_buf         = prepare_buf;
-            set_unit       = prepare_buf;
-            add_status     = prepare_buf;
-            set_inactive   = start_transfer;
-            restart_cb     = (opaque, x, y) -> {
+            prepare_buf = (dma, x) -> 0;
+            rw_buf = prepare_buf;
+            set_unit = prepare_buf;
+            add_status = prepare_buf;
+            set_inactive = start_transfer;
+            restart_cb = (opaque, x, y) -> {
             };
-            reset          = start_transfer;
+            reset = start_transfer;
         }
     }
+
     static private final IDEDMAOps ide_dma_nop_ops = new IDEDMANop();
     static private final IDEDMA ide_dma_nop = new IDEDMA(ide_dma_nop_ops);
 
     public static void ide_init2(IDEBus bus, int irq) {
         int i;
 
-        for(i = 0; i < 2; i++) {
+        for (i = 0; i < 2; i++) {
             ide_init1(bus, i);
             ide_reset(bus.ifs[i]);
         }
@@ -2058,13 +2037,15 @@ public class IDE extends Internal {
         }
         return null;
     }
+
     static public IDEState getDrive(int controller, int index) {
         IDEBus ide = idecontroller[controller];
-        if (ide != null && ide.ifs[index].bs!=null) {
+        if (ide != null && ide.ifs[index].bs != null) {
             return ide.ifs[index];
         }
         return null;
     }
+
     static public int getHDCount() {
         int count = 0;
         for (IDEBus ide : idecontroller) {
@@ -2080,30 +2061,30 @@ public class IDE extends Internal {
     static private IDEBus match_ide_controller(int port) {
         int i;
 
-        for (i=0;i < 4;i++) {
+        for (i = 0; i < 4; i++) {
             IDEBus ide = idecontroller[i];
             if (ide == null) continue;
-            if (ide.base_io != 0 && ide.base_io == (port&0xFFF8)) return ide;
-            if (ide.alt_io != 0 && ide.alt_io == (port&0xFFFE)) return ide;
+            if (ide.base_io != 0 && ide.base_io == (port & 0xFFF8)) return ide;
+            if (ide.alt_io != 0 && ide.alt_io == (port & 0xFFFE)) return ide;
         }
 
         return null;
     }
 
     /*Bitu*//*Bitu*//*Bitu*/
-    public final static IoHandler.IO_WriteHandler ide_ioport_write_handler  = (port, val, iolen) -> {
+    public final static IoHandler.IO_WriteHandler ide_ioport_write_handler = (port, val, iolen) -> {
         IDEBus ide = match_ide_controller(port);
         ide_ioport_write(ide, port, val);
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
-    public final static IoHandler.IO_WriteHandler ide_data_writew_handler  = (port, val, iolen) -> {
+    public final static IoHandler.IO_WriteHandler ide_data_writew_handler = (port, val, iolen) -> {
         IDEBus ide = match_ide_controller(port);
         ide_data_writew(ide, port, val);
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
-    public final static IoHandler.IO_WriteHandler ide_data_writel_handler  = (port, val, iolen) -> {
+    public final static IoHandler.IO_WriteHandler ide_data_writel_handler = (port, val, iolen) -> {
         IDEBus ide = match_ide_controller(port);
         ide_data_writel(ide, port, val);
     };
@@ -2133,7 +2114,7 @@ public class IDE extends Internal {
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
-    public final static IoHandler.IO_WriteHandler ide_cmd_write_handler  = (port, val, iolen) -> {
+    public final static IoHandler.IO_WriteHandler ide_cmd_write_handler = (port, val, iolen) -> {
         IDEBus ide = match_ide_controller(port);
         ide_cmd_write(ide, port, val);
     };
@@ -2142,26 +2123,26 @@ public class IDE extends Internal {
         /* TODO: Free each IDE object */
     };
 
-    static void IDE_Init(Section sec,int i,String tag) {
-        Section_prop section=(Section_prop)sec;
+    static void IDE_Init(Section sec, int i, String tag) {
+        Section_prop section = (Section_prop) sec;
         if (!section.Get_bool(tag))
             return;
 
-        idecontroller[i] = new IDEBus(sec,i);
+        idecontroller[i] = new IDEBus(sec, i);
     }
 
     static public IDEBus getIDEController(int index) {
         return idecontroller[index];
     }
 
-    static public void IDE_Auto(IntRef index,BooleanRef slave) {
+    static public void IDE_Auto(IntRef index, BooleanRef slave) {
         IDEBus c;
         int i;
 
         index.value = -1;
         slave.value = false;
-        for (i=0;i < idecontroller.length;i++) {
-            if ((c=idecontroller[i]) == null) continue;
+        for (i = 0; i < idecontroller.length; i++) {
+            if ((c = idecontroller[i]) == null) continue;
             index.value = (i >> 1);
 
             if (c.ifs[0].bs == null) {
@@ -2180,13 +2161,13 @@ public class IDE extends Internal {
     }
 
     /* bios_disk_index = index into BIOS INT 13h disk array: imageDisk *imageDiskList[MAX_DISK_IMAGES]; */
-    static public void IDE_Attach(boolean isCD, int index,boolean slave, FileIO file, int hintCylinders, int hintHeads, int hintSector) {
+    static public void IDE_Attach(boolean isCD, int index, boolean slave, FileIO file, int hintCylinders, int hintHeads, int hintSector) {
         if (index < 0 || index >= idecontroller.length) return;
         IDEBus c = idecontroller[index];
         if (c == null) return;
 
-        if (c.ifs[slave?1:0].bs != null) {
-            logger.log(Level.DEBUG,"IDE: Controller "+index+" "+(slave?"slave":"master")+" already taken");
+        if (c.ifs[slave ? 1 : 0].bs != null) {
+            logger.log(Level.DEBUG, "IDE: Controller " + index + " " + (slave ? "slave" : "master") + " already taken");
             return;
         }
 
@@ -2195,10 +2176,10 @@ public class IDE extends Internal {
         Block.bdrv_open(bs, "dummy", Block.BDRV_O_RDWR, drv);
         IntRef cylinders = new IntRef(hintCylinders);
         IntRef heads = new IntRef(hintHeads);
-        IntRef sectors  = new IntRef(hintSector);
+        IntRef sectors = new IntRef(hintSector);
         IntRef trans = new IntRef(Block.BIOS_ATA_TRANSLATION_AUTO);
         //if (cylinders.value == 0 && heads.value == 0 && sectors.value==0) {
-            HdGeometry.hd_geometry_guess(bs, cylinders, heads, sectors, trans);
+        HdGeometry.hd_geometry_guess(bs, cylinders, heads, sectors, trans);
         //} else if (trans.value == Block.BIOS_ATA_TRANSLATION_AUTO) {
         //    trans.value = hd_bios_chs_auto_trans(cylinders.value, heads.value, sectors.value);
         //}
@@ -2214,13 +2195,13 @@ public class IDE extends Internal {
             throw new IllegalStateException("secs must be between 1 and 255");
         }
         */
-        ide_init_drive(c.ifs[slave ? 1 : 0], bs, isCD?IDE_CD:IDE_HD, "version", "serial", null, 0, cylinders.value, heads.value, sectors.value, trans.value);
+        ide_init_drive(c.ifs[slave ? 1 : 0], bs, isCD ? IDE_CD : IDE_HD, "version", "serial", null, 0, cylinders.value, heads.value, sectors.value, trans.value);
     }
 
     public static final Section.SectionFunction IDE_Init = sec -> {
         IDE_Init(sec, 0, "primary");
         IDE_Init(sec, 1, "secondary");
         IDE_Init(sec, 2, "tertiary");
-        IDE_Init(sec,3, " quaternary");
+        IDE_Init(sec, 3, " quaternary");
     };
 }

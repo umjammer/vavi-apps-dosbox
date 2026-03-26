@@ -1,20 +1,21 @@
 package jdos.util;
 
-import java.io.File;
-import java.io.BufferedOutputStream;
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
+import java.io.File;
 import java.io.FileOutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Enumeration;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
-import java.util.Enumeration;
+
 
 public class UnZip {
 
     private static final Logger logger = System.getLogger(UnZip.class.getName());
 
-    static final int BUFFER = 2048*32;
+    static final int BUFFER = 2048 * 32;
 
     public static boolean unzip(String fileName, String dir, Progress progress) {
         BufferedOutputStream dest = null;
@@ -26,26 +27,26 @@ public class UnZip {
             Enumeration<? extends ZipEntry> e = zipfile.entries();
             long totalSize = 0;
             String root = null;
-            while(e.hasMoreElements()) {
+            while (e.hasMoreElements()) {
                 entry = e.nextElement();
-                totalSize+=entry.getSize();
+                totalSize += entry.getSize();
             }
             e = zipfile.entries();
-            while(e.hasMoreElements()) {
+            while (e.hasMoreElements()) {
                 entry = e.nextElement();
-                logger.log(Level.DEBUG,"Extracting: " +entry);
-                progress.status("Extracting: " +entry);
+                logger.log(Level.DEBUG, "Extracting: " + entry);
+                progress.status("Extracting: " + entry);
                 if (entry.isDirectory()) {
                     if (root == null) {
-                        root = dir+"/"+entry.getName();
+                        root = dir + "/" + entry.getName();
                     }
-                    new File(dir+"/"+entry.getName()).mkdirs();
+                    new File(dir + "/" + entry.getName()).mkdirs();
                     continue;
                 }
                 is = new BufferedInputStream(zipfile.getInputStream(entry));
                 int count;
                 byte[] data = new byte[BUFFER];
-                File newFile = new File(dir+"/"+entry.getName());
+                File newFile = new File(dir + "/" + entry.getName());
                 if (!newFile.getParentFile().exists()) {
                     if (root == null) {
                         root = newFile.getParentFile().getAbsolutePath();
@@ -59,7 +60,7 @@ public class UnZip {
                     dest.write(data, 0, count);
                     progress.incrementSpeedValue(count);
                     if (progress.hasCancelled()) {
-                        logger.log(Level.DEBUG,"Cancelled Unzip operation");
+                        logger.log(Level.DEBUG, "Cancelled Unzip operation");
                         dest.flush();
                         dest.close();
                         is.close();
@@ -75,7 +76,7 @@ public class UnZip {
             }
             zipfile.close();
             return true;
-        } catch(Exception e) {
+        } catch (Exception e) {
             logger.log(Level.ERROR, e.getMessage(), e);
         }
         return false;

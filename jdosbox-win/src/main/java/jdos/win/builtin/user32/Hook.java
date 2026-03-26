@@ -1,5 +1,8 @@
 package jdos.win.builtin.user32;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.cpu.CPU_Regs;
 import jdos.win.Win;
 import jdos.win.builtin.kernel32.WinThread;
@@ -8,10 +11,9 @@ import jdos.win.system.WinObject;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 
-import java.util.ArrayList;
-import java.util.List;
 
 public class Hook extends WinObject {
+
     static public Hook create(int type, int threadId, int eip) {
         return new Hook(nextObjectId(), type, threadId, eip);
     }
@@ -20,12 +22,12 @@ public class Hook extends WinObject {
         WinObject object = getObject(handle);
         if (object == null || !(object instanceof Hook))
             return null;
-        return (Hook)object;
+        return (Hook) object;
     }
 
     // LRESULT WINAPI CallNextHookEx(HHOOK hhk, int nCode, WPARAM wParam, LPARAM lParam)
     static public int CallNextHookEx(int hhk, int nCode, int wParam, int lParam) {
-        if (StaticData.currentHookIndex+1<StaticData.currentHookChain.size()) {
+        if (StaticData.currentHookIndex + 1 < StaticData.currentHookChain.size()) {
             StaticData.currentHookIndex++;
             Hook hook = StaticData.currentHookChain.get(StaticData.currentHookIndex);
             WinSystem.call(hook.eip, nCode, wParam, lParam);
@@ -49,7 +51,7 @@ public class Hook extends WinObject {
         } else {
             /* system-global hook */
             if (dwThreadId == WH_KEYBOARD_LL || dwThreadId == WH_MOUSE_LL) hMod = 0;
-            else if (hMod==0) {
+            else if (hMod == 0) {
                 SetLastError(ERROR_HOOK_NEEDS_HMOD);
                 return 0;
             }
@@ -66,7 +68,7 @@ public class Hook extends WinObject {
                 return 0;
             }
         }
-        if (dwThreadId == 0 || hMod !=0) {
+        if (dwThreadId == 0 || hMod != 0) {
             Win.panic("Kernel32.SetWindowsHookExA not implemented yet for other processes");
         }
         if (idHook == WH_KEYBOARD_LL || idHook == WH_MOUSE_LL) {

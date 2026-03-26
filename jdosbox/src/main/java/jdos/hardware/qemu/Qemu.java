@@ -1,14 +1,15 @@
 package jdos.hardware.qemu;
 
+import java.io.FileInputStream;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.gui.Main;
 import jdos.hardware.IoHandler;
 import jdos.hardware.RAM;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import jdos.util.FileIO;
 import jdos.util.FileIOFactory;
 
-import java.io.FileInputStream;
 
 public class Qemu {
 
@@ -43,19 +44,19 @@ public class Qemu {
             }
             if (!videoBiosFound) {
                 FileIO fileIO = FileIOFactory.open("jar://vgabios.bin", FileIOFactory.MODE_READ);
-                fileIO.read(videoData, 0, (int)fileIO.length());
+                fileIO.read(videoData, 0, (int) fileIO.length());
                 fileIO.close();
             }
             int address = 0xC0000;
-            for(int i=0;i<videoData.length;i++)
+            for (int i = 0; i < videoData.length; i++)
                 RAM.writeb(address + i, videoData[i]);
             if (registerBochsPorts) {
                 /*Bitu*//*Bitu*//*Bitu*/
-                IoHandler.IO_WriteHandler vga_write  = (port, val, iolen) -> {
+                IoHandler.IO_WriteHandler vga_write = (port, val, iolen) -> {
                     if (port == 0x500 || port == 0x503) {
-                        System.out.print((char)val);
+                        System.out.print((char) val);
                     } else if (port == 0x501 || port == 0x502) {
-                        logger.log(Level.DEBUG,"panic in vgabios at line "+val);
+                        logger.log(Level.DEBUG, "panic in vgabios at line " + val);
                     }
                 };
                 new IoHandler.IO_WriteHandleObject().Install(0x500, vga_write, IoHandler.IO_MA);

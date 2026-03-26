@@ -4,7 +4,9 @@ import jdos.win.builtin.WinAPI;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
+
 public class Environ extends WinAPI {
+
     // BOOL WINAPI SetEnvironmentVariable(LPCTSTR lpName, LPCTSTR lpValue)
     static public int SetEnvironmentVariableA(int lpName, int lpValue) {
         if (lpValue != 0)

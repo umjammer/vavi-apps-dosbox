@@ -11,6 +11,7 @@ import jdos.win.builtin.HandlerBase;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 import jdos.win.utils.Error;
 
+
 public class IDirectSound extends IUnknown {
 
     private static final Logger logger = System.getLogger(IDirectSound.class.getName());
@@ -59,6 +60,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.CreateSoundBuffer";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -71,22 +73,23 @@ public class IDirectSound extends IUnknown {
 
     // HRESULT GetCaps(this, LPDSCAPS lpDSCaps)
     static private final Callback.Handler GetCaps = new HandlerBase() {
-        static final int DSCAPS_PRIMARYMONO =       0x00000001;
-        static final int DSCAPS_PRIMARYSTEREO =     0x00000002;
-        static final int DSCAPS_PRIMARY8BIT =       0x00000004;
-        static final int DSCAPS_PRIMARY16BIT =      0x00000008;
-        static final int DSCAPS_CONTINUOUSRATE =    0x00000010;
-        static final int DSCAPS_EMULDRIVER =        0x00000020;
-        static final int DSCAPS_CERTIFIED =         0x00000040;
-        static final int DSCAPS_SECONDARYMONO =     0x00000100;
-        static final int DSCAPS_SECONDARYSTEREO =   0x00000200;
-        static final int DSCAPS_SECONDARY8BIT =     0x00000400;
-        static final int DSCAPS_SECONDARY16BIT =    0x00000800;
+        static final int DSCAPS_PRIMARYMONO = 0x00000001;
+        static final int DSCAPS_PRIMARYSTEREO = 0x00000002;
+        static final int DSCAPS_PRIMARY8BIT = 0x00000004;
+        static final int DSCAPS_PRIMARY16BIT = 0x00000008;
+        static final int DSCAPS_CONTINUOUSRATE = 0x00000010;
+        static final int DSCAPS_EMULDRIVER = 0x00000020;
+        static final int DSCAPS_CERTIFIED = 0x00000040;
+        static final int DSCAPS_SECONDARYMONO = 0x00000100;
+        static final int DSCAPS_SECONDARYSTEREO = 0x00000200;
+        static final int DSCAPS_SECONDARY8BIT = 0x00000400;
+        static final int DSCAPS_SECONDARY16BIT = 0x00000800;
 
         @Override
         public java.lang.String getName() {
             return "IDirectSound.GetCaps";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -95,7 +98,7 @@ public class IDirectSound extends IUnknown {
             if (caps.dwSize != 96) {
                 Win.panic(getName() + " unexpected size of caps structure");
             }
-            caps.dwFlags = DSCAPS_PRIMARYMONO|DSCAPS_PRIMARYSTEREO|DSCAPS_PRIMARY8BIT|DSCAPS_PRIMARY16BIT|DSCAPS_CONTINUOUSRATE|DSCAPS_CERTIFIED|DSCAPS_SECONDARYMONO|DSCAPS_SECONDARYSTEREO|DSCAPS_SECONDARY8BIT|DSCAPS_SECONDARY16BIT;
+            caps.dwFlags = DSCAPS_PRIMARYMONO | DSCAPS_PRIMARYSTEREO | DSCAPS_PRIMARY8BIT | DSCAPS_PRIMARY16BIT | DSCAPS_CONTINUOUSRATE | DSCAPS_CERTIFIED | DSCAPS_SECONDARYMONO | DSCAPS_SECONDARYSTEREO | DSCAPS_SECONDARY8BIT | DSCAPS_SECONDARY16BIT;
             caps.dwMinSecondarySampleRate = 4000;
             caps.dwMaxSecondarySampleRate = 48000;
             caps.dwPrimaryBuffers = 1;
@@ -126,6 +129,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.DuplicateSoundBuffer";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -137,21 +141,22 @@ public class IDirectSound extends IUnknown {
 
     // HRESULT SetCooperativeLevel(this, HWND hwnd, DWORD dwLevel)
     static private final Callback.Handler SetCooperativeLevel = new HandlerBase() {
-        static final public int DSSCL_NORMAL =      1;
-        static final public int DSSCL_PRIORITY =    2;
-        static final public int DSSCL_EXCLUSIVE =   3;
-        static final public int DSSCL_WRITEPRIMARY =4;
+        static final public int DSSCL_NORMAL = 1;
+        static final public int DSSCL_PRIORITY = 2;
+        static final public int DSSCL_EXCLUSIVE = 3;
+        static final public int DSSCL_WRITEPRIMARY = 4;
 
         @Override
         public java.lang.String getName() {
             return "IDirectSound.SetCooperativeLevel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             int hwnd = CPU.CPU_Pop32();
             int dwLevel = CPU.CPU_Pop32();
-            logger.log(Level.DEBUG,getName()+" called with priority "+dwLevel);
+            logger.log(Level.DEBUG, getName() + " called with priority " + dwLevel);
             CPU_Regs.reg_eax.dword = Error.S_OK;
         }
     };
@@ -162,6 +167,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.Compact";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -175,6 +181,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.GetSpeakerConfig";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -189,6 +196,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.SetSpeakerConfig";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -203,6 +211,7 @@ public class IDirectSound extends IUnknown {
         public java.lang.String getName() {
             return "IDirectSound.Initialize";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

@@ -10,15 +10,15 @@ public class ICMP extends EtherUtil {
 
     private void parse(byte[] buffer, int offset) {
         type = buffer[offset] & 0xFF;
-        code = buffer[offset+1] & 0xFF;
-        checksum = (short)readWord(buffer, offset+2);
+        code = buffer[offset + 1] & 0xFF;
+        checksum = (short) readWord(buffer, offset + 2);
     }
 
     public void handle(byte[] buffer, int offset, int len) {
         System.out.print("Received ICMP Packet ");
         parse(buffer, offset);
         if (type == 0) {
-            logger.log(Level.DEBUG," PING");
+            logger.log(Level.DEBUG, " PING");
         } else {
             String strType = switch (type) {
                 case 3 -> "Destination Unreachable";
@@ -39,10 +39,10 @@ public class ICMP extends EtherUtil {
                 default -> null;
             };
 
-            System.out.print(" type="+type);
+            System.out.print(" type=" + type);
             if (strType != null)
-                System.out.print("("+strType+")");
-            logger.log(Level.DEBUG," code="+code);
+                System.out.print("(" + strType + ")");
+            logger.log(Level.DEBUG, " code=" + code);
         }
     }
 

@@ -31,7 +31,7 @@ public class DMAHelpers {
         */
     }
 
-    static public Block.BlockDriverAIOCB dma_bdrv_read(Block.BlockDriverState bs, DMA.QEMUSGList sg, long sector,  Block.BlockDriverCompletionFunc cb, Object opaque) {
+    static public Block.BlockDriverAIOCB dma_bdrv_read(Block.BlockDriverState bs, DMA.QEMUSGList sg, long sector, Block.BlockDriverCompletionFunc cb, Object opaque) {
         return dma_bdrv_io(bs, sg, sector, bdrv_aio_readv, cb, opaque, DMA.DMA_DIRECTION_FROM_DEVICE);
     }
 

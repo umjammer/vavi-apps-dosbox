@@ -5,7 +5,9 @@ import jdos.cpu.Callback;
 import jdos.win.builtin.HandlerBase;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 
+
 public class IDirectInputDeviceA extends IUnknown {
+
     static final int VTABLE_SIZE = 15;
 
     static final int OFFSET_FLAGS = 0;
@@ -57,6 +59,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetCapabilities";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -71,6 +74,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.EnumObjects";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -87,6 +91,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetProperty";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -102,6 +107,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.SetProperty";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -117,6 +123,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.Acquire";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -130,6 +137,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.Unacquire";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -143,6 +151,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetDeviceState";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -158,6 +167,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetDeviceData";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -175,6 +185,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.SetDataFormat";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -189,6 +200,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.SetEventNotification";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -203,6 +215,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.SetCooperativeLevel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -218,6 +231,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetObjectInfo";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -234,6 +248,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.GetDeviceInfo";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -248,6 +263,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.RunControlPanel";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -263,6 +279,7 @@ public class IDirectInputDeviceA extends IUnknown {
         public java.lang.String getName() {
             return "IDirectInputDeviceA.Initialize";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

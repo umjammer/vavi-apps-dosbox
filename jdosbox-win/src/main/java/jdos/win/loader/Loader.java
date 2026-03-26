@@ -90,7 +90,7 @@ public class Loader {
 
     public void attachThread() {
         for (Module module : modulesByHandle.values()) {
-            if (module != main &&  module.threadLibraryCalls) {
+            if (module != main && module.threadLibraryCalls) {
                 module.callDllMain(Module.DLL_THREAD_ATTACH);
             }
         }
@@ -209,9 +209,9 @@ public class Loader {
     public Module loadModule(String name) {
         String path = null;
         int pos = name.lastIndexOf("\\");
-        if (pos>=0) {
-            path = name.substring(0, pos+1);
-            name = name.substring(pos+1);
+        if (pos >= 0) {
+            path = name.substring(0, pos + 1);
+            name = name.substring(pos + 1);
         }
         // TODO currently we only support modules in the path
         return internalLoadModule(name);
@@ -234,7 +234,7 @@ public class Loader {
 
     private boolean importDll(Module module, HeaderImageImportDescriptor importDescriptor) throws IOException {
         String name = module.getVirtualString(importDescriptor.Name);
-        logger.log(Level.DEBUG,"ImportDll: " + name);
+        logger.log(Level.DEBUG, "ImportDll: " + name);
         Module import_module = loadModule(name);
         if (import_module == null) {
             Win.panic("Could not find import: " + name);

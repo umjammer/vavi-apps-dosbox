@@ -4,7 +4,9 @@ import jdos.hardware.Memory;
 import jdos.win.Console;
 import jdos.win.Win;
 
+
 public class LittleEndianFile {
+
     private final byte[] w;
     private final int address;
     private final int len;
@@ -27,8 +29,8 @@ public class LittleEndianFile {
 
     public String readCString() {
         StringBuilder result = new StringBuilder();
-        while (pos+1<len) {
-            char c = (char)readByte(); // TODO need to research converting according to 1252
+        while (pos + 1 < len) {
+            char c = (char) readByte(); // TODO need to research converting according to 1252
             if (c == 0)
                 break;
             result.append(c);
@@ -39,13 +41,13 @@ public class LittleEndianFile {
     public static void writeCString(int address, String s) {
         byte[] b = s.getBytes();
         Memory.mem_memcpy(address, b, 0, b.length);
-        Memory.mem_writeb(address+b.length, 0);
+        Memory.mem_writeb(address + b.length, 0);
     }
 
     public String readCString(int len) {
         StringBuilder result = new StringBuilder();
-        for (int i=0;i<len && pos+1<=this.len;i++) {
-            char c = (char)readByte();
+        for (int i = 0; i < len && pos + 1 <= this.len; i++) {
+            char c = (char) readByte();
             result.append(c);
         }
         return result.toString();
@@ -54,7 +56,7 @@ public class LittleEndianFile {
     public String readCStringW() {
         StringBuilder result = new StringBuilder();
         while (true) {
-            char c = (char)readShort();
+            char c = (char) readShort();
             if (c == 0)
                 break;
             result.append(c);
@@ -65,17 +67,17 @@ public class LittleEndianFile {
     public String readCStringW(int len) {
         StringBuilder result = new StringBuilder();
         int i;
-        for (i=0;i<len && pos+2<=this.len;i++) {
-            char c = (char)readShort();
+        for (i = 0; i < len && pos + 2 <= this.len; i++) {
+            char c = (char) readShort();
             result.append(c);
         }
         return result.toString();
     }
 
     public void seek(long value) {
-        if (value>len)
+        if (value > len)
             value = len;
-        pos = (int)value;
+        pos = (int) value;
     }
 
     public int available() {
@@ -83,34 +85,34 @@ public class LittleEndianFile {
     }
 
     public final short readShort() {
-        short result = (short)Memory.mem_readw(address + pos);
-        pos+=2;
+        short result = (short) Memory.mem_readw(address + pos);
+        pos += 2;
         return result;
     }
 
     public final int readUnsignedShort() {
         int result = Memory.mem_readw(address + pos);
-        pos+=2;
+        pos += 2;
         return result;
     }
 
     public final int readInt() {
         int result = Memory.mem_readd(address + pos);
-        pos+=4;
+        pos += 4;
         return result;
     }
 
     public final long readUnsignedInt() {
         int result = Memory.mem_readd(address + pos);
-        pos+=4;
+        pos += 4;
         return result & 0xFFFFFFFFL;
     }
 
     public final int read(byte[] b, int off, int len) {
-        if (len>available())
-            len=available();
+        if (len > available())
+            len = available();
         Memory.mem_memcpy(b, off, address + pos, len);
-        pos+=len;
+        pos += len;
         return len;
     }
 
@@ -119,21 +121,21 @@ public class LittleEndianFile {
     }
 
     public final int skipBytes(int n) {
-        if (n>available())
+        if (n > available())
             n = available();
-        pos+=n;
+        pos += n;
         return n;
     }
 
     public final byte readByte() {
-        byte result = (byte)Memory.mem_readb(address + pos);
-        pos+=1;
+        byte result = (byte) Memory.mem_readb(address + pos);
+        pos += 1;
         return result;
     }
 
     public final short readUnsignedByte() {
         int result = Memory.mem_readb(address + pos);
-        pos+=1;
-        return (short)result;
+        pos += 1;
+        return (short) result;
     }
 }

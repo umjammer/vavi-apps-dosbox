@@ -1,8 +1,10 @@
 package jdos.hardware;
 
-import jdos.ints.Int10_modes;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+
+import jdos.ints.Int10_modes;
+
 
 public class VGA_s3 {
 
@@ -11,16 +13,16 @@ public class VGA_s3 {
     /*Bitu*//*Bitu*//*Bitu*/
     private static final VGA.tWritePort SVGA_S3_WriteCRTC = (reg, val, iolen) -> {
         switch (reg) {
-        case 0x31:	/* CR31 Memory Configuration */
+            case 0x31:    /* CR31 Memory Configuration */
 //TODO Base address
-            VGA.vga.s3.reg_31 = (short)val;
-            VGA.vga.config.compatible_chain4 = (val&0x08)==0;
-            if (VGA.vga.config.compatible_chain4) VGA.vga.vmemwrap = 256*1024;
-             else VGA.vga.vmemwrap = VGA.vga.vmemsize;
-            VGA.vga.config.display_start = (VGA.vga.config.display_start&~0x30000)|((val&0x30)<<12);
-            VGA.VGA_DetermineMode();
-            VGA_memory.VGA_SetupHandlers();
-            break;
+                VGA.vga.s3.reg_31 = (short) val;
+                VGA.vga.config.compatible_chain4 = (val & 0x08) == 0;
+                if (VGA.vga.config.compatible_chain4) VGA.vga.vmemwrap = 256 * 1024;
+                else VGA.vga.vmemwrap = VGA.vga.vmemsize;
+                VGA.vga.config.display_start = (VGA.vga.config.display_start & ~0x30000) | ((val & 0x30) << 12);
+                VGA.VGA_DetermineMode();
+                VGA_memory.VGA_SetupHandlers();
+                break;
             /*
                 0	Enable Base Address Offset (CPUA BASE). Enables bank operation if
                     set, disables if clear.
@@ -35,16 +37,16 @@ public class VGA_s3 {
                 7	(not 864/964) Extended BIOS ROM Space Mapped out. If clear the area
                     C6800h-C7FFFh is mapped out, if set it is accessible.
             */
-        case 0x35:	/* CR35 CRT Register Lock */
-            if (VGA.vga.s3.reg_lock1 != 0x48) return;	//Needed for uvconfig detection
-            VGA.vga.s3.reg_35=(short)(val & 0xf0);
-            if (((VGA.vga.svga.bank_read & 0xf) ^ (val & 0xf))!=0) {
-                VGA.vga.svga.bank_read&=0xf0;
-                VGA.vga.svga.bank_read|=val & 0xf;
-                VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
-                VGA_memory.VGA_SetupHandlers();
-            }
-            break;
+            case 0x35:    /* CR35 CRT Register Lock */
+                if (VGA.vga.s3.reg_lock1 != 0x48) return;    //Needed for uvconfig detection
+                VGA.vga.s3.reg_35 = (short) (val & 0xf0);
+                if (((VGA.vga.svga.bank_read & 0xf) ^ (val & 0xf)) != 0) {
+                    VGA.vga.svga.bank_read &= 0xf0;
+                    VGA.vga.svga.bank_read |= val & 0xf;
+                    VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
+                    VGA_memory.VGA_SetupHandlers();
+                }
+                break;
             /*
                 0-3	CPU Base Address. 64k bank number. For the 801/5 and 928 see 3d4h
                     index 51h bits 2-3. For the 864/964 see index 6Ah.
@@ -55,113 +57,131 @@ public class VGA_s3 {
                 6	(911/924) Lock VSync Polarity.
                 7	(911/924) Lock HSync Polarity.
             */
-        case 0x38:	/* CR38 Register Lock 1 */
-            VGA.vga.s3.reg_lock1=(short)val;
-            break;
-        case 0x39:	/* CR39 Register Lock 2 */
-            VGA.vga.s3.reg_lock2=(short)val;
-            break;
-        case 0x3a:
-            VGA.vga.s3.reg_3a = (short)val;
-            break;
-        case 0x40:  /* CR40 System Config */
-            VGA.vga.s3.reg_40 = (short)val;
-            break;
-        case 0x41:  /* CR41 BIOS flags */
-            VGA.vga.s3.reg_41 = (short)val;
-            break;
-        case 0x43:	/* CR43 Extended Mode */
-            VGA.vga.s3.reg_43=(short)(val & ~0x4);
-            if ((((val & 0x4) ^ (VGA.vga.config.scan_len >> 6)) & 0x4)!=0) {
-                VGA.vga.config.scan_len&=0x2ff;
-                VGA.vga.config.scan_len|=(val & 0x4) << 6;
-                VGA_draw.VGA_CheckScanLength();
-            }
-            break;
+            case 0x38:    /* CR38 Register Lock 1 */
+                VGA.vga.s3.reg_lock1 = (short) val;
+                break;
+            case 0x39:    /* CR39 Register Lock 2 */
+                VGA.vga.s3.reg_lock2 = (short) val;
+                break;
+            case 0x3a:
+                VGA.vga.s3.reg_3a = (short) val;
+                break;
+            case 0x40:  /* CR40 System Config */
+                VGA.vga.s3.reg_40 = (short) val;
+                break;
+            case 0x41:  /* CR41 BIOS flags */
+                VGA.vga.s3.reg_41 = (short) val;
+                break;
+            case 0x43:    /* CR43 Extended Mode */
+                VGA.vga.s3.reg_43 = (short) (val & ~0x4);
+                if ((((val & 0x4) ^ (VGA.vga.config.scan_len >> 6)) & 0x4) != 0) {
+                    VGA.vga.config.scan_len &= 0x2ff;
+                    VGA.vga.config.scan_len |= (val & 0x4) << 6;
+                    VGA_draw.VGA_CheckScanLength();
+                }
+                break;
             /*
                 2  Logical Screen Width bit 8. Bit 8 of the Display Offset Register/
                 (3d4h index 13h). (801/5,928) Only active if 3d4h index 51h bits 4-5
                 are 0
             */
-        case 0x45:  /* Hardware cursor mode */
-            VGA.vga.s3.hgc.curmode = (short)val;
-            // Activate hardware cursor code if needed
-            VGA_draw.VGA_ActivateHardwareCursor();
-            break;
-        case 0x46:
-            VGA.vga.s3.hgc.originx = (VGA.vga.s3.hgc.originx & 0x00ff) | (val << 8);
-            break;
-        case 0x47:  /*  HGC orgX */
-            VGA.vga.s3.hgc.originx = (VGA.vga.s3.hgc.originx & 0xff00) | val;
-            break;
-        case 0x48:
-            VGA.vga.s3.hgc.originy = (VGA.vga.s3.hgc.originy & 0x00ff) | (val << 8);
-            break;
-        case 0x49:  /*  HGC orgY */
-            VGA.vga.s3.hgc.originy = (VGA.vga.s3.hgc.originy & 0xff00) | val;
-            break;
-        case 0x4A:  /* HGC foreground stack */
-            if (VGA.vga.s3.hgc.fstackpos > 2) VGA.vga.s3.hgc.fstackpos = 0;
-            VGA.vga.s3.hgc.forestack.set(VGA.vga.s3.hgc.fstackpos, val);
-            VGA.vga.s3.hgc.fstackpos++;
-            break;
-        case 0x4B:  /* HGC background stack */
-            if (VGA.vga.s3.hgc.bstackpos > 2) VGA.vga.s3.hgc.bstackpos = 0;
-            VGA.vga.s3.hgc.backstack.set(VGA.vga.s3.hgc.bstackpos, val);
-            VGA.vga.s3.hgc.bstackpos++;
-            break;
-        case 0x4c:  /* HGC start address high byte*/
-            VGA.vga.s3.hgc.startaddr &=0xff;
-            VGA.vga.s3.hgc.startaddr |= ((val & 0xf) << 8);
-            /*Bitu*/
-            if ((VGA.vga.s3.hgc.startaddr <<10)+((64*64*2)/8) > VGA.vga.vmemsize) {
-                VGA.vga.s3.hgc.startaddr &= 0xff;	// put it back to some sane area;
-                                                // if read back of this address is ever implemented this needs to change
-                LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:CRTC: HGC pattern address beyond video memory" );
-            }
-            break;
-        case 0x4d:  /* HGC start address low byte*/
-            VGA.vga.s3.hgc.startaddr &=0xff00;
-            VGA.vga.s3.hgc.startaddr |= (val & 0xff);
-            break;
-        case 0x4e:  /* HGC pattern start X */
-            VGA.vga.s3.hgc.posx = (short)(val & 0x3f);	// bits 0-5
-            break;
-        case 0x4f:  /* HGC pattern start Y */
-            VGA.vga.s3.hgc.posy = (short)(val & 0x3f);	// bits 0-5
-            break;
-        case 0x50:  // Extended System Control 1
-            VGA.vga.s3.reg_50 = (short)val;
-            switch (val & VGA.S3_XGA_CMASK) {
-                case VGA.S3_XGA_32BPP: VGA.vga.s3.xga_color_mode = VGA.M_LIN32; break;
-                case VGA.S3_XGA_16BPP: VGA.vga.s3.xga_color_mode = VGA.M_LIN16; break;
-                case VGA.S3_XGA_8BPP: VGA.vga.s3.xga_color_mode = VGA.M_LIN8; break;
-            }
-            switch (val & VGA.S3_XGA_WMASK) {
-                case VGA.S3_XGA_1024: VGA.vga.s3.xga_screen_width = 1024; break;
-                case VGA.S3_XGA_1152: VGA.vga.s3.xga_screen_width = 1152; break;
-                case VGA.S3_XGA_640:  VGA.vga.s3.xga_screen_width = 640; break;
-                case VGA.S3_XGA_800:  VGA.vga.s3.xga_screen_width = 800; break;
-                case VGA.S3_XGA_1280: VGA.vga.s3.xga_screen_width = 1280; break;
-                default:  VGA.vga.s3.xga_screen_width = 1024; break;
-            }
-            break;
-        case 0x51:	/* Extended System Control 2 */
-            VGA.vga.s3.reg_51=(short)(val & 0xc0);		//Only store bits 6,7
-            VGA.vga.config.display_start&=0xF3FFFF;
-            VGA.vga.config.display_start|=(val & 3) << 18;
-            if (((VGA.vga.svga.bank_read&0x30) ^ ((val&0xc)<<2))!=0) {
-                VGA.vga.svga.bank_read&=0xcf;
-                VGA.vga.svga.bank_read|=(val&0xc)<<2;
-                VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
-                VGA_memory.VGA_SetupHandlers();
-            }
-            if ((((val & 0x30) ^ (VGA.vga.config.scan_len >> 4)) & 0x30)!=0) {
-                VGA.vga.config.scan_len&=0xff;
-                VGA.vga.config.scan_len|=(val & 0x30) << 4;
-                VGA_draw.VGA_CheckScanLength();
-            }
-            break;
+            case 0x45:  /* Hardware cursor mode */
+                VGA.vga.s3.hgc.curmode = (short) val;
+                // Activate hardware cursor code if needed
+                VGA_draw.VGA_ActivateHardwareCursor();
+                break;
+            case 0x46:
+                VGA.vga.s3.hgc.originx = (VGA.vga.s3.hgc.originx & 0x00ff) | (val << 8);
+                break;
+            case 0x47:  /*  HGC orgX */
+                VGA.vga.s3.hgc.originx = (VGA.vga.s3.hgc.originx & 0xff00) | val;
+                break;
+            case 0x48:
+                VGA.vga.s3.hgc.originy = (VGA.vga.s3.hgc.originy & 0x00ff) | (val << 8);
+                break;
+            case 0x49:  /*  HGC orgY */
+                VGA.vga.s3.hgc.originy = (VGA.vga.s3.hgc.originy & 0xff00) | val;
+                break;
+            case 0x4A:  /* HGC foreground stack */
+                if (VGA.vga.s3.hgc.fstackpos > 2) VGA.vga.s3.hgc.fstackpos = 0;
+                VGA.vga.s3.hgc.forestack.set(VGA.vga.s3.hgc.fstackpos, val);
+                VGA.vga.s3.hgc.fstackpos++;
+                break;
+            case 0x4B:  /* HGC background stack */
+                if (VGA.vga.s3.hgc.bstackpos > 2) VGA.vga.s3.hgc.bstackpos = 0;
+                VGA.vga.s3.hgc.backstack.set(VGA.vga.s3.hgc.bstackpos, val);
+                VGA.vga.s3.hgc.bstackpos++;
+                break;
+            case 0x4c:  /* HGC start address high byte*/
+                VGA.vga.s3.hgc.startaddr &= 0xff;
+                VGA.vga.s3.hgc.startaddr |= ((val & 0xf) << 8);
+                /*Bitu*/
+                if ((VGA.vga.s3.hgc.startaddr << 10) + ((64 * 64 * 2) / 8) > VGA.vga.vmemsize) {
+                    VGA.vga.s3.hgc.startaddr &= 0xff;    // put it back to some sane area;
+                    // if read back of this address is ever implemented this needs to change
+                    LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:CRTC: HGC pattern address beyond video memory");
+                }
+                break;
+            case 0x4d:  /* HGC start address low byte*/
+                VGA.vga.s3.hgc.startaddr &= 0xff00;
+                VGA.vga.s3.hgc.startaddr |= (val & 0xff);
+                break;
+            case 0x4e:  /* HGC pattern start X */
+                VGA.vga.s3.hgc.posx = (short) (val & 0x3f);    // bits 0-5
+                break;
+            case 0x4f:  /* HGC pattern start Y */
+                VGA.vga.s3.hgc.posy = (short) (val & 0x3f);    // bits 0-5
+                break;
+            case 0x50:  // Extended System Control 1
+                VGA.vga.s3.reg_50 = (short) val;
+                switch (val & VGA.S3_XGA_CMASK) {
+                    case VGA.S3_XGA_32BPP:
+                        VGA.vga.s3.xga_color_mode = VGA.M_LIN32;
+                        break;
+                    case VGA.S3_XGA_16BPP:
+                        VGA.vga.s3.xga_color_mode = VGA.M_LIN16;
+                        break;
+                    case VGA.S3_XGA_8BPP:
+                        VGA.vga.s3.xga_color_mode = VGA.M_LIN8;
+                        break;
+                }
+                switch (val & VGA.S3_XGA_WMASK) {
+                    case VGA.S3_XGA_1024:
+                        VGA.vga.s3.xga_screen_width = 1024;
+                        break;
+                    case VGA.S3_XGA_1152:
+                        VGA.vga.s3.xga_screen_width = 1152;
+                        break;
+                    case VGA.S3_XGA_640:
+                        VGA.vga.s3.xga_screen_width = 640;
+                        break;
+                    case VGA.S3_XGA_800:
+                        VGA.vga.s3.xga_screen_width = 800;
+                        break;
+                    case VGA.S3_XGA_1280:
+                        VGA.vga.s3.xga_screen_width = 1280;
+                        break;
+                    default:
+                        VGA.vga.s3.xga_screen_width = 1024;
+                        break;
+                }
+                break;
+            case 0x51:    /* Extended System Control 2 */
+                VGA.vga.s3.reg_51 = (short) (val & 0xc0);        //Only store bits 6,7
+                VGA.vga.config.display_start &= 0xF3FFFF;
+                VGA.vga.config.display_start |= (val & 3) << 18;
+                if (((VGA.vga.svga.bank_read & 0x30) ^ ((val & 0xc) << 2)) != 0) {
+                    VGA.vga.svga.bank_read &= 0xcf;
+                    VGA.vga.svga.bank_read |= (val & 0xc) << 2;
+                    VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
+                    VGA_memory.VGA_SetupHandlers();
+                }
+                if ((((val & 0x30) ^ (VGA.vga.config.scan_len >> 4)) & 0x30) != 0) {
+                    VGA.vga.config.scan_len &= 0xff;
+                    VGA.vga.config.scan_len |= (val & 0x30) << 4;
+                    VGA_draw.VGA_CheckScanLength();
+                }
+                break;
             /*
                 0	(80x) Display Start Address bit 18
                 0-1	(928 +) Display Start Address bit 18-19
@@ -182,21 +202,21 @@ public class VGA_s3 {
                 7	(not 864/964) Enable EPROM Write. If set enables flash memory write
                     control to the BIOS ROM address
             */
-        case 0x52:  // Extended System Control 1
-            VGA.vga.s3.reg_52 = (short)val;
-            break;
-        case 0x53:
-            // Map or unmap MMIO
-            // bit 4 = MMIO at A0000
-            // bit 3 = MMIO at LFB + 16M (should be fine if its always enabled for now)
-            if(VGA.vga.s3.ext_mem_ctrl!=val) {
-                VGA.vga.s3.ext_mem_ctrl = (short)val;
-                VGA_memory.VGA_SetupHandlers();
-            }
-            break;
-        case 0x55:	/* Extended Video DAC Control */
-            VGA.vga.s3.reg_55=(short)val;
-            break;
+            case 0x52:  // Extended System Control 1
+                VGA.vga.s3.reg_52 = (short) val;
+                break;
+            case 0x53:
+                // Map or unmap MMIO
+                // bit 4 = MMIO at A0000
+                // bit 3 = MMIO at LFB + 16M (should be fine if its always enabled for now)
+                if (VGA.vga.s3.ext_mem_ctrl != val) {
+                    VGA.vga.s3.ext_mem_ctrl = (short) val;
+                    VGA_memory.VGA_SetupHandlers();
+                }
+                break;
+            case 0x55:    /* Extended Video DAC Control */
+                VGA.vga.s3.reg_55 = (short) val;
+                break;
             /*
                 0-1	DAC Register Select Bits. Passed to the RS2 and RS3 pins on the
                     RAMDAC, allowing access to all 8 or 16 registers on advanced RAMDACs.
@@ -217,9 +237,9 @@ public class VGA_s3 {
                     (864/964) TOFF VCLK. Tri-State Off VCLK Output. VCLK output tri
                     -stated if set
             */
-        case 0x58:	/* Linear Address Window Control */
-            VGA.vga.s3.reg_58=(short)val;
-            break;
+            case 0x58:    /* Linear Address Window Control */
+                VGA.vga.s3.reg_58 = (short) val;
+                break;
             /*
                 0-1	Linear Address Window Size. Must be less than or equal to video
                     memory size. 0: 64K, 1: 1MB, 2: 2MB, 3: 4MB (928)/8Mb (864/964)
@@ -237,24 +257,24 @@ public class VGA_s3 {
                 7	(928) RAS 6-MCLK. If set the random read/write cycle time is 6MCLKs,
                     if clear 7MCLKs
             */
-        case 0x59:	/* Linear Address Window Position High */
-            if (((VGA.vga.s3.la_window&0xff00) ^ (val << 8))!=0) {
-                VGA.vga.s3.la_window=(VGA.vga.s3.la_window&0x00ff) | (val << 8);
-                VGA_memory.VGA_StartUpdateLFB();
-            }
-            break;
-        case 0x5a:	/* Linear Address Window Position Low */
-            if (((VGA.vga.s3.la_window&0x00ff) ^ val)!=0) {
-                VGA.vga.s3.la_window=(VGA.vga.s3.la_window&0xff00) | val;
-                VGA_memory.VGA_StartUpdateLFB();
-            }
-            break;
-        case 0x5D:	/* Extended Horizontal Overflow */
-            if (((val ^ VGA.vga.s3.ex_hor_overflow) & 3)!=0) {
-                VGA.vga.s3.ex_hor_overflow=(short)val;
-                VGA.VGA_StartResize();
-            } else VGA.vga.s3.ex_hor_overflow=(short)val;
-            break;
+            case 0x59:    /* Linear Address Window Position High */
+                if (((VGA.vga.s3.la_window & 0xff00) ^ (val << 8)) != 0) {
+                    VGA.vga.s3.la_window = (VGA.vga.s3.la_window & 0x00ff) | (val << 8);
+                    VGA_memory.VGA_StartUpdateLFB();
+                }
+                break;
+            case 0x5a:    /* Linear Address Window Position Low */
+                if (((VGA.vga.s3.la_window & 0x00ff) ^ val) != 0) {
+                    VGA.vga.s3.la_window = (VGA.vga.s3.la_window & 0xff00) | val;
+                    VGA_memory.VGA_StartUpdateLFB();
+                }
+                break;
+            case 0x5D:    /* Extended Horizontal Overflow */
+                if (((val ^ VGA.vga.s3.ex_hor_overflow) & 3) != 0) {
+                    VGA.vga.s3.ex_hor_overflow = (short) val;
+                    VGA.VGA_StartResize();
+                } else VGA.vga.s3.ex_hor_overflow = (short) val;
+                break;
             /*
                 0	Horizontal Total bit 8. Bit 8 of the Horizontal Total register (3d4h
                     index 0)
@@ -275,13 +295,13 @@ public class VGA_s3 {
                 7	(928,964) Bus-Grant Terminate Position bit 8. Bit 8 of the Bus Grant
                     Termination register (3d4h index 5Fh).
             */
-        case 0x5e:	/* Extended Vertical Overflow */
-            VGA.vga.config.line_compare=(VGA.vga.config.line_compare & 0x3ff) | (val & 0x40) << 4;
-            if (((val ^ VGA.vga.s3.ex_ver_overflow) & 0x3)!=0) {
-                VGA.vga.s3.ex_ver_overflow=(short)val;
-                VGA.VGA_StartResize();
-            } else VGA.vga.s3.ex_ver_overflow=(short)val;
-            break;
+            case 0x5e:    /* Extended Vertical Overflow */
+                VGA.vga.config.line_compare = (VGA.vga.config.line_compare & 0x3ff) | (val & 0x40) << 4;
+                if (((val ^ VGA.vga.s3.ex_ver_overflow) & 0x3) != 0) {
+                    VGA.vga.s3.ex_ver_overflow = (short) val;
+                    VGA.VGA_StartResize();
+                } else VGA.vga.s3.ex_ver_overflow = (short) val;
+                break;
             /*
                 0	Vertical Total bit 10. Bit 10 of the Vertical Total register (3d4h
                     index 6). Bits 8 and 9 are in 3d4h index 7 bit 0 and 5.
@@ -298,7 +318,7 @@ public class VGA_s3 {
                     (3d4h index 18h). Bit 8 is in 3d4h index 7 bit 4 and bit 9 in 3d4h
                     index 9 bit 6.
             */
-        case 0x67:	/* Extended Miscellaneous Control 2 */
+            case 0x67:    /* Extended Miscellaneous Control 2 */
             /*
                 0	VCLK PHS. VCLK Phase With Respect to DCLK. If clear VLKC is inverted
                     DCLK, if set VCLK = DCLK.
@@ -315,155 +335,155 @@ public class VGA_s3 {
                         7  Mode 11: 24/32bit (2 VCLKs/pixel)
                         13  (732/764) 32bit (1 pixel/VCLK)
             */
-            VGA.vga.s3.misc_control_2=(short)val;
-            VGA.VGA_DetermineMode();
-            break;
-        case 0x69:	/* Extended System Control 3 */
-            if ((((VGA.vga.config.display_start & 0x1f0000)>>16) ^ (val & 0x1f))!=0) {
-                VGA.vga.config.display_start&=0xffff;
-                VGA.vga.config.display_start|=(val & 0x1f) << 16;
-            }
-            break;
-        case 0x6a:	/* Extended System Control 4 */
-            VGA.vga.svga.bank_read=(short)(val & 0x7f);
-            VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
-            VGA_memory.VGA_SetupHandlers();
-            break;
-        case 0x6b:	// BIOS scratchpad: LFB address
-            VGA.vga.s3.reg_6b=(short)val;
-            break;
-        default:
-            LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:CRTC:Write to illegal index "+Integer.toString(reg,16));
-            break;
+                VGA.vga.s3.misc_control_2 = (short) val;
+                VGA.VGA_DetermineMode();
+                break;
+            case 0x69:    /* Extended System Control 3 */
+                if ((((VGA.vga.config.display_start & 0x1f0000) >> 16) ^ (val & 0x1f)) != 0) {
+                    VGA.vga.config.display_start &= 0xffff;
+                    VGA.vga.config.display_start |= (val & 0x1f) << 16;
+                }
+                break;
+            case 0x6a:    /* Extended System Control 4 */
+                VGA.vga.svga.bank_read = (short) (val & 0x7f);
+                VGA.vga.svga.bank_write = VGA.vga.svga.bank_read;
+                VGA_memory.VGA_SetupHandlers();
+                break;
+            case 0x6b:    // BIOS scratchpad: LFB address
+                VGA.vga.s3.reg_6b = (short) val;
+                break;
+            default:
+                LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:CRTC:Write to illegal index " + Integer.toString(reg, 16));
+                break;
         }
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final VGA.tReadPort SVGA_S3_ReadCRTC = (reg, iolen) -> {
         switch (reg) {
-        case 0x24:	/* attribute controller index (read only) */
-        case 0x26:
-            return ((VGA.vga.attr.disabled & 1)!=0?0x00:0x20) | (VGA.vga.attr.index & 0x1f);
-        case 0x2d:	/* Extended Chip ID (high byte of PCI device ID) */
-            return 0x88;
-        case 0x2e:	/* New Chip ID  (low byte of PCI device ID) */
-            return 0x11;	// Trio64
-        case 0x2f:	/* Revision */
-            return 0x00;	// Trio64 (exact value?)
+            case 0x24:    /* attribute controller index (read only) */
+            case 0x26:
+                return ((VGA.vga.attr.disabled & 1) != 0 ? 0x00 : 0x20) | (VGA.vga.attr.index & 0x1f);
+            case 0x2d:    /* Extended Chip ID (high byte of PCI device ID) */
+                return 0x88;
+            case 0x2e:    /* New Chip ID  (low byte of PCI device ID) */
+                return 0x11;    // Trio64
+            case 0x2f:    /* Revision */
+                return 0x00;    // Trio64 (exact value?)
 //		return 0x44;	// Trio64 V+
-        case 0x30:	/* CR30 Chip ID/REV register */
-            return 0xe1;	// Trio+ dual byte
-        case 0x31:	/* CR31 Memory Configuration */
+            case 0x30:    /* CR30 Chip ID/REV register */
+                return 0xe1;    // Trio+ dual byte
+            case 0x31:    /* CR31 Memory Configuration */
 //TODO mix in bits from baseaddress;
-            return 	VGA.vga.s3.reg_31;
-        case 0x35:	/* CR35 CRT Register Lock */
-            return VGA.vga.s3.reg_35|(VGA.vga.svga.bank_read & 0xf);
-        case 0x36: /* CR36 Reset State Read 1 */
-            return VGA.vga.s3.reg_36;
-        case 0x37: /* Reset state read 2 */
-            return 0x2b;
-        case 0x38: /* CR38 Register Lock 1 */
-            return VGA.vga.s3.reg_lock1;
-        case 0x39: /* CR39 Register Lock 2 */
-            return VGA.vga.s3.reg_lock2;
-        case 0x3a:
-            return VGA.vga.s3.reg_3a;
-        case 0x40: /* CR40 system config */
-            return VGA.vga.s3.reg_40;
-        case 0x41: /* CR40 system config */
-            return VGA.vga.s3.reg_41;
-        case 0x42: // not interlaced
-            return 0x0d;
-        case 0x43:	/* CR43 Extended Mode */
-            return VGA.vga.s3.reg_43|((VGA.vga.config.scan_len>>6)&0x4);
-        case 0x45:  /* Hardware cursor mode */
-            VGA.vga.s3.hgc.bstackpos = 0;
-            VGA.vga.s3.hgc.fstackpos = 0;
-            return VGA.vga.s3.hgc.curmode|0xa0;
-        case 0x46:
-            return VGA.vga.s3.hgc.originx>>8;
-        case 0x47:  /*  HGC orgX */
-            return VGA.vga.s3.hgc.originx&0xff;
-        case 0x48:
-            return VGA.vga.s3.hgc.originy>>8;
-        case 0x49:  /*  HGC orgY */
-            return VGA.vga.s3.hgc.originy&0xff;
-        case 0x4A:  /* HGC foreground stack */
-            return VGA.vga.s3.hgc.forestack.get(VGA.vga.s3.hgc.fstackpos);
-        case 0x4B:  /* HGC background stack */
-            return VGA.vga.s3.hgc.backstack.get(VGA.vga.s3.hgc.bstackpos);
-        case 0x50:	// CR50 Extended System Control 1
-            return VGA.vga.s3.reg_50;
-        case 0x51:	/* Extended System Control 2 */
-            return ((VGA.vga.config.display_start >> 16) & 3 ) |
-                    ((VGA.vga.svga.bank_read & 0x30) >> 2) |
-                    ((VGA.vga.config.scan_len & 0x300) >> 4) |
-                    VGA.vga.s3.reg_51;
-        case 0x52:	// CR52 Extended BIOS flags 1
-            return VGA.vga.s3.reg_52;
-        case 0x53:
-            return VGA.vga.s3.ext_mem_ctrl;
-        case 0x55:	/* Extended Video DAC Control */
-            return VGA.vga.s3.reg_55;
-        case 0x58:	/* Linear Address Window Control */
-            return	VGA.vga.s3.reg_58;
-        case 0x59:	/* Linear Address Window Position High */
-            return (VGA.vga.s3.la_window >> 8);
-        case 0x5a:	/* Linear Address Window Position Low */
-            return (VGA.vga.s3.la_window & 0xff);
-        case 0x5D:	/* Extended Horizontal Overflow */
-            return VGA.vga.s3.ex_hor_overflow;
-        case 0x5e:	/* Extended Vertical Overflow */
-            return VGA.vga.s3.ex_ver_overflow;
-        case 0x67:	/* Extended Miscellaneous Control 2 */
-            return VGA.vga.s3.misc_control_2;
-        case 0x69:	/* Extended System Control 3 */
-            return ((VGA.vga.config.display_start & 0x1f0000)>>16);
-        case 0x6a:	/* Extended System Control 4 */
-            return (VGA.vga.svga.bank_read & 0x7f);
-        case 0x6b:	// BIOS scatchpad: LFB address
-            return VGA.vga.s3.reg_6b;
-        default:
-            return 0x00;
+                return VGA.vga.s3.reg_31;
+            case 0x35:    /* CR35 CRT Register Lock */
+                return VGA.vga.s3.reg_35 | (VGA.vga.svga.bank_read & 0xf);
+            case 0x36: /* CR36 Reset State Read 1 */
+                return VGA.vga.s3.reg_36;
+            case 0x37: /* Reset state read 2 */
+                return 0x2b;
+            case 0x38: /* CR38 Register Lock 1 */
+                return VGA.vga.s3.reg_lock1;
+            case 0x39: /* CR39 Register Lock 2 */
+                return VGA.vga.s3.reg_lock2;
+            case 0x3a:
+                return VGA.vga.s3.reg_3a;
+            case 0x40: /* CR40 system config */
+                return VGA.vga.s3.reg_40;
+            case 0x41: /* CR40 system config */
+                return VGA.vga.s3.reg_41;
+            case 0x42: // not interlaced
+                return 0x0d;
+            case 0x43:    /* CR43 Extended Mode */
+                return VGA.vga.s3.reg_43 | ((VGA.vga.config.scan_len >> 6) & 0x4);
+            case 0x45:  /* Hardware cursor mode */
+                VGA.vga.s3.hgc.bstackpos = 0;
+                VGA.vga.s3.hgc.fstackpos = 0;
+                return VGA.vga.s3.hgc.curmode | 0xa0;
+            case 0x46:
+                return VGA.vga.s3.hgc.originx >> 8;
+            case 0x47:  /*  HGC orgX */
+                return VGA.vga.s3.hgc.originx & 0xff;
+            case 0x48:
+                return VGA.vga.s3.hgc.originy >> 8;
+            case 0x49:  /*  HGC orgY */
+                return VGA.vga.s3.hgc.originy & 0xff;
+            case 0x4A:  /* HGC foreground stack */
+                return VGA.vga.s3.hgc.forestack.get(VGA.vga.s3.hgc.fstackpos);
+            case 0x4B:  /* HGC background stack */
+                return VGA.vga.s3.hgc.backstack.get(VGA.vga.s3.hgc.bstackpos);
+            case 0x50:    // CR50 Extended System Control 1
+                return VGA.vga.s3.reg_50;
+            case 0x51:    /* Extended System Control 2 */
+                return ((VGA.vga.config.display_start >> 16) & 3) |
+                        ((VGA.vga.svga.bank_read & 0x30) >> 2) |
+                        ((VGA.vga.config.scan_len & 0x300) >> 4) |
+                        VGA.vga.s3.reg_51;
+            case 0x52:    // CR52 Extended BIOS flags 1
+                return VGA.vga.s3.reg_52;
+            case 0x53:
+                return VGA.vga.s3.ext_mem_ctrl;
+            case 0x55:    /* Extended Video DAC Control */
+                return VGA.vga.s3.reg_55;
+            case 0x58:    /* Linear Address Window Control */
+                return VGA.vga.s3.reg_58;
+            case 0x59:    /* Linear Address Window Position High */
+                return (VGA.vga.s3.la_window >> 8);
+            case 0x5a:    /* Linear Address Window Position Low */
+                return (VGA.vga.s3.la_window & 0xff);
+            case 0x5D:    /* Extended Horizontal Overflow */
+                return VGA.vga.s3.ex_hor_overflow;
+            case 0x5e:    /* Extended Vertical Overflow */
+                return VGA.vga.s3.ex_ver_overflow;
+            case 0x67:    /* Extended Miscellaneous Control 2 */
+                return VGA.vga.s3.misc_control_2;
+            case 0x69:    /* Extended System Control 3 */
+                return ((VGA.vga.config.display_start & 0x1f0000) >> 16);
+            case 0x6a:    /* Extended System Control 4 */
+                return (VGA.vga.svga.bank_read & 0x7f);
+            case 0x6b:    // BIOS scatchpad: LFB address
+                return VGA.vga.s3.reg_6b;
+            default:
+                return 0x00;
         }
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final VGA.tWritePort SVGA_S3_WriteSEQ = (reg, val, iolen) -> {
-        if (reg>0x8 && VGA.vga.s3.pll.lock!=0x6) return;
+        if (reg > 0x8 && VGA.vga.s3.pll.lock != 0x6) return;
         switch (reg) {
-        case 0x08:
-            VGA.vga.s3.pll.lock=(short)val;
-            break;
-        case 0x10:		/* Memory PLL Data Low */
-            VGA.vga.s3.mclk.n=(short)(val & 0x1f);
-            VGA.vga.s3.mclk.r=(short)(val >> 5);
-            break;
-        case 0x11:		/* Memory PLL Data High */
-            VGA.vga.s3.mclk.m=(short)(val & 0x7f);
-            break;
-        case 0x12:		/* Video PLL Data Low */
-            VGA.vga.s3.clk[3].n=(short)(val & 0x1f);
-            VGA.vga.s3.clk[3].r=(short)(val >> 5);
-            break;
-        case 0x13:		/* Video PLL Data High */
-            VGA.vga.s3.clk[3].m=(short)(val & 0x7f);
-            break;
-        case 0x15:
-            VGA.vga.s3.pll.cmd=(short)val;
-            VGA.VGA_StartResize();
-            break;
-        default:
-            LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:SEQ:Write to illegal index "+Integer.toString(reg,16));
-            break;
+            case 0x08:
+                VGA.vga.s3.pll.lock = (short) val;
+                break;
+            case 0x10:        /* Memory PLL Data Low */
+                VGA.vga.s3.mclk.n = (short) (val & 0x1f);
+                VGA.vga.s3.mclk.r = (short) (val >> 5);
+                break;
+            case 0x11:        /* Memory PLL Data High */
+                VGA.vga.s3.mclk.m = (short) (val & 0x7f);
+                break;
+            case 0x12:        /* Video PLL Data Low */
+                VGA.vga.s3.clk[3].n = (short) (val & 0x1f);
+                VGA.vga.s3.clk[3].r = (short) (val >> 5);
+                break;
+            case 0x13:        /* Video PLL Data High */
+                VGA.vga.s3.clk[3].m = (short) (val & 0x7f);
+                break;
+            case 0x15:
+                VGA.vga.s3.pll.cmd = (short) val;
+                VGA.VGA_StartResize();
+                break;
+            default:
+                LOG_VGAMISC.log(Level.DEBUG, "VGA:S3:SEQ:Write to illegal index " + Integer.toString(reg, 16));
+                break;
         }
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final VGA.tReadPort SVGA_S3_ReadSEQ = (reg, iolen) -> {
         /* S3 specific group */
-        if (reg>0x8 && VGA.vga.s3.pll.lock!=0x6) {
-            if (reg<0x1b) return 0;
+        if (reg > 0x8 && VGA.vga.s3.pll.lock != 0x6) {
+            if (reg < 0x1b) return 0;
             else return reg;
         }
         return switch (reg) {
@@ -487,15 +507,16 @@ public class VGA_s3 {
 
     /*Bitu*/
     private static final VGA.tGetClock SVGA_S3_GetClock = () -> {
-        /*Bitu*/int clock = (VGA.vga.misc_output >> 2) & 3;
+        /*Bitu*/
+        int clock = (VGA.vga.misc_output >> 2) & 3;
         if (clock == 0)
             clock = 25175000;
         else if (clock == 1)
             clock = 28322000;
         else
-            clock=1000*VGA.S3_CLOCK(VGA.vga.s3.clk[clock].m,VGA.vga.s3.clk[clock].n,VGA.vga.s3.clk[clock].r);
+            clock = 1000 * VGA.S3_CLOCK(VGA.vga.s3.clk[clock].m, VGA.vga.s3.clk[clock].n, VGA.vga.s3.clk[clock].r);
         /* Check for dual transfer, master clock/2 */
-        if ((VGA.vga.s3.pll.cmd & 0x10)!=0) clock/=2;
+        if ((VGA.vga.s3.pll.cmd & 0x10) != 0) clock /= 2;
         return clock;
     };
 
@@ -520,40 +541,41 @@ public class VGA_s3 {
         VGA.svga.accepts_mode = SVGA_S3_AcceptsMode;
 
         if (VGA.vga.vmemsize == 0)
-            VGA.vga.vmemsize = 2*1024*1024; // the most common S3 configuration
+            VGA.vga.vmemsize = 2 * 1024 * 1024; // the most common S3 configuration
 
         // Set CRTC 36 to specify amount of VRAM and PCI
-        if (VGA.vga.vmemsize < 1024*1024) {
-            VGA.vga.vmemsize = 512*1024;
-            VGA.vga.s3.reg_36 = 0xfa;		// less than 1mb fast page mode
-        } else if (VGA.vga.vmemsize < 2048*1024)	{
-            VGA.vga.vmemsize = 1024*1024;
-            VGA.vga.s3.reg_36 = 0xda;		// 1mb fast page mode
-        } else if (VGA.vga.vmemsize < 3072*1024)	{
-            VGA.vga.vmemsize = 2048*1024;
-            VGA.vga.s3.reg_36 = 0x9a;		// 2mb fast page mode
-        } else if (VGA.vga.vmemsize < 4096*1024)	{
-            VGA.vga.vmemsize = 3072*1024;
-            VGA.vga.s3.reg_36 = 0x5a;		// 3mb fast page mode
-        } else if (VGA.vga.vmemsize < 8192*1024) {	// Trio64 supported only up to 4M
-            VGA.vga.vmemsize = 4096*1024;
-            VGA.vga.s3.reg_36 = 0x1a;		// 4mb fast page mode
-        } else {	// 8M
-            VGA.vga.vmemsize = 8192*1024;
-            VGA.vga.s3.reg_36 = 0x7a;		// 8mb fast page mode
+        if (VGA.vga.vmemsize < 1024 * 1024) {
+            VGA.vga.vmemsize = 512 * 1024;
+            VGA.vga.s3.reg_36 = 0xfa;        // less than 1mb fast page mode
+        } else if (VGA.vga.vmemsize < 2048 * 1024) {
+            VGA.vga.vmemsize = 1024 * 1024;
+            VGA.vga.s3.reg_36 = 0xda;        // 1mb fast page mode
+        } else if (VGA.vga.vmemsize < 3072 * 1024) {
+            VGA.vga.vmemsize = 2048 * 1024;
+            VGA.vga.s3.reg_36 = 0x9a;        // 2mb fast page mode
+        } else if (VGA.vga.vmemsize < 4096 * 1024) {
+            VGA.vga.vmemsize = 3072 * 1024;
+            VGA.vga.s3.reg_36 = 0x5a;        // 3mb fast page mode
+        } else if (VGA.vga.vmemsize < 8192 * 1024) {    // Trio64 supported only up to 4M
+            VGA.vga.vmemsize = 4096 * 1024;
+            VGA.vga.s3.reg_36 = 0x1a;        // 4mb fast page mode
+        } else {    // 8M
+            VGA.vga.vmemsize = 8192 * 1024;
+            VGA.vga.s3.reg_36 = 0x7a;        // 8mb fast page mode
         }
 
         // S3 ROM signature
-        /*PhysPt*/int rom_base=Memory.PhysMake(0xc000,0);
-        Memory.phys_writeb(rom_base+0x003f,'S');
-        Memory.phys_writeb(rom_base+0x0040,'3');
-        Memory.phys_writeb(rom_base+0x0041,' ');
-        Memory.phys_writeb(rom_base+0x0042,'8');
-        Memory.phys_writeb(rom_base+0x0043,'6');
-        Memory.phys_writeb(rom_base+0x0044,'C');
-        Memory.phys_writeb(rom_base+0x0045,'7');
-        Memory.phys_writeb(rom_base+0x0046,'6');
-        Memory.phys_writeb(rom_base+0x0047,'4');
+        /*PhysPt*/
+        int rom_base = Memory.PhysMake(0xc000, 0);
+        Memory.phys_writeb(rom_base + 0x003f, 'S');
+        Memory.phys_writeb(rom_base + 0x0040, '3');
+        Memory.phys_writeb(rom_base + 0x0041, ' ');
+        Memory.phys_writeb(rom_base + 0x0042, '8');
+        Memory.phys_writeb(rom_base + 0x0043, '6');
+        Memory.phys_writeb(rom_base + 0x0044, 'C');
+        Memory.phys_writeb(rom_base + 0x0045, '7');
+        Memory.phys_writeb(rom_base + 0x0046, '6');
+        Memory.phys_writeb(rom_base + 0x0047, '4');
     }
-    
+
 }

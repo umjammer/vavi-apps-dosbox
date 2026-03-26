@@ -2,10 +2,10 @@ package jdos.hardware;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+
 
 public class IPXServer {
 
@@ -21,9 +21,11 @@ public class IPXServer {
     static private Timer.TIMER_TickHandler serverTimer;
 
     static private /*Bit8u*/byte packetCRC(/*Bit8u*/byte[] buffer, /*Bit16u*/int bufSize) {
-        /*Bit8u*/byte tmpCRC = 0;
-        /*Bit16u*/int i;
-        for(i=0;i<bufSize;i++) {
+        /*Bit8u*/
+        byte tmpCRC = 0;
+        /*Bit16u*/
+        int i;
+        for (i = 0; i < bufSize; i++) {
             tmpCRC ^= buffer[i];
         }
         return tmpCRC;
@@ -44,10 +46,14 @@ public class IPXServer {
     */
 
     private static void sendIPXPacket(/*Bit8u*/byte[] buffer, /*Bit16s*/int bufSize) {
-        /*Bit16u*/int srcport, destport;
-        /*Bit32u*/int srchost, desthost;
-        /*Bit16u*/int i;
-        /*Bits*/int result;
+        /*Bit16u*/
+        int srcport, destport;
+        /*Bit32u*/
+        int srchost, desthost;
+        /*Bit16u*/
+        int i;
+        /*Bits*/
+        int result;
         IPX.IPXHeader tmpHeader = new IPX.IPXHeader();
         tmpHeader.load(buffer);
 
@@ -58,10 +64,10 @@ public class IPXServer {
         destport = tmpHeader.dest.addr.port();
 
 
-        if(desthost == 0xffffffff) {
+        if (desthost == 0xffffffff) {
             // Broadcast
-            for(i=0;i<IPX.SOCKETTABLESIZE;i++) {
-                if(connBuffer[i].connected && ((ipconn[i].host != srchost)||(ipconn[i].port!=srcport))) {
+            for (i = 0; i < IPX.SOCKETTABLESIZE; i++) {
+                if (connBuffer[i].connected && ((ipconn[i].host != srchost) || (ipconn[i].port != srcport))) {
                     DatagramPacket outPacket = new DatagramPacket(buffer, bufSize, ipconn[i].address, ipconn[i].port);
                     try {
                         ipxServerSocket.send(outPacket);
@@ -73,8 +79,8 @@ public class IPXServer {
             }
         } else {
             // Specific address
-            for(i=0;i<IPX.SOCKETTABLESIZE;i++) {
-                if((connBuffer[i].connected) && (ipconn[i].host == desthost) && (ipconn[i].port == destport)) {
+            for (i = 0; i < IPX.SOCKETTABLESIZE; i++) {
+                if ((connBuffer[i].connected) && (ipconn[i].host == desthost) && (ipconn[i].port == destport)) {
                     DatagramPacket outPacket = new DatagramPacket(buffer, bufSize, ipconn[i].address, ipconn[i].port);
                     try {
                         ipxServerSocket.send(outPacket);
@@ -88,7 +94,7 @@ public class IPXServer {
     }
 
     static IPX.IPXAddress IPX_isConnectedToServer(/*Bits*/int tableNum) {
-        if(tableNum >= IPX.SOCKETTABLESIZE) return null;
+        if (tableNum >= IPX.SOCKETTABLESIZE) return null;
         if (!connBuffer[tableNum].connected)
             return null;
         return ipconn[tableNum];
@@ -97,7 +103,7 @@ public class IPXServer {
     private static void ackClient(IPX.IPXAddress clientAddr) {
         IPX.IPXHeader regHeader = new IPX.IPXHeader();
 
-        regHeader.checkSum = (short)0xffff;
+        regHeader.checkSum = (short) 0xffff;
         regHeader.dest.network = 0;
         regHeader.dest.addr.setHost(clientAddr.host);
         regHeader.dest.addr.setPort(clientAddr.port);
@@ -135,8 +141,8 @@ public class IPXServer {
                     // Check to see if echo packet
                     if (tmpHeader.dest.socket == 0x2 && tmpHeader.dest.addr.host() == 0x0) {
                         // Null destination node means its a server registration packet
-                        for(int i=0;i<IPX.SOCKETTABLESIZE;i++) {
-                            if(!connBuffer[i].connected) {
+                        for (int i = 0; i < IPX.SOCKETTABLESIZE; i++) {
+                            if (!connBuffer[i].connected) {
                                 // Use prefered host IP rather than the reported source IP
                                 // It may be better to use the reported source
                                 ipconn[i] = new IPX.IPXAddress();
@@ -149,7 +155,7 @@ public class IPXServer {
                                 logger.log(Level.DEBUG, "IPXSERVER: Connect from " + receivePacket.getAddress().getHostAddress());
                                 ackClient(ipconn[i]);
                                 break;
-                            } else if((ipconn[i].host == tmpHeader.src.addr.host()) && (ipconn[i].port == tmpHeader.src.addr.port())) {
+                            } else if ((ipconn[i].host == tmpHeader.src.addr.host()) && (ipconn[i].port == tmpHeader.src.addr.port())) {
                                 logger.log(Level.DEBUG, "IPXSERVER: Reconnect from " + receivePacket.getAddress().getHostAddress());
                                 // Update anonymous port number if changed
                                 ipconn[i].port = receivePacket.getPort();
@@ -171,7 +177,10 @@ public class IPXServer {
 
     static void IPX_StopServer() {
         ipxServerSocket.close();
-        try {serverThread.join();} catch (Exception e) {}
+        try {
+            serverThread.join();
+        } catch (Exception e) {
+        }
     }
 
     static boolean IPX_StartServer(/*Bit16u*/int portnum) {
@@ -185,7 +194,7 @@ public class IPXServer {
             return false;
         }
 
-        for(int i=0;i<IPX.SOCKETTABLESIZE;i++) {
+        for (int i = 0; i < IPX.SOCKETTABLESIZE; i++) {
             if (connBuffer[i] == null) connBuffer[i] = new IPX.packetBuffer();
             connBuffer[i].connected = false;
         }

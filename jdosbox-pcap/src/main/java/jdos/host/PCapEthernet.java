@@ -13,7 +13,8 @@ import org.jnetpcap.PcapIf;
 import org.jnetpcap.nio.JBuffer;
 import org.jnetpcap.nio.JMemory;
 
-public class PCapEthernet implements Ethernet{
+
+public class PCapEthernet implements Ethernet {
 
     private static final Logger logger = System.getLogger(PCapEthernet.class.getName());
 
@@ -30,23 +31,25 @@ public class PCapEthernet implements Ethernet{
         JBuffer buffer = new JBuffer(JMemory.POINTER);
         while (pcap.nextEx(header, buffer) == Pcap.NEXT_EX_OK) {
             byte[] data = buffer.getByteArray(0, header.hdr_len());
-            if (!frame.rx_frame(new Ptr(data, 0),header.hdr_len()))
+            if (!frame.rx_frame(new Ptr(data, 0), header.hdr_len()))
                 return;
         }
     }
 
     @Override
     public void close() {
-        if (pcap!=null) {
+        if (pcap != null) {
             pcap.close();
             pcap = null;
         }
     }
+
     @Override
     public boolean open(Section_prop section, byte[] mac) {
         pcap = open(section.Get_string("realnic"), true);
-        return pcap!=null;
+        return pcap != null;
     }
+
     static public Pcap open(String realnicstring, boolean async) {
         try {
             List<PcapIf> alldevs = new ArrayList<>(); // Will be filled with NICs
@@ -64,7 +67,7 @@ public class PCapEthernet implements Ethernet{
             if (realnicstring.equalsIgnoreCase("list")) {
                 int i = 0;
                 logger.log(Level.DEBUG, "\nNetwork Interface List \n-----------------------------------");
-                for (i=0;i<alldevs.size();i++) {
+                for (i = 0; i < alldevs.size(); i++) {
                     PcapIf currentdev = alldevs.get(i);
                     String desc = currentdev.getDescription();
                     if (desc == null || desc.isEmpty())
@@ -78,7 +81,7 @@ public class PCapEthernet implements Ethernet{
             PcapIf dev = null;
             try {
                 int index = Integer.parseInt(realnicstring);
-                if (index>=0 && index<=alldevs.size()) {
+                if (index >= 0 && index <= alldevs.size()) {
                     dev = alldevs.get(index);
                 }
             } catch (Exception e) {
@@ -100,7 +103,7 @@ public class PCapEthernet implements Ethernet{
             String desc = dev.getDescription();
             if (desc == null || desc.isEmpty())
                 desc = "no description";
-    		logger.log(Level.DEBUG, "Using Network interface:\n" + dev.getName() + "\n(" + desc + ")\n");
+            logger.log(Level.DEBUG, "Using Network interface:\n" + dev.getName() + "\n(" + desc + ")\n");
             Pcap pcap = Pcap.openLive(dev.getName(), 65536, Pcap.MODE_PROMISCUOUS, -1, errbuf);
             if (pcap == null) {
                 logger.log(Level.DEBUG, "\\nUnable to open the interface: " + errbuf);

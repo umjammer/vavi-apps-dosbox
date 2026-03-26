@@ -2,6 +2,10 @@ package jdos.win.builtin.directx.dsound;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioSystem;
+import javax.sound.sampled.DataLine;
+import javax.sound.sampled.SourceDataLine;
 
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
@@ -20,10 +24,6 @@ import jdos.win.system.WinSystem;
 import jdos.win.utils.Error;
 import jdos.win.utils.Ptr;
 
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.DataLine;
-import javax.sound.sampled.SourceDataLine;
 
 public class IDirectSoundBuffer extends IUnknown {
 
@@ -62,6 +62,7 @@ public class IDirectSoundBuffer extends IUnknown {
     }
 
     static public class Data extends WinObject {
+
         static public Data create(int This) {
             return new Data(nextObjectId(), This);
         }
@@ -723,7 +724,9 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     private static class PlayThread extends Thread {
+
         static private final int LINE_SIZE = 16384;
+
         public PlayThread(Data data) {
             this.format = data.wfx();
             this.data = data;
@@ -805,7 +808,10 @@ public class IDirectSoundBuffer extends IUnknown {
                 } while (loop && !stop);
 
                 while (line.available() != LINE_SIZE) {
-                    try {Thread.sleep(10);} catch (Exception e) {}
+                    try {
+                        Thread.sleep(10);
+                    } catch (Exception e) {
+                    }
                 }
                 synchronized (mutex) {
                     playing = false;

@@ -4,7 +4,9 @@ import jdos.cpu.CPU;
 import jdos.cpu.Callback;
 import jdos.win.builtin.HandlerBase;
 
+
 public class IDirectDrawSurface7 extends IUnknown {
+
     public static int create(int pDirectDraw, int pDesc) {
         int vtable = getVTable("IDirectDrawSurface7");
         if (vtable == 0)
@@ -13,7 +15,7 @@ public class IDirectDrawSurface7 extends IUnknown {
     }
 
     static private int createVTable() {
-        int address = allocateVTable("IDirectDrawSurface7", IDirectDrawSurface.VTABLE_COUNT+13);
+        int address = allocateVTable("IDirectDrawSurface7", IDirectDrawSurface.VTABLE_COUNT + 13);
         int result = address;
         address = IDirectDrawSurface.addIDirectDrawSurface(address);
 
@@ -44,6 +46,7 @@ public class IDirectDrawSurface7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawSurface7.GetDDInterface";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -51,13 +54,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT PageLock(this, DWORD dwFlags)
     static private final Callback.Handler PageLock = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.PageLock";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -65,13 +69,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT PageUnlock(this, DWORD dwFlags)
     static private final Callback.Handler PageUnlock = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.PageUnlock";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -79,7 +84,7 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     /* added in v3 */
     // HRESULT SetSurfaceDesc(this, LPDDSURFACEDESC2 lpDDSD, DWORD dwFlags)
     static private final Callback.Handler SetSurfaceDesc = new HandlerBase() {
@@ -87,6 +92,7 @@ public class IDirectDrawSurface7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawSurface7.SetSurfaceDesc";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -95,7 +101,7 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     /* added in v4 */
     // HRESULT SetPrivateData(this, REFGUID tag, LPVOID pData, DWORD cbSize, DWORD dwFlags)
     static private final Callback.Handler SetPrivateData = new HandlerBase() {
@@ -103,6 +109,7 @@ public class IDirectDrawSurface7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawSurface7.SetPrivateData";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -113,13 +120,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT GetPrivateData(this, REFGUID tag, LPVOID pBuffer, LPDWORD pcbBufferSize)
     static private final Callback.Handler GetPrivateData = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.GetPrivateData";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -129,13 +137,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT FreePrivateData(this, REFGUID tag)
     static private final Callback.Handler FreePrivateData = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.FreePrivateData";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -143,13 +152,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT GetUniquenessValue(this, LPDWORD pValue)
     static private final Callback.Handler GetUniquenessValue = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.GetUniquenessValue";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -157,20 +167,21 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT ChangeUniquenessValue(this)
     static private final Callback.Handler ChangeUniquenessValue = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.ChangeUniquenessValue";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
             notImplemented();
         }
     };
-    
+
     /* added in v7 */
     // HRESULT SetPriority(this, DWORD prio)
     static private final Callback.Handler SetPriority = new HandlerBase() {
@@ -178,6 +189,7 @@ public class IDirectDrawSurface7 extends IUnknown {
         public java.lang.String getName() {
             return "IDirectDrawSurface7.SetPriority";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -185,13 +197,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT GetPriority(this, LPDWORD prio)
     static private final Callback.Handler GetPriority = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.GetPriority";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -199,13 +212,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT SetLOD(this, DWORD lod)
     static private final Callback.Handler SetLOD = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.SetLOD";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();
@@ -213,13 +227,14 @@ public class IDirectDrawSurface7 extends IUnknown {
             notImplemented();
         }
     };
-    
+
     // HRESULT GetLOD(this, LPDWORD lod)
     static private final Callback.Handler GetLOD = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "IDirectDrawSurface7.GetLOD";
         }
+
         @Override
         public void onCall() {
             int This = CPU.CPU_Pop32();

@@ -7,7 +7,9 @@ import jdos.win.builtin.HandlerBase;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 
+
 public class Dplayx extends BuiltinModule {
+
     public Dplayx(Loader loader, int handle) {
         super(loader, "Dplayx.dll", handle);
         add(DirectPlayCreate, 1);
@@ -23,6 +25,7 @@ public class Dplayx extends BuiltinModule {
         public String getName() {
             return "Dplayx.DirectPlayCreate";
         }
+
         @Override
         public void onCall() {
             int lpGUID = CPU.CPU_Pop32();
@@ -38,6 +41,7 @@ public class Dplayx extends BuiltinModule {
         public String getName() {
             return "Dplayx.DirectPlayEnumerateA";
         }
+
         @Override
         public void onCall() {
             int lpEnumCallback = CPU.CPU_Pop32();
@@ -52,6 +56,7 @@ public class Dplayx extends BuiltinModule {
         public String getName() {
             return "Dplayx.DirectPlayEnumerateW";
         }
+
         @Override
         public void onCall() {
             int lpEnumCallback = CPU.CPU_Pop32();
@@ -66,6 +71,7 @@ public class Dplayx extends BuiltinModule {
         public String getName() {
             return "Dplayx.DirectPlayLobbyCreateA";
         }
+
         @Override
         public void onCall() {
             int lpGUIDDSP = CPU.CPU_Pop32();
@@ -85,6 +91,7 @@ public class Dplayx extends BuiltinModule {
         public String getName() {
             return "Dplayx.DirectPlayLobbyCreateW";
         }
+
         @Override
         public void onCall() {
             int lpGUIDDSP = CPU.CPU_Pop32();

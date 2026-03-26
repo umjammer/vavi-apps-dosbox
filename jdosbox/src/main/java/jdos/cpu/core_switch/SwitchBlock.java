@@ -2,7 +2,9 @@ package jdos.cpu.core_switch;
 
 import jdos.cpu.CPU_Regs;
 
+
 public class SwitchBlock {
+
     public Inst instruction;
     public int opCode;
     public int eipCount;

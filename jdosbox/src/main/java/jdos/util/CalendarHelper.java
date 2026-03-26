@@ -1,10 +1,12 @@
 package jdos.util;
 
-import jdos.dos.Dos;
-
 import java.util.Calendar;
 
+import jdos.dos.Dos;
+
+
 public class CalendarHelper {
+
     public static int Dos_time(long time) {
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(time);
@@ -14,6 +16,6 @@ public class CalendarHelper {
     public static int Dos_date(long time) {
         Calendar c = Calendar.getInstance();
         c.setTimeInMillis(time);
-        return Dos.DOS_PackDate(c.get(Calendar.YEAR), c.get(Calendar.MONTH)+1, c.get(Calendar.DAY_OF_MONTH));
+        return Dos.DOS_PackDate(c.get(Calendar.YEAR), c.get(Calendar.MONTH) + 1, c.get(Calendar.DAY_OF_MONTH));
     }
 }

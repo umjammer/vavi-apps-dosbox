@@ -4,7 +4,9 @@ import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.utils.StringUtil;
 
+
 public class Property extends WinAPI {
+
     // HANDLE WINAPI GetProp(HWND hWnd, LPCTSTR lpString)
     static public int GetPropA(int hWnd, int lpString) {
         WinWindow window = WinWindow.get(hWnd);

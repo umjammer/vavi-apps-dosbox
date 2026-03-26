@@ -9,6 +9,7 @@ import jdos.cpu.Callback;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 
+
 public class Msvfw32 extends BuiltinModule {
 
     private static final Logger logger = System.getLogger(Msvfw32.class.getName());
@@ -25,12 +26,13 @@ public class Msvfw32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Msvfw32.ICInfo";
         }
+
         @Override
         public void onCall() {
             int fccType = CPU.CPU_Pop32();
             int fccHandler = CPU.CPU_Pop32();
             int lpicinfo = CPU.CPU_Pop32();
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.FALSE;
         }
     };

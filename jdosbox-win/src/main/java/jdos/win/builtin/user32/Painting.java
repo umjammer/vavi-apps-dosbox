@@ -1,42 +1,49 @@
 package jdos.win.builtin.user32;
 
-import jdos.gui.Main;
-import jdos.win.builtin.WinAPI;
-import jdos.win.builtin.gdi32.*;
-import jdos.win.system.StaticData;
-import jdos.win.system.WinRect;
-
-import java.awt.*;
+import java.awt.Graphics2D;
+import java.awt.Rectangle;
 import java.awt.geom.Arc2D;
 import java.awt.geom.Ellipse2D;
 import java.util.Iterator;
 
+import jdos.gui.Main;
+import jdos.win.builtin.WinAPI;
+import jdos.win.builtin.gdi32.GdiObj;
+import jdos.win.builtin.gdi32.WinBrush;
+import jdos.win.builtin.gdi32.WinDC;
+import jdos.win.builtin.gdi32.WinPen;
+import jdos.win.builtin.gdi32.WinRegion;
+import jdos.win.system.StaticData;
+import jdos.win.system.WinRect;
+
+
 public class Painting extends WinAPI {
+
     // HDC WINAPI BeginPaint( HWND hwnd, PAINTSTRUCT *lps )
     static public int BeginPaint(int hwnd, int lps) {
         WinWindow win = WinWindow.get(hwnd);
 
-        if (lps==0) return 0;
+        if (lps == 0) return 0;
 
         Caret.HideCaret(hwnd);
 
         int rgn = WinRegion.CreateRectRgn(0, 0, win.rectWindow.width(), win.rectWindow.height());
-        Message.SendMessageA(hwnd, WM_NCPAINT, rgn, 0 );
+        Message.SendMessageA(hwnd, WM_NCPAINT, rgn, 0);
         GdiObj.DeleteObject(rgn);
 
         WinDC dc = win.getDC();
         if (win.invalidationRect == null) {
-            new WinRect(0, 0, win.rectClient.width(), win.rectClient.height()).write(lps+8);
+            new WinRect(0, 0, win.rectClient.width(), win.rectClient.height()).write(lps + 8);
         } else {
             dc.clipX = win.invalidationRect.left;
             dc.clipY = win.invalidationRect.top;
             dc.clipCx = win.invalidationRect.width();
             dc.clipCy = win.invalidationRect.height();
-            win.invalidationRect.write(lps+8);
+            win.invalidationRect.write(lps + 8);
         }
         int hdc = dc.handle;
         writed(lps, hdc);
-        writed(lps+4, Message.SendMessageA(hwnd, WM_ERASEBKGND, hdc, 0));
+        writed(lps + 4, Message.SendMessageA(hwnd, WM_ERASEBKGND, hdc, 0));
         return readd(lps);
     }
 
@@ -55,7 +62,7 @@ public class Painting extends WinAPI {
             return FALSE;
 
         Graphics2D graphics = dc.getGraphics();
-        Ellipse2D ellipse2D = new Ellipse2D.Float(dc.x+nLeftRect, dc.y+nTopRect, nRightRect-nLeftRect, nBottomRect-nTopRect);
+        Ellipse2D ellipse2D = new Ellipse2D.Float(dc.x + nLeftRect, dc.y + nTopRect, nRightRect - nLeftRect, nBottomRect - nTopRect);
         // inside
         if (brush.setPaint(graphics))
             graphics.fill(ellipse2D);
@@ -102,7 +109,7 @@ public class Painting extends WinAPI {
             if (bErase != 0) {
                 rgn.rects.clear();
                 rgn.rects.add(new WinRect(0, 0, win.rectWindow.width(), win.rectWindow.height()));
-                Message.SendMessageA(hWnd, WM_NCPAINT, hRgn, 0 );
+                Message.SendMessageA(hWnd, WM_NCPAINT, hRgn, 0);
                 int hdc = win.getDC().handle;
                 Message.SendMessageA(hWnd, WM_ERASEBKGND, hdc, 0);
                 ReleaseDC(hWnd, hdc);
@@ -142,17 +149,17 @@ public class Painting extends WinAPI {
             return FALSE;
 
         Graphics2D graphics = dc.getGraphics();
-        int width = nRightRect-nLeftRect;
-        int height = nBottomRect-nTopRect;
+        int width = nRightRect - nLeftRect;
+        int height = nBottomRect - nTopRect;
 
-        int start = (int)(Math.atan2(height/2.0 - ystart, xstart-width/2.0)*180/Math.PI + 360) % 360;
-        int end = (int)(Math.atan2(height/2.0 - yend, xend - width/2.0)*180/Math.PI + 360) % 360;
+        int start = (int) (Math.atan2(height / 2.0 - ystart, xstart - width / 2.0) * 180 / Math.PI + 360) % 360;
+        int end = (int) (Math.atan2(height / 2.0 - yend, xend - width / 2.0) * 180 / Math.PI + 360) % 360;
         int len;
-        if (end<start)
+        if (end < start)
             len = 360 - start + end;
         else
             len = end - start;
-        Arc2D arc2D = new Arc2D.Double(dc.x+nLeftRect, dc.y+nTopRect, width, height,  start, len, Arc2D.PIE);
+        Arc2D arc2D = new Arc2D.Double(dc.x + nLeftRect, dc.y + nTopRect, width, height, start, len, Arc2D.PIE);
         // inside
         if (brush.setPaint(graphics))
             graphics.fill(arc2D);
@@ -178,11 +185,11 @@ public class Painting extends WinAPI {
         if (pen == null || brush == null)
             return FALSE;
 
-        int width = nRightRect-nLeftRect-1;
-        int height = nBottomRect-nTopRect-1;
+        int width = nRightRect - nLeftRect - 1;
+        int height = nBottomRect - nTopRect - 1;
 
         Graphics2D graphics = dc.getGraphics();
-        Rectangle rectangle = new Rectangle(dc.x+nLeftRect, dc.y+nTopRect, width, height);
+        Rectangle rectangle = new Rectangle(dc.x + nLeftRect, dc.y + nTopRect, width, height);
         // inside
         if (brush.setPaint(graphics))
             graphics.fill(rectangle);

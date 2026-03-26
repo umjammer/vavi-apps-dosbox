@@ -12,13 +12,15 @@ import jdos.win.system.StaticData;
 import jdos.win.system.WinSystem;
 import jdos.win.utils.StringUtil;
 
+
 public class Message extends WinAPI {
+
     // LRESULT WINAPI DispatchMessage(const MSG *lpmsg)
     static public int DispatchMessageA(int lpmsg) {
         int hWnd = readd(lpmsg);
-        int msg = readd(lpmsg+4);
-        int wParam = readd(lpmsg+8);
-        int lParam = readd(lpmsg+12);
+        int msg = readd(lpmsg + 4);
+        int wParam = readd(lpmsg + 8);
+        int lParam = readd(lpmsg + 12);
         int result = call_window_proc(hWnd, msg, wParam, lParam, false);
         if (msg == WinWindow.WM_PAINT) {
             if (Scheduler.monitor != 0) {
@@ -91,14 +93,14 @@ public class Message extends WinAPI {
 
     // BOOL WINAPI TranslateMessage(const MSG *lpMsg)
     static public int TranslateMessage(int lpMsg) {
-        int message = Memory.mem_readd(lpMsg+4);
+        int message = Memory.mem_readd(lpMsg + 4);
         if (message == WinWindow.WM_KEYDOWN || message == WinWindow.WM_KEYUP) {
             if (message == WinWindow.WM_KEYDOWN) {
-                int key = readd(lpMsg+8);
-                if (key>=32 && key<=126) {
+                int key = readd(lpMsg + 8);
+                if (key >= 32 && key <= 126) {
                     if (!Scheduler.getCurrentThread().getKeyState().get(VK_SHIFT))
-                        key = StringUtil.tolowerW((char)key);
-                    PostMessageA(readd(lpMsg), WM_CHAR, key, readd(lpMsg+12));
+                        key = StringUtil.tolowerW((char) key);
+                    PostMessageA(readd(lpMsg), WM_CHAR, key, readd(lpMsg + 12));
                 }
             }
             return TRUE;
@@ -130,7 +132,7 @@ public class Message extends WinAPI {
 //      HWND        hwnd;
 //    } CWPSTRUCT
 
-//    typedef struct
+    //    typedef struct
 //    {
 //      LRESULT       lResult;
 //      LPARAM        lParam;
@@ -142,8 +144,8 @@ public class Message extends WinAPI {
         /* first the WH_CALLWNDPROC hook */
         int cwp = getTempBuffer(16);
         writed(cwp, lparam);
-        writed(cwp+4, wparam);
-        writed(cwp+8, msg);
+        writed(cwp + 4, wparam);
+        writed(cwp + 8, msg);
         writed(cwp + 12, hwnd);
         Hook.HOOK_CallHooks(WH_CALLWNDPROC, HC_ACTION, BOOL(same_thread), cwp);
 
@@ -161,9 +163,9 @@ public class Message extends WinAPI {
         /* and finally the WH_CALLWNDPROCRET hook */
         int cwpret = getTempBuffer(20);
         writed(cwpret, result);
-        writed(cwpret+4, lparam);
-        writed(cwpret+8, wparam);
-        writed(cwpret+12, msg);
+        writed(cwpret + 4, lparam);
+        writed(cwpret + 8, wparam);
+        writed(cwpret + 12, msg);
         writed(cwpret + 16, hwnd);
         Hook.HOOK_CallHooks(WH_CALLWNDPROCRET, HC_ACTION, BOOL(same_thread), cwpret);
         return result;

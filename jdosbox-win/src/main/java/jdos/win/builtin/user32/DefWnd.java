@@ -7,42 +7,41 @@ import jdos.win.system.StaticData;
 import jdos.win.system.WinRect;
 import jdos.win.utils.StringUtil;
 
+
 public class DefWnd extends WinAPI {
+
     // LRESULT WINAPI DefWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     static public int DefWindowProcA(int hWnd, int Msg, int wParam, int lParam) {
         int result = 0;
 
-        switch(Msg)
-        {
-        case WM_NCCREATE:
-            if (lParam!=0) {
-                CREATESTRUCT cs = new CREATESTRUCT(lParam);
-                /* check for string, as static icons, bitmaps (SS_ICON, SS_BITMAP)
-                 * may have child window IDs instead of window name */
-                if (!IS_INTRESOURCE(cs.lpszName)) {
-                    WinWindow window = WinWindow.get(hWnd);
-                    if (window != null)
-                        window.text = StringUtil.getString(cs.lpszName);
+        switch (Msg) {
+            case WM_NCCREATE:
+                if (lParam != 0) {
+                    CREATESTRUCT cs = new CREATESTRUCT(lParam);
+                    /* check for string, as static icons, bitmaps (SS_ICON, SS_BITMAP)
+                     * may have child window IDs instead of window name */
+                    if (!IS_INTRESOURCE(cs.lpszName)) {
+                        WinWindow window = WinWindow.get(hWnd);
+                        if (window != null)
+                            window.text = StringUtil.getString(cs.lpszName);
+                    }
+                    result = 1;
                 }
-                result = 1;
-            }
-            break;
-        case WM_GETTEXTLENGTH:
-            {
+                break;
+            case WM_GETTEXTLENGTH: {
                 WinWindow window = WinWindow.get(hWnd);
                 if (window != null)
                     result = window.text.length();
             }
             break;
-        case WM_GETTEXT:
-            if (wParam!=0) {
-                WinWindow window = WinWindow.get(hWnd);
-                if (window != null)
-                    result = StringUtil.strncpy(lParam, window.text, wParam);
-            }
-            break;
-        case WM_SETTEXT:
-            {
+            case WM_GETTEXT:
+                if (wParam != 0) {
+                    WinWindow window = WinWindow.get(hWnd);
+                    if (window != null)
+                        result = StringUtil.strncpy(lParam, window.text, wParam);
+                }
+                break;
+            case WM_SETTEXT: {
                 WinWindow window = WinWindow.get(hWnd);
                 if (window != null) {
                     window.text = StringUtil.getString(lParam);
@@ -52,10 +51,10 @@ public class DefWnd extends WinAPI {
                 result = 1; /* success. FIXME: check text length */
             }
             break;
-        /* fall through */
-        default:
-            result = DEFWND_DefWinProc(hWnd, Msg, wParam, lParam);
-            break;
+            /* fall through */
+            default:
+                result = DEFWND_DefWinProc(hWnd, Msg, wParam, lParam);
+                break;
         }
         return result;
     }
@@ -65,14 +64,13 @@ public class DefWnd extends WinAPI {
      *
      * Default window procedure for messages that are the same in Ansi and Unicode.
      */
-    private static int DEFWND_DefWinProc(int hwnd, int msg, int wParam, int lParam ) {
-        switch(msg)
-        {
+    private static int DEFWND_DefWinProc(int hwnd, int msg, int wParam, int lParam) {
+        switch (msg) {
 //        case WM_NCPAINT:
 //            return NC_HandleNCPaint( hwnd, (HRGN)wParam );
 //
-        case WM_NCHITTEST:
-            return HTCLIENT;
+            case WM_NCHITTEST:
+                return HTCLIENT;
 //            {
 //                POINT pt;
 //                pt.x = (short)LOWORD(lParam);
@@ -192,11 +190,10 @@ public class DefWnd extends WinAPI {
 //            return 0;
 //
 //        case WM_PAINTICON:
-        case WM_PAINT:
-            {
+            case WM_PAINT: {
                 int ps = getTempBuffer(PAINTSTRUCT.SIZE);
                 int hdc = Painting.BeginPaint(hwnd, ps);
-                if (hdc!=0) {
+                if (hdc != 0) {
 //                  HICON hIcon;
 //                  if (IsIconic(hwnd) && ((hIcon = WinClass.GetClassLongA( hwnd, GCLP_HICON))) )
 //                  {
@@ -215,9 +212,9 @@ public class DefWnd extends WinAPI {
                 return 0;
             }
 
-        case WM_SYNCPAINT:
-            Painting.RedrawWindow (hwnd, NULL, 0, RDW_ERASENOW | RDW_ERASE | RDW_ALLCHILDREN);
-            return 0;
+            case WM_SYNCPAINT:
+                Painting.RedrawWindow(hwnd, NULL, 0, RDW_ERASENOW | RDW_ERASE | RDW_ALLCHILDREN);
+                return 0;
 
 //        case WM_SETREDRAW:
 //            if (wParam!=0) WIN_SetStyle( hwnd, WS_VISIBLE, 0 );
@@ -228,9 +225,9 @@ public class DefWnd extends WinAPI {
 //            }
 //            return 0;
 
-        case WM_CLOSE:
-            WinWindow.DestroyWindow( hwnd );
-            return 0;
+            case WM_CLOSE:
+                WinWindow.DestroyWindow(hwnd);
+                return 0;
 
 //        case WM_MOUSEACTIVATE:
 //            if (GetWindowLongW( hwnd, GWL_STYLE ) & WS_CHILD)
@@ -242,30 +239,29 @@ public class DefWnd extends WinAPI {
 //            /* Caption clicks are handled by NC_HandleNCLButtonDown() */
 //            return MA_ACTIVATE;
 
-        case WM_ACTIVATE:
-            /* The default action in Windows is to set the keyboard focus to
-             * the window, if it's being activated and not minimized */
-            if (LOWORD(wParam) != WA_INACTIVE) {
-                if (WinPos.IsIconic(hwnd)==0) Focus.SetFocus(hwnd);
-            }
-            break;
+            case WM_ACTIVATE:
+                /* The default action in Windows is to set the keyboard focus to
+                 * the window, if it's being activated and not minimized */
+                if (LOWORD(wParam) != WA_INACTIVE) {
+                    if (WinPos.IsIconic(hwnd) == 0) Focus.SetFocus(hwnd);
+                }
+                break;
 
 //        case WM_MOUSEWHEEL:
 //            if (GetWindowLongW( hwnd, GWL_STYLE ) & WS_CHILD)
 //                return SendMessageW( GetParent(hwnd), WM_MOUSEWHEEL, wParam, lParam );
 //            break;
 
-        case WM_ERASEBKGND:
-        case WM_ICONERASEBKGND:
-            {
+            case WM_ERASEBKGND:
+            case WM_ICONERASEBKGND: {
                 WinWindow window = WinWindow.get(hwnd);
                 if (window == null)
                     return 0;
                 int hdc = wParam;
                 int hbr = WinClass.GetClassLongA(hwnd, GCLP_HBRBACKGROUND);
-                if (hbr==0) return 0;
+                if (hbr == 0) return 0;
                 int rect = getTempBuffer(WinRect.SIZE);
-                if ((WinClass.GetClassLongA( hwnd, GCL_STYLE ) & CS_PARENTDC)!=0) {
+                if ((WinClass.GetClassLongA(hwnd, GCL_STYLE) & CS_PARENTDC) != 0) {
                     /* can't use GetClipBox with a parent DC or we fill the whole parent */
                     window.rectClient.write(rect);
                 } else {
@@ -275,36 +271,35 @@ public class DefWnd extends WinAPI {
                 return 1;
             }
 
-        case WM_GETDLGCODE:
-            return 0;
+            case WM_GETDLGCODE:
+                return 0;
 
-        case WM_CTLCOLORMSGBOX:
-        case WM_CTLCOLOREDIT:
-        case WM_CTLCOLORLISTBOX:
-        case WM_CTLCOLORBTN:
-        case WM_CTLCOLORDLG:
-        case WM_CTLCOLORSTATIC:
-        case WM_CTLCOLORSCROLLBAR:
-            return DEFWND_ControlColor(wParam, msg - WM_CTLCOLORMSGBOX );
+            case WM_CTLCOLORMSGBOX:
+            case WM_CTLCOLOREDIT:
+            case WM_CTLCOLORLISTBOX:
+            case WM_CTLCOLORBTN:
+            case WM_CTLCOLORDLG:
+            case WM_CTLCOLORSTATIC:
+            case WM_CTLCOLORSCROLLBAR:
+                return DEFWND_ControlColor(wParam, msg - WM_CTLCOLORMSGBOX);
 
-        case WM_CTLCOLOR:
-            return DEFWND_ControlColor(wParam, HIWORD(lParam) );
+            case WM_CTLCOLOR:
+                return DEFWND_ControlColor(wParam, HIWORD(lParam));
 
-        case WM_SETCURSOR:
-            if ((WinWindow.GetWindowLongA(hwnd, GWL_STYLE) & WS_CHILD) != 0) {
-                /* with the exception of the border around a resizable wnd,
-                 * give the parent first chance to set the cursor */
-                if ((LOWORD(lParam) < HTSIZEFIRST) || (LOWORD(lParam) > HTSIZELAST))
-                {
-                    int parent = WinWindow.GetParent(hwnd);
-                    if (parent != 0) {
-                        if (Message.SendMessageA(parent, WM_SETCURSOR, wParam, lParam)!=0)
-                            return TRUE;
+            case WM_SETCURSOR:
+                if ((WinWindow.GetWindowLongA(hwnd, GWL_STYLE) & WS_CHILD) != 0) {
+                    /* with the exception of the border around a resizable wnd,
+                     * give the parent first chance to set the cursor */
+                    if ((LOWORD(lParam) < HTSIZEFIRST) || (LOWORD(lParam) > HTSIZELAST)) {
+                        int parent = WinWindow.GetParent(hwnd);
+                        if (parent != 0) {
+                            if (Message.SendMessageA(parent, WM_SETCURSOR, wParam, lParam) != 0)
+                                return TRUE;
+                        }
                     }
                 }
-            }
-            NonClient.NC_HandleSetCursor(hwnd, wParam, lParam);
-            break;
+                NonClient.NC_HandleSetCursor(hwnd, wParam, lParam);
+                break;
 
 //        case WM_SYSCOMMAND:
 //            return NC_HandleSysCommand( hwnd, wParam, lParam );
@@ -558,8 +553,7 @@ public class DefWnd extends WinAPI {
     }
 
     static private int DEFWND_ControlColor(int hDC, int ctlType) {
-        if( ctlType == CTLCOLOR_SCROLLBAR)
-        {
+        if (ctlType == CTLCOLOR_SCROLLBAR) {
             int hb = SysParams.GetSysColorBrush(COLOR_SCROLLBAR);
             int bk = SysParams.GetSysColor(COLOR_3DHILIGHT);
             WinDC.SetTextColor(hDC, SysParams.GetSysColor(COLOR_3DFACE));
@@ -582,7 +576,7 @@ public class DefWnd extends WinAPI {
             WinDC.SetBkColor(hDC, SysParams.GetSysColor(COLOR_WINDOW));
             return SysParams.GetSysColorBrush(COLOR_WINDOW);
         }
-        WinDC.SetBkColor( hDC, SysParams.GetSysColor(COLOR_3DFACE) );
+        WinDC.SetBkColor(hDC, SysParams.GetSysColor(COLOR_3DFACE));
         return SysParams.GetSysColorBrush(COLOR_3DFACE);
     }
 }

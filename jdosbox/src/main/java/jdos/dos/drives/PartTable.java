@@ -2,23 +2,29 @@ package jdos.dos.drives;
 
 import jdos.util.Ptr;
 
+
 public class PartTable {
+
     public PartTable() {
-        for (int i=0;i<pentry.length;i++)
+        for (int i = 0; i < pentry.length; i++)
             pentry[i] = new Pentry();
     }
-	public final /*Bit8u*/byte[] booter = new byte[446];
-	public static class Pentry {
-		/*Bit8u*/short bootflag;
-		/*Bit8u*/final short[] beginchs=new short[3];
-		/*Bit8u*/short parttype;
-		/*Bit8u*/final short[] endchs=new short[3];
-		/*Bit32u*/long absSectStart;
-		/*Bit32u*/long partSize;
-	}
+
+    public final /*Bit8u*/ byte[] booter = new byte[446];
+
+    public static class Pentry {
+
+        /*Bit8u*/ short bootflag;
+        /*Bit8u*/final short[] beginchs = new short[3];
+        /*Bit8u*/ short parttype;
+        /*Bit8u*/final short[] endchs = new short[3];
+        /*Bit32u*/ long absSectStart;
+        /*Bit32u*/ long partSize;
+    }
+
     final Pentry[] pentry = new Pentry[4];
-	/*Bit8u*/byte  magic1; /* 0x55 */
-	/*Bit8u*/byte  magic2; /* 0xaa */
+    /*Bit8u*/ byte magic1; /* 0x55 */
+    /*Bit8u*/ byte magic2; /* 0xaa */
 
     public void load(byte[] d) {
         System.arraycopy(d, 0, booter, 0, booter.length);
@@ -35,7 +41,7 @@ public class PartTable {
             value.partSize = p.readd(0);
             p.inc(4);
         }
-        magic1 = (byte)p.getInc();
-        magic2 = (byte)p.getInc();
+        magic1 = (byte) p.getInc();
+        magic2 = (byte) p.getInc();
     }
 }

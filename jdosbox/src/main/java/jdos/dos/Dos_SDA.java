@@ -2,19 +2,42 @@ package jdos.dos;
 
 import jdos.hardware.Memory;
 
+
 public class Dos_SDA extends MemStruct {
-	public Dos_SDA(/*Bit16u*/int _seg,/*Bit16u*/int _offs) { SetPt(_seg,_offs); }
-	public void Init() {
-        /* Clear */
-        for(/*Bitu*/int i=0;i<26;i++) Memory.mem_writeb(pt+i,0x00);
-	    SaveIt(1,2, 0xFF); // sSave(sSDA,drive_crit_error,0xff);   
+
+    public Dos_SDA(/*Bit16u*/int _seg,/*Bit16u*/int _offs) {
+        SetPt(_seg, _offs);
     }
-	public void SetDrive(/*Bit8u*/short _drive) { SaveIt(1, 22, _drive);} // sSave(sSDA,current_drive, _drive); }
-	public void SetDTA(/*Bit32u*/int _dta) { SaveIt(4, 12, _dta);} //sSave(sSDA,current_dta, _dta); }
-	public void SetPSP(/*Bit16u*/int _psp) { SaveIt(2, 16, _psp);} //sSave(sSDA,current_psp, _psp); }
-	public /*Bit8u*/short GetDrive() { return (short)GetIt(1, 22);} //(Bit8u)sGet(sSDA,current_drive); }
-	public /*Bit16u*/int GetPSP() { return GetIt(2, 16); } // (Bit16u)sGet(sSDA,current_psp); }
-	public /*Bit32u*/int GetDTA() { return GetIt(4, 12); } //(Bit32u)sGet(sSDA,current_dta); }
+
+    public void Init() {
+        /* Clear */
+        for (/*Bitu*/int i = 0; i < 26; i++) Memory.mem_writeb(pt + i, 0x00);
+        SaveIt(1, 2, 0xFF); // sSave(sSDA,drive_crit_error,0xff);
+    }
+
+    public void SetDrive(/*Bit8u*/short _drive) {
+        SaveIt(1, 22, _drive);
+    } // sSave(sSDA,current_drive, _drive); }
+
+    public void SetDTA(/*Bit32u*/int _dta) {
+        SaveIt(4, 12, _dta);
+    } //sSave(sSDA,current_dta, _dta); }
+
+    public void SetPSP(/*Bit16u*/int _psp) {
+        SaveIt(2, 16, _psp);
+    } //sSave(sSDA,current_psp, _psp); }
+
+    public /*Bit8u*/short GetDrive() {
+        return (short) GetIt(1, 22);
+    } //(Bit8u)sGet(sSDA,current_drive); }
+
+    public /*Bit16u*/int GetPSP() {
+        return GetIt(2, 16);
+    } // (Bit16u)sGet(sSDA,current_psp); }
+
+    public /*Bit32u*/int GetDTA() {
+        return GetIt(4, 12);
+    } //(Bit32u)sGet(sSDA,current_dta); }
 
 //	private static class sSDA {
 //0		Bit8u crit_error_flag;		/* 0x00 Critical Error Flag */

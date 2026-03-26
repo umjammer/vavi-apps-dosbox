@@ -1,10 +1,12 @@
 package jdos.hardware;
 
-import jdos.gui.Render;
-
 import java.util.Arrays;
 
+import jdos.gui.Render;
+
+
 final public class RAM {
+
     public static int[] direct;
 
     static void alloc(int size) {

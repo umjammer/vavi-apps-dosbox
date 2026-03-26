@@ -3,7 +3,9 @@ package jdos.hardware.pci;
 import jdos.cpu.Paging;
 import jdos.hardware.Memory;
 
+
 public class PCI_Memory_BAR extends PCI_BAR {
+
     final PCI_PageHandler handler;
 
     public PCI_Memory_BAR(PCI_PageHandler handler) {

@@ -11,6 +11,7 @@ import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 import jdos.win.system.Scheduler;
 
+
 public class Imm32 extends BuiltinModule {
 
     private static final Logger logger = System.getLogger(Imm32.class.getName());
@@ -26,6 +27,7 @@ public class Imm32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Imm32.ImmAssociateContext";
         }
+
         @Override
         public void onCall() {
             int hWnd = CPU.CPU_Pop32();
@@ -35,7 +37,7 @@ public class Imm32 extends BuiltinModule {
                 CPU_Regs.reg_eax.dword = WinAPI.FALSE;
                 Scheduler.getCurrentThread().setLastError(jdos.win.utils.Error.ERROR_INVALID_WINDOW_HANDLE);
             } else {
-                logger.log(Level.DEBUG,getName()+" faked");
+                logger.log(Level.DEBUG, getName() + " faked");
                 CPU_Regs.reg_eax.dword = WinAPI.TRUE;
             }
         }

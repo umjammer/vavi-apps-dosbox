@@ -1,6 +1,7 @@
 package jdos.misc.setup;
 
 public class Hex {
+
     final int _hex;
 
     public Hex() {
@@ -14,9 +15,9 @@ public class Hex {
     public Hex(Hex in) {
         _hex = in._hex;
     }
-    
+
     public boolean equals(Object obj) {
-        return (obj instanceof Hex && ((Hex)obj)._hex == _hex);
+        return (obj instanceof Hex && ((Hex) obj)._hex == _hex);
     }
 
     public int toInt() {

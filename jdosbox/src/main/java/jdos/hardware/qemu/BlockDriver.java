@@ -1,18 +1,24 @@
 package jdos.hardware.qemu;
 
 public abstract class BlockDriver {
+
     public String format_name;
+
     abstract public Object allocOpaque();
+
     abstract public int bdrv_probe(byte[] buf, int buf_size, String filename);
+
     abstract public boolean has_bdrv_probe();
 
-//    abstract public int bdrv_probe_device(String filename);
+    //    abstract public int bdrv_probe_device(String filename);
     abstract public int bdrv_open(Block.BlockDriverState bs, int flags);
 
     abstract public int bdrv_file_open(Block.BlockDriverState bs, String filename, int flags);
+
     abstract public boolean has_bdrv_file_open();
 
     abstract public int bdrv_read(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors);
+
     abstract public int bdrv_write(Block.BlockDriverState bs, long sector_num, byte[] buf, int bufferOffset, int nb_sectors);
 //    abstract public void bdrv_close(Block.BlockDriverState bs);
 //    abstract public void bdrv_rebind(Block.BlockDriverState bs);
@@ -65,6 +71,7 @@ public abstract class BlockDriver {
 //    abstract public int bdrv_truncate(Block.BlockDriverState bs, long offset);
 
     abstract public long bdrv_getlength(Block.BlockDriverState bs);
+
     abstract public boolean has_bdrv_getlength();
 
 //    abstract public long bdrv_get_allocated_file_size(Block.BlockDriverState bs);
@@ -84,15 +91,19 @@ public abstract class BlockDriver {
 
     /* removable device specific */
     abstract public boolean bdrv_is_inserted(Block.BlockDriverState bs);
+
     abstract public boolean has_bdrv_is_inserted();
 
     abstract public int bdrv_media_changed(Block.BlockDriverState bs);
+
     abstract public boolean has_bdrv_media_changed();
 
     abstract public void bdrv_eject(Block.BlockDriverState bs, boolean eject_flag);
+
     abstract public boolean has_bdrv_eject();
 
     abstract public void bdrv_lock_medium(Block.BlockDriverState bs, boolean locked);
+
     abstract public boolean has_bdrv_lock_medium();
 
     /* to control generic scsi devices */

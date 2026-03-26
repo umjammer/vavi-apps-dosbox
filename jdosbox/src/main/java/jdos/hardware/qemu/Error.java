@@ -1,6 +1,7 @@
 package jdos.hardware.qemu;
 
 public class Error {
+
     static public final int ENOSPC = 1;
     static public final int ENOMEDIUM = 2;
     static public final int EIO = 3;

@@ -2,7 +2,9 @@ package jdos.win.builtin.kernel32;
 
 import jdos.win.utils.StringUtil;
 
+
 public class WinString {
+
     // LPTSTR WINAPI lstrcat(LPTSTR lpString1, LPTSTR lpString2)
     static public int lstrcatA(int lpString1, int lpString2) {
         StringUtil.strcat(lpString1, lpString2);

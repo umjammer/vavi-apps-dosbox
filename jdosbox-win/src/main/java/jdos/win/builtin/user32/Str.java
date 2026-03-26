@@ -4,7 +4,9 @@ import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 import jdos.win.utils.StringUtil;
 
+
 public class Str extends WinAPI {
+
     // LPTSTR WINAPI CharUpper(LPTSTR lpsz)
     static public int CharUpperA(int lpsz) {
         String value = StringUtil.getString(lpsz);
@@ -16,7 +18,7 @@ public class Str extends WinAPI {
     static public int CharUpperBuffA(int lpsz, int cchLength) {
         String value = StringUtil.getString(lpsz, cchLength);
         byte[] b = value.getBytes();
-        if (b.length<cchLength)
+        if (b.length < cchLength)
             cchLength = b.length;
         Memory.mem_memcpy(lpsz, b, 0, cchLength);
         return cchLength;

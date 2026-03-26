@@ -1,9 +1,11 @@
 package jdos.hardware;
 
-import jdos.Dosbox;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+
+import jdos.Dosbox;
 import jdos.util.Ptr;
+
 
 public class VGA_seq {
 
@@ -13,27 +15,27 @@ public class VGA_seq {
     static private final IoHandler.IO_ReadHandler read_p3c4 = (port, iolen) -> VGA.vga.seq.index;
 
     /*Bitu*//*Bitu*//*Bitu*/
-    private static final IoHandler.IO_WriteHandler write_p3c4 = (port, val, iolen) -> VGA.vga.seq.index=(short)val;
+    private static final IoHandler.IO_WriteHandler write_p3c4 = (port, val, iolen) -> VGA.vga.seq.index = (short) val;
 
     /*Bitu*//*Bitu*//*Bitu*/
     private static final IoHandler.IO_WriteHandler write_p3c5 = (port, val, iolen) -> {
-    //	LOG_MSG("SEQ WRITE reg %X val %X",VGA.vga.seq.index),val);
-        switch(VGA.vga.seq.index) {
-        case 0:		/* Reset */
-            VGA.vga.seq.reset=(short)val;
-            break;
-        case 1:		/* Clocking Mode */
-            if (val!=(VGA.vga.seq.clocking_mode & 0xFF)) {
-                // don't resize if only the screen off bit was changed
-                if ((val&(0xDF))!=(VGA.vga.seq.clocking_mode&(0xDF))) {
-                    VGA.vga.seq.clocking_mode=(byte)val;
-                    VGA.VGA_StartResize();
-                } else {
-                    VGA.vga.seq.clocking_mode=(byte)val;
+        //	LOG_MSG("SEQ WRITE reg %X val %X",VGA.vga.seq.index),val);
+        switch (VGA.vga.seq.index) {
+            case 0:        /* Reset */
+                VGA.vga.seq.reset = (short) val;
+                break;
+            case 1:        /* Clocking Mode */
+                if (val != (VGA.vga.seq.clocking_mode & 0xFF)) {
+                    // don't resize if only the screen off bit was changed
+                    if ((val & (0xDF)) != (VGA.vga.seq.clocking_mode & (0xDF))) {
+                        VGA.vga.seq.clocking_mode = (byte) val;
+                        VGA.VGA_StartResize();
+                    } else {
+                        VGA.vga.seq.clocking_mode = (byte) val;
+                    }
+                    if ((val & 0x20) != 0) VGA.vga.attr.disabled |= 0x2;
+                    else VGA.vga.attr.disabled &= ~0x2;
                 }
-                if ((val & 0x20)!=0) VGA.vga.attr.disabled |= 0x2;
-                else VGA.vga.attr.disabled &= ~0x2;
-            }
             /* TODO Figure this out :)
                 0	If set character clocks are 8 dots wide, else 9.
                 2	If set loads video serializers every other character
@@ -46,27 +48,28 @@ public class VGA_seq {
                 5	if set turns off screen and gives all memory cycles to the CPU
                     interface.
             */
-            break;
-        case 2:		/* Map Mask */
-            VGA.vga.seq.map_mask=(byte)(val & 15);
-            VGA.vga.config.full_map_mask=VGA.FillTable[val & 15];
-            VGA.vga.config.full_not_map_mask=~VGA.vga.config.full_map_mask;
+                break;
+            case 2:        /* Map Mask */
+                VGA.vga.seq.map_mask = (byte) (val & 15);
+                VGA.vga.config.full_map_mask = VGA.FillTable[val & 15];
+                VGA.vga.config.full_not_map_mask = ~VGA.vga.config.full_map_mask;
             /*
                 0  Enable writes to plane 0 if set
                 1  Enable writes to plane 1 if set
                 2  Enable writes to plane 2 if set
                 3  Enable writes to plane 3 if set
             */
-            break;
-        case 3:		/* Character Map Select */
-            {
-                VGA.vga.seq.character_map_select=(short)val;
-                /*Bit8u*/int font1=(val & 0x3) << 1;
-                if (Dosbox.IS_VGA_ARCH()) font1|=(val & 0x10) >> 4;
-                VGA.vga.draw.font_tables[0]=new Ptr(VGA.vga.draw.font,font1*8*1024);
-                /*Bit8u*/int font2=((val & 0xc) >> 1);
-                if (Dosbox.IS_VGA_ARCH()) font2|=(val & 0x20) >> 5;
-                VGA.vga.draw.font_tables[1]=new Ptr(VGA.vga.draw.font,font2*8*1024);
+                break;
+            case 3:        /* Character Map Select */ {
+                VGA.vga.seq.character_map_select = (short) val;
+                /*Bit8u*/
+                int font1 = (val & 0x3) << 1;
+                if (Dosbox.IS_VGA_ARCH()) font1 |= (val & 0x10) >> 4;
+                VGA.vga.draw.font_tables[0] = new Ptr(VGA.vga.draw.font, font1 * 8 * 1024);
+                /*Bit8u*/
+                int font2 = ((val & 0xc) >> 1);
+                if (Dosbox.IS_VGA_ARCH()) font2 |= (val & 0x20) >> 5;
+                VGA.vga.draw.font_tables[1] = new Ptr(VGA.vga.draw.font, font2 * 8 * 1024);
             }
             /*
                 0,1,4  Selects VGA Character Map (0..7) if bit 3 of the character
@@ -77,7 +80,7 @@ public class VGA_seq {
                 Map 0 at 0k, 1 at 16k, 2 at 32k, 3: 48k, 4: 8k, 5: 24k, 6: 40k, 7: 56k
             */
             break;
-        case 4:	/* Memory Mode */
+            case 4:    /* Memory Mode */
             /*
                 0  Set if in an alphanumeric mode, clear in graphics modes.
                 1  Set if more than 64kbytes on the adapter.
@@ -86,56 +89,56 @@ public class VGA_seq {
                 3  If set address bit 0-1 selects video memory planes (256 color mode),
                     rather than the Map Mask and Read Map Select Registers.
             */
-            VGA.vga.seq.memory_mode=(short)val;
-            if (Dosbox.IS_VGA_ARCH()) {
-                /* Changing this means changing the VGA Memory Read/Write Handler */
-                if ((val&0x08)!=0) VGA.vga.config.chained=true;
-                else VGA.vga.config.chained=false;
-                VGA_memory.VGA_SetupHandlers();
-            }
-            break;
-        default:
-            if (VGA.svga.write_p3c5!=null) {
-                VGA.svga.write_p3c5.call(VGA.vga.seq.index, val, iolen);
-            } else {
-                LOG_VGAMISC.log(Level.DEBUG, "VGA:SEQ:Write to illegal index "+Integer.toString(VGA.vga.seq.index,16));
-            }
-            break;
+                VGA.vga.seq.memory_mode = (short) val;
+                if (Dosbox.IS_VGA_ARCH()) {
+                    /* Changing this means changing the VGA Memory Read/Write Handler */
+                    if ((val & 0x08) != 0) VGA.vga.config.chained = true;
+                    else VGA.vga.config.chained = false;
+                    VGA_memory.VGA_SetupHandlers();
+                }
+                break;
+            default:
+                if (VGA.svga.write_p3c5 != null) {
+                    VGA.svga.write_p3c5.call(VGA.vga.seq.index, val, iolen);
+                } else {
+                    LOG_VGAMISC.log(Level.DEBUG, "VGA:SEQ:Write to illegal index " + Integer.toString(VGA.vga.seq.index, 16));
+                }
+                break;
         }
     };
 
     /*Bitu*//*Bitu*//*Bitu*/
     static private final IoHandler.IO_ReadHandler read_p3c5 = (port, iolen) -> {
-    //	LOG_MSG("VGA:SEQ:Read from index %2X",VGA.vga.seq.index));
-        switch(VGA.vga.seq.index) {
-        case 0:			/* Reset */
-            return VGA.vga.seq.reset;
-        case 1:			/* Clocking Mode */
-            return VGA.vga.seq.clocking_mode & 0xFF;
-        case 2:			/* Map Mask */
-            return VGA.vga.seq.map_mask & 0xFF;
-        case 3:			/* Character Map Select */
-            return VGA.vga.seq.character_map_select;
-        case 4:			/* Memory Mode */
-            return VGA.vga.seq.memory_mode;
-        default:
-            if (VGA.svga.read_p3c5 != null)
-                return VGA.svga.read_p3c5.call(VGA.vga.seq.index, iolen);
-            break;
+        //	LOG_MSG("VGA:SEQ:Read from index %2X",VGA.vga.seq.index));
+        switch (VGA.vga.seq.index) {
+            case 0:            /* Reset */
+                return VGA.vga.seq.reset;
+            case 1:            /* Clocking Mode */
+                return VGA.vga.seq.clocking_mode & 0xFF;
+            case 2:            /* Map Mask */
+                return VGA.vga.seq.map_mask & 0xFF;
+            case 3:            /* Character Map Select */
+                return VGA.vga.seq.character_map_select;
+            case 4:            /* Memory Mode */
+                return VGA.vga.seq.memory_mode;
+            default:
+                if (VGA.svga.read_p3c5 != null)
+                    return VGA.svga.read_p3c5.call(VGA.vga.seq.index, iolen);
+                break;
         }
         return 0;
     };
-    
+
     public static void VGA_SetupSEQ() {
         if (Dosbox.IS_EGAVGA_ARCH()) {
-            IoHandler.IO_RegisterWriteHandler(0x3c4,write_p3c4,IoHandler.IO_MB);
-            IoHandler.IO_RegisterWriteHandler(0x3c5,write_p3c5,IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3c4, write_p3c4, IoHandler.IO_MB);
+            IoHandler.IO_RegisterWriteHandler(0x3c5, write_p3c5, IoHandler.IO_MB);
             if (Dosbox.IS_VGA_ARCH()) {
-                IoHandler.IO_RegisterReadHandler(0x3c4,read_p3c4,IoHandler.IO_MB);
-                IoHandler.IO_RegisterReadHandler(0x3c5,read_p3c5,IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3c4, read_p3c4, IoHandler.IO_MB);
+                IoHandler.IO_RegisterReadHandler(0x3c5, read_p3c5, IoHandler.IO_MB);
             }
         }
     }
 
-    
+
 }

@@ -1,14 +1,15 @@
 package jdos.win.utils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
 import jdos.win.system.WinSystem;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 public class StringUtil extends WinAPI {
+
     public static String[] split(String input, String delimiter) {
         if (input != null && !input.isEmpty()) {
             int index1 = 0;
@@ -23,29 +24,27 @@ public class StringUtil extends WinAPI {
             if (index1 <= input.length() - 1) {
                 result.add(input.substring(index1));
             }
-            String[] sda = new String[result.size()];
-            result.addAll(Arrays.asList(sda));
-            return sda;
+            return result.toArray(new String[0]);
         }
         return new String[0];
     }
 
-    static public int strlenA(int str ) {
+    static public int strlenA(int str) {
         int s = str;
-        while (Memory.mem_readb(s)!=0) s++;
+        while (Memory.mem_readb(s) != 0) s++;
         return (s - str);
     }
 
-    static public int strlenW(int str ) {
+    static public int strlenW(int str) {
         int s = str;
-        while (Memory.mem_readw(s)!=0) s+=2;
-        return (s - str)/2;
+        while (Memory.mem_readw(s) != 0) s += 2;
+        return (s - str) / 2;
     }
 
     static public String getString(int address) {
         StringBuilder result = new StringBuilder();
         while (true) {
-            char c = (char)Memory.mem_readb(address++); // TODO need to research converting according to 1252
+            char c = (char) Memory.mem_readb(address++); // TODO need to research converting according to 1252
             if (c == 0)
                 break;
             result.append(c);
@@ -56,8 +55,8 @@ public class StringUtil extends WinAPI {
     static public String getStringW(int address) {
         StringBuilder result = new StringBuilder();
         while (true) {
-            char c = (char)Memory.mem_readw(address);
-            address+=2;
+            char c = (char) Memory.mem_readw(address);
+            address += 2;
             if (c == 0)
                 break;
             result.append(c);
@@ -69,8 +68,8 @@ public class StringUtil extends WinAPI {
         if (count == -1)
             return getString(address);
         StringBuilder result = new StringBuilder();
-        for (int i=0;i<count;i++) {
-            char c = (char)Memory.mem_readb(address++); // TODO need to research converting according to 1252
+        for (int i = 0; i < count; i++) {
+            char c = (char) Memory.mem_readb(address++); // TODO need to research converting according to 1252
             result.append(c);
         }
         return result.toString();
@@ -80,9 +79,9 @@ public class StringUtil extends WinAPI {
         if (count == -1)
             return getStringW(address);
         StringBuilder result = new StringBuilder();
-        for (int i=0;i<count;i++) {
-            char c = (char)Memory.mem_readw(address);
-            address+=2;
+        for (int i = 0; i < count; i++) {
+            char c = (char) Memory.mem_readw(address);
+            address += 2;
             result.append(c);
         }
         return result.toString();
@@ -90,83 +89,88 @@ public class StringUtil extends WinAPI {
 
     static public int strrchr(int address, int c) {
         int len = strlenA(address);
-        for (int i=len-1;i>=0;i++) {
-            if (readb(address+i)==c)
-                return address+i;
+        for (int i = len - 1; i >= 0; i++) {
+            if (readb(address + i) == c)
+                return address + i;
         }
         return 0;
     }
 
     static public void strcat(int address, int address2) {
         int len = strlenA(address);
-        strcpy(address+len, address2);
+        strcpy(address + len, address2);
     }
 
     static public void strcpy(int address, String value) {
         byte[] b = value.getBytes();
         Memory.mem_memcpy(address, b, 0, b.length);
-        Memory.mem_writeb(address+b.length, 0);
+        Memory.mem_writeb(address + b.length, 0);
     }
+
     static public void strcpy(int address, int src) {
-        int len =strlenA(src);
+        int len = strlenA(src);
         Memory.mem_memcpy(address, src, len + 1);
     }
+
     static public int strncpy(int address, String value, int count) {
         byte[] b = value.getBytes();
-        if (b.length+1<count)
-            count = b.length+1;
-        Memory.mem_memcpy(address, b, 0, count-1);
-        Memory.mem_writeb(address+count-1, 0);
-        return count-1;
+        if (b.length + 1 < count)
+            count = b.length + 1;
+        Memory.mem_memcpy(address, b, 0, count - 1);
+        Memory.mem_writeb(address + count - 1, 0);
+        return count - 1;
     }
+
     static public int strncpy(int address, int address2, int count) {
         int i;
-        for (i=0;i<count-1;i++) {
-            int c = Memory.mem_readb(address2+i);
+        for (i = 0; i < count - 1; i++) {
+            int c = Memory.mem_readb(address2 + i);
             if (c == 0)
                 break;
-            Memory.mem_writeb(address+i, c);
+            Memory.mem_writeb(address + i, c);
         }
-        Memory.mem_writeb(address+count-1, 0);
+        Memory.mem_writeb(address + count - 1, 0);
         return i;
     }
 
     static public int strncmp(int s1, int s2, int count) {
-        for (int i=0;i<count;i++) {
-            int c1 = Memory.mem_readb(s1+i);
-            int c2 = Memory.mem_readb(s2+i);
+        for (int i = 0; i < count; i++) {
+            int c1 = Memory.mem_readb(s1 + i);
+            int c2 = Memory.mem_readb(s2 + i);
             if (c1 == c2) {
                 if (c1 == 0)
                     return 0;
-            } else if (c1<c2)
+            } else if (c1 < c2)
                 return -1;
             else
                 return 1;
         }
         return 0;
     }
+
     static public int strncmp(int s1, String s2, int count) {
-        for (int i=0;i<count && i<s2.length();i++) {
-            int c1 = Memory.mem_readb(s1+i);
+        for (int i = 0; i < count && i < s2.length(); i++) {
+            int c1 = Memory.mem_readb(s1 + i);
             int c2 = s2.charAt(i);
             if (c1 == c2) {
                 if (c1 == 0)
                     return 0;
-            } else if (c1<c2)
+            } else if (c1 < c2)
                 return -1;
             else
                 return 1;
         }
         return 0;
     }
+
     static public int strcmp(int s1, int s2) {
         while (true) {
             int c1 = Memory.mem_readb(s1++);
             int c2 = Memory.mem_readb(s2++);
 
-            if (c1<c2)
+            if (c1 < c2)
                 return -1;
-            else if (c1>c2)
+            else if (c1 > c2)
                 return 1;
 
             if (c1 == 0 && c1 == c2) {
@@ -187,16 +191,18 @@ public class StringUtil extends WinAPI {
         }
         Memory.mem_writew(address, 0);
     }
+
     static public void strncpyW(int address, String value, int count) {
         char[] c = value.toCharArray();
-        if (c.length+1<count)
-            count = c.length+1;
-        for (int i=0;i<count-1;i++) {
+        if (c.length + 1 < count)
+            count = c.length + 1;
+        for (int i = 0; i < count - 1; i++) {
             Memory.mem_writew(address, c[i]);
-            address+=2;
+            address += 2;
         }
         Memory.mem_writew(address, 0);
     }
+
     static public char tolowerW(char w) {
         return Character.valueOf(w).toString().toLowerCase().charAt(0);
     }
@@ -204,10 +210,11 @@ public class StringUtil extends WinAPI {
     static public char toupperW(char w) {
         return Character.valueOf(w).toString().toUpperCase().charAt(0);
     }
+
     static public void _strupr(int str) {
         while (true) {
-            char c = (char)Memory.mem_readb(str);
-            if (c==0)
+            char c = (char) Memory.mem_readb(str);
+            if (c == 0)
                 break;
             c = toupperW(c);
             Memory.mem_writeb(str++, c);
@@ -220,11 +227,11 @@ public class StringUtil extends WinAPI {
         StringBuilder buffer = new StringBuilder();
         boolean quote = false;
 
-        for (int i=0;i<s.length();i++) {
+        for (int i = 0; i < s.length(); i++) {
             char c = s.charAt(i);
             if (c == '\"') {
                 quote = !quote;
-            } else if (quote || c !=' ') {
+            } else if (quote || c != ' ') {
                 buffer.append(c);
             } else {
                 results.add(buffer.toString());
@@ -232,16 +239,14 @@ public class StringUtil extends WinAPI {
             }
         }
         results.add(buffer.toString());
-        String[] r = new String[results.size()];
-        results.addAll(Arrays.asList(r));
-        return r;
+        return results.toArray(String[]::new);
     }
 
     static public int allocateA(String s) {
         if (s == null)
             return 0;
         byte[] b = s.getBytes();
-        int address = WinSystem.getCurrentProcess().heap.alloc(b.length+1, false);
+        int address = WinSystem.getCurrentProcess().heap.alloc(b.length + 1, false);
         strcpy(address, s);
         return address;
     }
@@ -250,7 +255,7 @@ public class StringUtil extends WinAPI {
         if (s == null)
             return 0;
         byte[] b = s.getBytes();
-        int address = getTempBuffer(b.length+1);
+        int address = getTempBuffer(b.length + 1);
         strcpy(address, s);
         return address;
     }

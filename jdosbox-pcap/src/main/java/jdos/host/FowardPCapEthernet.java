@@ -1,7 +1,12 @@
 package jdos.host;
 
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.net.ServerSocket;
+import java.net.Socket;
+
 import jdos.misc.setup.Section_prop;
 import jdos.util.Ptr;
 import org.jnetpcap.Pcap;
@@ -9,10 +14,6 @@ import org.jnetpcap.PcapHeader;
 import org.jnetpcap.nio.JBuffer;
 import org.jnetpcap.nio.JMemory;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 public class FowardPCapEthernet implements Ethernet {
 
@@ -30,23 +31,25 @@ public class FowardPCapEthernet implements Ethernet {
         } catch (Exception e) {
         }
     }
+
     static byte[] buffer = new byte[4096];
+
     @Override
     public void receive(RxFrame frame) {
         try {
             int len;
 
             do {
-                if (dis.available()<4)
+                if (dis.available() < 4)
                     break;
                 len = dis.readInt();
-                if (len>buffer.length)
+                if (len > buffer.length)
                     buffer = new byte[len];
                 dis.readFully(buffer, 0, len);
-                if (len>0) {
+                if (len > 0) {
                     frame.rx_frame(new Ptr(buffer, 0), len);
                 }
-            } while (len>0);
+            } while (len > 0);
         } catch (Exception e) {
         }
     }
@@ -80,18 +83,18 @@ public class FowardPCapEthernet implements Ethernet {
     static public void startServer(String nic, int port) {
         // Just make sure we are good to go
         Pcap pcaptmp = PCapEthernet.open(nic, false);
-        if (pcaptmp==null) {
+        if (pcaptmp == null) {
             return;
         }
         pcaptmp.close();
         try {
             ServerSocket serverSocket = new ServerSocket(port);
-            logger.log(Level.DEBUG, "Listening on port "+port+" for pcap forwarding.  Hit q [ENTER] to quit");
+            logger.log(Level.DEBUG, "Listening on port " + port + " for pcap forwarding.  Hit q [ENTER] to quit");
             while (true) {
                 Thread exitThread = new Thread(() -> {
                     while (true) {
                         try {
-                            char c = (char)System.in.read();
+                            char c = (char) System.in.read();
                             if (c == 'q') {
                                 System.exit(0);
                             }
@@ -102,7 +105,7 @@ public class FowardPCapEthernet implements Ethernet {
                 exitThread.start();
                 Socket socket = serverSocket.accept();
                 String address = socket.getInetAddress().toString();
-                logger.log(Level.DEBUG, "  Accepted connection from "+address);
+                logger.log(Level.DEBUG, "  Accepted connection from " + address);
                 Pcap pcap = PCapEthernet.open(nic, true);
                 Thread serviceIn = new Thread(() -> {
                     try {
@@ -110,10 +113,10 @@ public class FowardPCapEthernet implements Ethernet {
                         byte[] buffer = new byte[4096];
                         while (true) {
                             int len = dis.readInt();
-                            if (len<0) {
+                            if (len < 0) {
                                 return;
                             }
-                            if (len>buffer.length) {
+                            if (len > buffer.length) {
                                 buffer = new byte[len];
                             }
                             dis.readFully(buffer, 0, len);
@@ -122,9 +125,12 @@ public class FowardPCapEthernet implements Ethernet {
                             }
                         }
                     } catch (Exception e) {
-                        logger.log(Level.DEBUG, "  Dropped connection from "+address);
+                        logger.log(Level.DEBUG, "  Dropped connection from " + address);
                     } finally {
-                        try {pcap.close();} catch (Exception e1){}
+                        try {
+                            pcap.close();
+                        } catch (Exception e1) {
+                        }
                     }
                 });
                 serviceIn.start();
@@ -145,7 +151,10 @@ public class FowardPCapEthernet implements Ethernet {
                         }
                     } catch (Exception e) {
                     } finally {
-                        try {pcap.close();} catch (Exception e1){}
+                        try {
+                            pcap.close();
+                        } catch (Exception e1) {
+                        }
                     }
                 });
                 serviceOut.start();

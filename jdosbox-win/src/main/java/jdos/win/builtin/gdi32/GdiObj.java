@@ -4,7 +4,9 @@ import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.system.StaticData;
 
+
 public class GdiObj extends WinAPI {
+
     // BOOL WINAPI DeleteObject( HGDIOBJ obj )
     static public int DeleteObject(int obj) {
         WinGDI gdi = WinGDI.getGDI(obj);

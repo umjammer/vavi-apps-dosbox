@@ -1,5 +1,18 @@
 package jdos.win.builtin.user32;
 
+import java.awt.AlphaComposite;
+import java.awt.Cursor;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.Point;
+import java.awt.Toolkit;
+import java.awt.image.BufferedImage;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import jdos.gui.Main;
 import jdos.util.IntRef;
 import jdos.win.Win;
@@ -14,15 +27,9 @@ import jdos.win.utils.LittleEndian;
 import jdos.win.utils.Pixel;
 import jdos.win.utils.StreamHelper;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.List;
 
 public class WinCursor extends WinObject {
+
     static public WinCursor create(int instance, int name) {
         WinCursor cursor = new WinCursor(nextObjectId(), instance, name);
         return cursor;
@@ -30,12 +37,12 @@ public class WinCursor extends WinObject {
 
     static public WinCursor get(int handle) {
         WinObject object = getObject(handle);
-        if (object == null && (handle>=32512 && handle<=32651)) {
+        if (object == null && (handle >= 32512 && handle <= 32651)) {
             object = new WinCursor(handle, 0, handle);
         }
         if (object == null || !(object instanceof WinCursor))
             return null;
-        return (WinCursor)object;
+        return (WinCursor) object;
     }
 
     // HCURSOR WINAPI LoadCursor(HINSTANCE hInstance, LPCTSTR lpCursorName)
@@ -50,7 +57,7 @@ public class WinCursor extends WinObject {
         if (hCursor == 0)
             Main.GFX_SetCursor(null);
         else {
-            if (StaticData.showCursorCount>=0)
+            if (StaticData.showCursorCount >= 0)
                 Main.GFX_SetCursor(WinCursor.get(hCursor).cursor);
         }
         return hCursor;
@@ -77,6 +84,7 @@ public class WinCursor extends WinObject {
     Cursor cursor = null;
 
     static private class Data {
+
         public int width;
         public int height;
         public int colorCount;
@@ -99,10 +107,10 @@ public class WinCursor extends WinObject {
         int colorsUsed = is.readInt();
         int colorsImportant = is.readInt();
         int[] palette = new int[2];
-        for (int j=0;j<2;j++) {
+        for (int j = 0; j < 2; j++) {
             palette[j] = is.readInt();
         }
-        byte[] image = new byte[imageSize/2];
+        byte[] image = new byte[imageSize / 2];
         is.read(image);
         int height = bitmapHeight / 2;
         BufferedImage src = Pixel.createImage(image, bitCount, false, palette, bitmapWidth, height, true);
@@ -111,7 +119,7 @@ public class WinCursor extends WinObject {
         palette[0] |= 0xFF000000;
         BufferedImage mask = Pixel.createImage(image, bitCount, true, palette, bitmapWidth, height, true);
         BufferedImage result = new BufferedImage(bitmapWidth, height, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D graphics = (Graphics2D)result.getGraphics();
+        Graphics2D graphics = (Graphics2D) result.getGraphics();
         graphics.drawImage(src, 0, 0, null);
         AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.DST_IN, 1.0F);
         graphics.setComposite(ac);
@@ -137,7 +145,7 @@ public class WinCursor extends WinObject {
         int count = is.readUnsignedShort();
         Data[] data = new Data[count];
 
-        for (int i=0;i<count;i++) {
+        for (int i = 0; i < count; i++) {
             data[i] = new Data();
             data[i].width = is.readUnsignedByte();
             data[i].height = is.readUnsignedByte();
@@ -150,7 +158,7 @@ public class WinCursor extends WinObject {
         }
         Image[] images = new Image[count];
 
-        for (int i=0;i<data.length;i++) {
+        for (int i = 0; i < data.length; i++) {
             is.seek(data[i].fileOffset);
 
             images[i] = loadCursor(is);
@@ -161,7 +169,7 @@ public class WinCursor extends WinObject {
 
     public WinCursor(int handle, int instance, int name) {
         super(handle);
-        if (name<0xFFFF) {
+        if (name < 0xFFFF) {
             if (instance == 0)
                 cursor = loadSystemCursor(name);
             else
@@ -176,29 +184,29 @@ public class WinCursor extends WinObject {
     }
 
     public static Cursor loadCursorFromResource(int instance, int id) {
-        String name = "CURSOR"+instance+"-"+id;
+        String name = "CURSOR" + instance + "-" + id;
         Cursor cursor = cursors.get(name);
         if (cursor == null) {
             Module m = WinSystem.getCurrentProcess().getModuleByHandle(instance);
             if (m instanceof BuiltinModule) {
                 return null;
             }
-            NativeModule module = (NativeModule)m;
+            NativeModule module = (NativeModule) m;
             IntRef size = new IntRef(0);
             int address = module.getAddressOfResource(NativeModule.RT_GROUP_CURSOR, id, size);
             if (address == 0) {
-                Win.panic("Cursor not found in resource: "+module.name+" id: "+id);
+                Win.panic("Cursor not found in resource: " + module.name + " id: " + id);
                 return null;
             }
             LittleEndianFile is = new LittleEndianFile(address);
             int reserved = is.readShort();
             int type = is.readShort();
             if (type != 2) {
-                Win.panic("Wasn't expecting type: "+type+" in cursor resource");
+                Win.panic("Wasn't expecting type: " + type + " in cursor resource");
             }
             int count = is.readShort();
             int bytesInRes = 0;
-            for (int i=0;i<count;i++) {
+            for (int i = 0; i < count; i++) {
                 int width = is.readShort();
                 int heigh = is.readShort();
                 int planes = is.readShort();
@@ -207,7 +215,7 @@ public class WinCursor extends WinObject {
                 int ordinal = is.readShort();
                 address = module.getAddressOfResource(NativeModule.RT_CURSOR, ordinal, size);
                 if (address == 0) {
-                    Win.panic("Cursor not found in resource: "+module.name+" id: "+id);
+                    Win.panic("Cursor not found in resource: " + module.name + " id: " + id);
                     return null;
                 }
             }
@@ -215,7 +223,7 @@ public class WinCursor extends WinObject {
             int xHotspot = is.readShort();
             int yHotspot = is.readShort();
 
-            byte[] data = new byte[bytesInRes-4];
+            byte[] data = new byte[bytesInRes - 4];
             is.read(data);
 
             Toolkit toolkit = Toolkit.getDefaultToolkit();
@@ -271,7 +279,7 @@ public class WinCursor extends WinObject {
                 res = "ocr_wait.cur";
                 break;
             default:
-                Win.panic("Unknown cursor resource id: "+id);
+                Win.panic("Unknown cursor resource id: " + id);
         }
         if (res != null) {
             Cursor cursor = cursors.get(res);

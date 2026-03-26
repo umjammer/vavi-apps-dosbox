@@ -2,7 +2,9 @@ package jdos.win.builtin.directx;
 
 import jdos.hardware.Memory;
 
+
 public class Guid {
+
     final int i1;
     final int i2;
     final int i3;
@@ -17,16 +19,16 @@ public class Guid {
 
     public Guid(int address) {
         i1 = Memory.mem_readd(address);
-        i2 = Memory.mem_readw(address+4);
-        i3 = Memory.mem_readw(address+6);
-        i4 = Memory.mem_readb(address+8);
-        i5 = Memory.mem_readb(address+9);
-        i6 = Memory.mem_readb(address+10);
-        i7 = Memory.mem_readb(address+11);
-        i8 = Memory.mem_readb(address+12);
-        i9 = Memory.mem_readb(address+13);
-        i10 = Memory.mem_readb(address+14);
-        i11 = Memory.mem_readb(address+15);
+        i2 = Memory.mem_readw(address + 4);
+        i3 = Memory.mem_readw(address + 6);
+        i4 = Memory.mem_readb(address + 8);
+        i5 = Memory.mem_readb(address + 9);
+        i6 = Memory.mem_readb(address + 10);
+        i7 = Memory.mem_readb(address + 11);
+        i8 = Memory.mem_readb(address + 12);
+        i9 = Memory.mem_readb(address + 13);
+        i10 = Memory.mem_readb(address + 14);
+        i11 = Memory.mem_readb(address + 15);
     }
 
     public Guid(int i1, int i2, int i3, int i4, int i5, int i6, int i7, int i8, int i9, int i10, int i11) {
@@ -44,9 +46,9 @@ public class Guid {
     }
 
     public boolean IsEqual(int address) {
-        if (i1 == Memory.mem_readd(address) && i2 == Memory.mem_readw(address+4) && i3 == Memory.mem_readw(address+6) && i4 == Memory.mem_readb(address+8)
-                 && i5 == Memory.mem_readb(address+9) && i6 == Memory.mem_readb(address+10) && i7 == Memory.mem_readb(address+11) && i8 == Memory.mem_readb(address+12)
-                 && i9 == Memory.mem_readb(address+13) && i10 == Memory.mem_readb(address+14) && i11 == Memory.mem_readb(address+15)) {
+        if (i1 == Memory.mem_readd(address) && i2 == Memory.mem_readw(address + 4) && i3 == Memory.mem_readw(address + 6) && i4 == Memory.mem_readb(address + 8)
+                && i5 == Memory.mem_readb(address + 9) && i6 == Memory.mem_readb(address + 10) && i7 == Memory.mem_readb(address + 11) && i8 == Memory.mem_readb(address + 12)
+                && i9 == Memory.mem_readb(address + 13) && i10 == Memory.mem_readb(address + 14) && i11 == Memory.mem_readb(address + 15)) {
             return true;
         }
         return false;

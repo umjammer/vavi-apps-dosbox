@@ -18,15 +18,16 @@ import jdos.util.FileIOFactory;
 import jdos.util.StringHelper;
 import jdos.util.StringRef;
 
+
 public class JavaMapper {
 
     private static final Logger logger = System.getLogger(JavaMapper.class.getName());
 
-    private static final int CLR_BLACK=0;
-	private static final int CLR_WHITE=1;
-	private static final int CLR_RED=2;
-	private static final int CLR_BLUE=3;
-	private static final int CLR_GREEN=4;
+    private static final int CLR_BLACK = 0;
+    private static final int CLR_WHITE = 1;
+    private static final int CLR_RED = 2;
+    private static final int CLR_BLUE = 3;
+    private static final int CLR_GREEN = 4;
 
     private static final int BMOD_Mod1 = 0x0001;
     private static final int BMOD_Mod2 = 0x0002;
@@ -41,12 +42,12 @@ public class JavaMapper {
     private static final int BC_Mod1 = 1;
     private static final int BC_Mod2 = 2;
     private static final int BC_Mod3 = 3;
-	private static final int BC_Hold = 4;
+    private static final int BC_Hold = 4;
 
     private static final int BB_Next = 1;
     private static final int BB_Add = 2;
     private static final int BB_Del = 3;
-	private static final int BB_Save = 4;
+    private static final int BB_Save = 4;
     private static final int BB_Exit = 5;
 
     public static boolean autofire = false;
@@ -56,13 +57,16 @@ public class JavaMapper {
     static final private List<CBindGroup> bindgroups = new ArrayList<>();
     static final private List<CHandlerEvent> handlergroup = new ArrayList<>();
 
-    final private static class CBindList extends ArrayList<CBind>{}
+    final private static class CBindList extends ArrayList<CBind> {
+
+    }
+
     static private CEventButton last_clicked = null;
     static private CKeyEvent caps_lock_event = null;
     static private CKeyEvent num_lock_event = null;
 
     static private int MapSDLCode(int skey) {
-	    return skey;
+        return skey;
     }
 
     static private int GetKeyCode(int keysym) {
@@ -74,6 +78,7 @@ public class JavaMapper {
     }
 
     static private class CBindBut {
+
         CCaptionButton event_title;
         CCaptionButton bind_title;
         CCaptionButton selected;
@@ -96,12 +101,13 @@ public class JavaMapper {
     static public String mapperfile = "mapper.txt";
 
     static public class CMapper {
+
         //SDL_Surface * surface;
         //SDL_Surface * draw_surface;
         boolean exit;
-        CEvent aevent;				//Active Event
-        CBind abind;					//Active Bind
-        int abindit;			//Location of active bind in list
+        CEvent aevent;                //Active Event
+        CBind abind;                    //Active Bind
+        int abindit;            //Location of active bind in list
         boolean redraw;
         boolean addbind;
         public int mods;
@@ -115,21 +121,27 @@ public class JavaMapper {
     }
 
     static private abstract class CEvent {
+
         public CEvent(String _entry) {
-            entry=_entry;
+            entry = _entry;
             events.add(this);
             bindlist.clear();
-            activity=0;
-            current_value=0;
-        }
-        public void AddBind(CBind bind) {
-            bindlist.add(bind);
-	        bind.event=this;
+            activity = 0;
+            current_value = 0;
         }
 
-        public void destroy() {}
+        public void AddBind(CBind bind) {
+            bindlist.add(bind);
+            bind.event = this;
+        }
+
+        public void destroy() {
+        }
+
         public abstract void active(boolean yesno);
+
         public abstract void activateEvent(boolean ev_trigger, boolean skip_action);
+
         public abstract void deActivateEvent(boolean ev_trigger);
 
         public void deActivateAll() {
@@ -138,96 +150,119 @@ public class JavaMapper {
             }
         }
 
-        public void setValue(/*Bits*/int value){
-            current_value=value;
+        public void setValue(/*Bits*/int value) {
+            current_value = value;
         }
 
         public /*Bits*/int getValue() {
             return current_value;
         }
 
-        public String getName() { return entry; }
+        public String getName() {
+            return entry;
+        }
+
         public abstract boolean isTrigger();
+
         final CBindList bindlist = new CBindList();
 
-        /*Bitu*/int activity;
+        /*Bitu*/ int activity;
         final String entry;
-        /*Bits*/int current_value;
+        /*Bits*/ int current_value;
     }
 
     static abstract private class CBindGroup {
+
         public CBindGroup() {
             bindgroups.add(this);
         }
+
         public void destroy() {
         }
+
         void activateBindList(CBindList list, Object key, int value, boolean ev_trigger) {
-            int validmod=0;
+            int validmod = 0;
             for (CBind it : list) {
                 if ((it.mods & mapper.mods) == it.mods) {
-                    if (validmod<it.mods) validmod=it.mods;
+                    if (validmod < it.mods) validmod = it.mods;
                 }
             }
-            for (CBind it: list) {
-            /*BUG:CRASH if keymapper key is removed*/
-                if (validmod==it.mods && (!it.isLeft() && !it.isRight() && !it.isNumpad()) || (it.isLeft() && KeyboardKey.isLeft(key)) || (it.isRight() && KeyboardKey.isRight(key)) || (it.isNumpad() && KeyboardKey.isNumPad(key)))
-                    it.ActivateBind(value,ev_trigger);
+            for (CBind it : list) {
+                /*BUG:CRASH if keymapper key is removed*/
+                if (validmod == it.mods && (!it.isLeft() && !it.isRight() && !it.isNumpad()) || (it.isLeft() && KeyboardKey.isLeft(key)) || (it.isRight() && KeyboardKey.isRight(key)) || (it.isNumpad() && KeyboardKey.isNumPad(key)))
+                    it.ActivateBind(value, ev_trigger);
             }
         }
+
         void deactivateBindList(CBindList list, boolean ev_trigger) {
             for (CBind it : list) {
                 it.DeActivateBind(ev_trigger);
             }
         }
+
         public abstract CBind createConfigBind(StringRef buf);
+
         public abstract CBind createEventBind(Object event);
 
         public abstract boolean checkEvent(Object event);
+
         public abstract String configStart();
+
         public abstract String bindStart();
     }
 
     static private class CKeyBind extends CBind {
-        public CKeyBind(CBindList _list,int _key) {
+
+        public CKeyBind(CBindList _list, int _key) {
             super(_list);
             key = _key;
         }
+
         @Override
         public String bindName() {
-            return "Key "+SDL_GetKeyName(MapSDLCode(key));
+            return "Key " + SDL_GetKeyName(MapSDLCode(key));
         }
+
         @Override
         public String configName() {
-            return "key "+MapSDLCode(key);
+            return "key " + MapSDLCode(key);
         }
+
         public final int key;
     }
 
     static private class CKeyBindGroup extends CBindGroup {
+
         public CKeyBindGroup(int _keys) {
-            lists=new CBindList[_keys];
-            for (int i=0;i<_keys;i++) lists[i] = new CBindList();
-            keys=_keys;
-            configname="key";
+            lists = new CBindList[_keys];
+            for (int i = 0; i < _keys; i++) lists[i] = new CBindList();
+            keys = _keys;
+            configname = "key";
         }
 
         @Override
         public CBind createConfigBind(StringRef buf) {
             if (!buf.value.startsWith(configname)) return null;
-            StringHelper.StripWord(buf);String num=StringHelper.StripWord(buf);
+            StringHelper.StripWord(buf);
+            String num = StringHelper.StripWord(buf);
             int code;
-            try {code = Integer.parseInt(num);} catch (Exception e){code=0;}
+            try {
+                code = Integer.parseInt(num);
+            } catch (Exception e) {
+                code = 0;
+            }
             //if (usescancodes) {
             //    if (code<MAX_SDLKEYS) code=scancode_map[code];
             //    else code=0;
             //}
-            CBind bind=CreateKeyBind(code);
+            CBind bind = CreateKeyBind(code);
             return bind;
         }
+
         @Override
         public CBind createEventBind(Object event) {
             if (!KeyboardKey.isPressed(event)) return null;
-            int key=GetKeyCode(KeyboardKey.getKeyCode(event));
+            int key = GetKeyCode(KeyboardKey.getKeyCode(event));
             if (key >= 0 && key < keys) {
                 return CreateKeyBind(key);
             }
@@ -237,24 +272,26 @@ public class JavaMapper {
         @Override
         public boolean checkEvent(Object event) {
             if (!KeyboardKey.isPressed(event) && !KeyboardKey.isReleased(event)) return false;
-            int key=GetKeyCode(KeyboardKey.getKeyCode(event));
+            int key = GetKeyCode(KeyboardKey.getKeyCode(event));
 //		LOG_MSG("key type %i is %x [%x %x]",event->type,key,event->key.keysym.sym,event->key.keysym.scancode);
             //assert(Bitu(event->key.keysym.sym)<keys);
             if (key >= 0 && key < keys) {
-                if (KeyboardKey.isPressed(event)) activateBindList(lists[key],event,0x7fff,true);
-                else deactivateBindList(lists[key],true);
+                if (KeyboardKey.isPressed(event)) activateBindList(lists[key], event, 0x7fff, true);
+                else deactivateBindList(lists[key], true);
             }
             return false;
         }
 
         public CBind CreateKeyBind(int _key) {
             //if (!usescancodes) assert(_key<keys);
-            return new CKeyBind(lists[_key],_key);
+            return new CKeyBind(lists[_key], _key);
         }
+
         @Override
         public String configStart() {
             return configname;
         }
+
         @Override
         public String bindStart() {
             return "Key";
@@ -266,78 +303,85 @@ public class JavaMapper {
     }
 
     abstract private static class CBind {
+
         public CBind(CBindList _list) {
-            list=_list;
+            list = _list;
             _list.add(this);
-            mods=flags=0;
-            event=null;
-            active=holding=false;
+            mods = flags = 0;
+            event = null;
+            active = holding = false;
         }
+
         public void destroy() {
             list.remove(this);
-    //		event->bindlist.remove(this);
+            //		event->bindlist.remove(this);
         }
+
         public String AddFlags() {
             String buf = "";
-            if ((mods & BMOD_Mod1)!=0) buf+=" mod1";
-            if ((mods & BMOD_Mod2)!=0) buf+=" mod2";
-            if ((mods & BMOD_Mod3)!=0) buf+=" mod3";
-            if ((flags & BFLG_Hold)!=0) buf+=" hold";
-            if ((flags & BFLG_Right)!=0) buf+=" right";
-            if ((flags & BFLG_Left)!=0) buf+=" left";
-            if ((flags & BFLG_Numpad)!=0) buf+=" numpad";
+            if ((mods & BMOD_Mod1) != 0) buf += " mod1";
+            if ((mods & BMOD_Mod2) != 0) buf += " mod2";
+            if ((mods & BMOD_Mod3) != 0) buf += " mod3";
+            if ((flags & BFLG_Hold) != 0) buf += " hold";
+            if ((flags & BFLG_Right) != 0) buf += " right";
+            if ((flags & BFLG_Left) != 0) buf += " left";
+            if ((flags & BFLG_Numpad) != 0) buf += " numpad";
             return buf;
         }
+
         void SetFlags(String buf) {
             StringRef line = new StringRef(buf);
             while (true) {
                 if (line.value.isEmpty())
                     break;
                 String word = StringHelper.StripWord(line);
-                if (word.equalsIgnoreCase("mod1")) mods|=BMOD_Mod1;
-                if (word.equalsIgnoreCase("mod2")) mods|=BMOD_Mod2;
-                if (word.equalsIgnoreCase("mod3")) mods|=BMOD_Mod3;
-                if (word.equalsIgnoreCase("hold")) flags|=BFLG_Hold;
-                if (word.equalsIgnoreCase("right")) flags|=BFLG_Right;
-                if (word.equalsIgnoreCase("left")) flags|=BFLG_Left;
-                if (word.equalsIgnoreCase("numpad")) flags|=BFLG_Numpad;
+                if (word.equalsIgnoreCase("mod1")) mods |= BMOD_Mod1;
+                if (word.equalsIgnoreCase("mod2")) mods |= BMOD_Mod2;
+                if (word.equalsIgnoreCase("mod3")) mods |= BMOD_Mod3;
+                if (word.equalsIgnoreCase("hold")) flags |= BFLG_Hold;
+                if (word.equalsIgnoreCase("right")) flags |= BFLG_Right;
+                if (word.equalsIgnoreCase("left")) flags |= BFLG_Left;
+                if (word.equalsIgnoreCase("numpad")) flags |= BFLG_Numpad;
             }
         }
-        void ActivateBind(/*Bits*/int _value,boolean ev_trigger) {
+
+        void ActivateBind(/*Bits*/int _value, boolean ev_trigger) {
             ActivateBind(_value, ev_trigger, false);
         }
-        void ActivateBind(/*Bits*/int _value,boolean ev_trigger,boolean skip_action) {
+
+        void ActivateBind(/*Bits*/int _value, boolean ev_trigger, boolean skip_action) {
             if (event.isTrigger()) {
                 /* use value-boundary for on/off events */
-                if (_value>25000) {
+                if (_value > 25000) {
                     event.setValue(_value);
                     if (active) return;
-                    event.activateEvent(ev_trigger,skip_action);
-                    active=true;
+                    event.activateEvent(ev_trigger, skip_action);
+                    active = true;
                 } else {
                     if (active) {
                         event.deActivateEvent(ev_trigger);
-                        active=false;
+                        active = false;
                     }
                 }
             } else {
                 /* store value for possible later use in the activated event */
                 event.setValue(_value);
-                event.activateEvent(ev_trigger,false);
+                event.activateEvent(ev_trigger, false);
             }
         }
+
         void DeActivateBind(boolean ev_trigger) {
             if (event.isTrigger()) {
                 if (!active) return;
-                active=false;
-                if ((flags & BFLG_Hold)!=0) {
+                active = false;
+                if ((flags & BFLG_Hold) != 0) {
                     if (!holding) {
                         holdlist.add(this);
-                        holding=true;
+                        holding = true;
                         return;
                     } else {
                         holdlist.remove(this);
-                        holding=false;
+                        holding = false;
                     }
                 }
                 event.deActivateEvent(ev_trigger);
@@ -347,112 +391,130 @@ public class JavaMapper {
                 event.deActivateEvent(ev_trigger);
             }
         }
+
         public abstract String configName();
+
         public abstract String bindName();
+
         public boolean isLeft() {
-            return (flags & BFLG_Left)!=0;
+            return (flags & BFLG_Left) != 0;
         }
+
         public boolean isRight() {
-            return (flags & BFLG_Right)!=0;
+            return (flags & BFLG_Right) != 0;
         }
+
         public boolean isNumpad() {
-            return (flags & BFLG_Numpad)!=0;
+            return (flags & BFLG_Numpad) != 0;
         }
-        /*Bitu*/int mods,flags;
-        /*Bit16s*/int value;
+
+        /*Bitu*/ int mods, flags;
+        /*Bit16s*/ int value;
         CEvent event;
         final CBindList list;
-        boolean active,holding;
+        boolean active, holding;
     }
 
     /* class for events which can be ON/OFF only: key presses, joystick buttons, joystick hat */
     static abstract private class CTriggeredEvent extends CEvent {
+
         public CTriggeredEvent(String _entry) {
             super(_entry);
         }
+
         @Override
         public boolean isTrigger() {
             return true;
         }
+
         @Override
         public void activateEvent(boolean ev_trigger, boolean skip_action) {
-            if (current_value>25000) {
+            if (current_value > 25000) {
                 /* value exceeds boundary, trigger event if not active */
-                if (activity==0 && !skip_action) active(true);
-                if (activity<32767) activity++;
+                if (activity == 0 && !skip_action) active(true);
+                if (activity < 32767) activity++;
             } else {
-                if (activity>0) {
+                if (activity > 0) {
                     /* untrigger event if it is fully inactive */
                     deActivateEvent(ev_trigger);
-                    activity=0;
+                    activity = 0;
                 }
             }
         }
+
         @Override
         public void deActivateEvent(boolean ev_trigger) {
             activity--;
-            if (activity==0) active(false);
+            if (activity == 0) active(false);
         }
     }
 
     static public class CKeyEvent extends CTriggeredEvent {
-        public CKeyEvent(String _entry ,int _key) {
+
+        public CKeyEvent(String _entry, int _key) {
             super(_entry);
-            key=_key;
+            key = _key;
         }
+
         @Override
         public void active(boolean yesno) {
             Keyboard.KEYBOARD_AddKey(key, yesno);
         }
+
         final int key;
     }
 
     static private class CBindButton extends CTextButton {
-    public CBindButton(int _x,int _y,int _dx,int _dy,String _text,int _type) {
-            super(_x,_y,_dx,_dy,_text);
-            type=_type;
+
+        public CBindButton(int _x, int _y, int _dx, int _dy, String _text, int _type) {
+            super(_x, _y, _dx, _dy, _text);
+            type = _type;
         }
 
         @Override
         public void click() {
             switch (type) {
-            case BB_Add:
-                mapper.addbind=true;
-                setActiveBind(null);
-                changeActionText("Press a key/joystick button or move the joystick.",CLR_RED);
-                break;
-            case BB_Del:
-                if (mapper.abindit!=mapper.aevent.bindlist.size())  {
-                    mapper.aevent.bindlist.remove(mapper.abindit).destroy();
-                    if (mapper.abindit==mapper.aevent.bindlist.size())
-                        mapper.abindit=0;
-                }
-                if (mapper.abindit!=mapper.aevent.bindlist.size()) setActiveBind(mapper.aevent.bindlist.get(mapper.abindit));
-                else setActiveBind(null);
-                break;
-            case BB_Next:
-                if (mapper.abindit!=mapper.aevent.bindlist.size())
-                    mapper.abindit++;
-                if (mapper.abindit==mapper.aevent.bindlist.size())
-                    mapper.abindit=0;
-                setActiveBind(mapper.aevent.bindlist.get(mapper.abindit));
-                break;
-            case BB_Save:
-                MAPPER_SaveBinds();
-                break;
-            case BB_Exit:
-                mapper.exit=true;
-                break;
+                case BB_Add:
+                    mapper.addbind = true;
+                    setActiveBind(null);
+                    changeActionText("Press a key/joystick button or move the joystick.", CLR_RED);
+                    break;
+                case BB_Del:
+                    if (mapper.abindit != mapper.aevent.bindlist.size()) {
+                        mapper.aevent.bindlist.remove(mapper.abindit).destroy();
+                        if (mapper.abindit == mapper.aevent.bindlist.size())
+                            mapper.abindit = 0;
+                    }
+                    if (mapper.abindit != mapper.aevent.bindlist.size())
+                        setActiveBind(mapper.aevent.bindlist.get(mapper.abindit));
+                    else setActiveBind(null);
+                    break;
+                case BB_Next:
+                    if (mapper.abindit != mapper.aevent.bindlist.size())
+                        mapper.abindit++;
+                    if (mapper.abindit == mapper.aevent.bindlist.size())
+                        mapper.abindit = 0;
+                    setActiveBind(mapper.aevent.bindlist.get(mapper.abindit));
+                    break;
+                case BB_Save:
+                    MAPPER_SaveBinds();
+                    break;
+                case BB_Exit:
+                    mapper.exit = true;
+                    break;
             }
         }
+
         protected final int type;
     }
 
     static private class CCheckButton extends CTextButton {
-        public CCheckButton(int _x,int _y,int _dx,int _dy,String _text,int _type) {
-            super(_x,_y,_dx,_dy,_text);
-            type=_type;
+
+        public CCheckButton(int _x, int _y, int _dx, int _dy, String _text, int _type) {
+            super(_x, _y, _dx, _dy, _text);
+            type = _type;
         }
+
         @Override
         public void draw() {
             if (!enabled) return;
@@ -474,74 +536,92 @@ public class JavaMapper {
             }
             super.draw();
         }
+
         @Override
         public void click() {
             switch (type) {
-            case BC_Mod1:
-                mapper.abind.mods^=BMOD_Mod1;
-                break;
-            case BC_Mod2:
-                mapper.abind.mods^=BMOD_Mod2;
-                break;
-            case BC_Mod3:
-                mapper.abind.mods^=BMOD_Mod3;
-                break;
-            case BC_Hold:
-                mapper.abind.flags^=BFLG_Hold;
-                break;
+                case BC_Mod1:
+                    mapper.abind.mods ^= BMOD_Mod1;
+                    break;
+                case BC_Mod2:
+                    mapper.abind.mods ^= BMOD_Mod2;
+                    break;
+                case BC_Mod3:
+                    mapper.abind.mods ^= BMOD_Mod3;
+                    break;
+                case BC_Hold:
+                    mapper.abind.flags ^= BFLG_Hold;
+                    break;
             }
-            mapper.redraw=true;
+            mapper.redraw = true;
         }
+
         protected final int type;
     }
 
     static private class CModEvent extends CTriggeredEvent {
-        public CModEvent(String _entry,int _wmod) {
+
+        public CModEvent(String _entry, int _wmod) {
             super(_entry);
-            wmod=_wmod;
+            wmod = _wmod;
         }
+
         @Override
         public void active(boolean yesno) {
-            if (yesno) mapper.mods|=(1 << (wmod-1));
-            else mapper.mods&=~(1 << (wmod-1));
+            if (yesno) mapper.mods |= (1 << (wmod - 1));
+            else mapper.mods &= ~(1 << (wmod - 1));
         }
+
         protected final int wmod;
     }
 
     public static class CHandlerEvent extends CTriggeredEvent {
-        public CHandlerEvent(String _entry, Mapper.MAPPER_Handler _handler,int _key,/*Bitu*/int _mod, String _buttonname) {
+
+        public CHandlerEvent(String _entry, Mapper.MAPPER_Handler _handler, int _key,/*Bitu*/int _mod, String _buttonname) {
             super(_entry);
-            handler=_handler;
-            defmod=_mod;
-            defkey=_key;
-            buttonname=_buttonname;
+            handler = _handler;
+            defmod = _mod;
+            defkey = _key;
+            buttonname = _buttonname;
             handlergroup.add(this);
         }
+
         @Override
         public void active(boolean yesno) {
             handler.call(yesno);
         }
+
         public String ButtonName() {
             return buttonname;
         }
+
         void MakeDefaultBind(StringRef buf) {
-            /*Bitu*/int key=KeyboardKey.translateMapKey(defkey);
-            buf.value = entry+" \"key "+key+((defmod & 1)!=0 ? " mod1" : "")+((defmod & 2)!=0 ? " mod2" : "")+((defmod & 4)!=0 ? " mod3" : "")+"\"";
+            /*Bitu*/
+            int key = KeyboardKey.translateMapKey(defkey);
+            buf.value = entry + " \"key " + key + ((defmod & 1) != 0 ? " mod1" : "") + ((defmod & 2) != 0 ? " mod2" : "") + ((defmod & 4) != 0 ? " mod3" : "") + "\"";
         }
-        protected final /*MapKeys*/int defkey;
-        protected final /*Bitu*/int defmod;
+
+        protected final /*MapKeys*/ int defkey;
+        protected final /*Bitu*/ int defmod;
         protected final Mapper.MAPPER_Handler handler;
         public final String buttonname;
     }
 
     public static class CButton {
-        public void destroy() {}
-        public CButton(int _x,int _y,int _dx,int _dy) {
-            x=_x;y=_y;dx=_dx;dy=_dy;
-            buttons.add(this);
-            color=CLR_WHITE;
-            enabled=true;
+
+        public void destroy() {
         }
+
+        public CButton(int _x, int _y, int _dx, int _dy) {
+            x = _x;
+            y = _y;
+            dx = _dx;
+            dy = _dy;
+            buttons.add(this);
+            color = CLR_WHITE;
+            enabled = true;
+        }
+
         public void draw() {
             if (!enabled) return;
             /*
@@ -556,15 +636,22 @@ public class JavaMapper {
             }
             */
         }
-        public boolean OnTop(int _x,int _y) {
-            return ( enabled && (_x>=x) && (_x<x+dx) && (_y>=y) && (_y<y+dy));
+
+        public boolean OnTop(int _x, int _y) {
+            return (enabled && (_x >= x) && (_x < x + dx) && (_y >= y) && (_y < y + dy));
         }
-        public void click() {}
+
+        public void click() {
+        }
+
         public void Enable(boolean yes) {
-            enabled=yes;
+            enabled = yes;
             //mapper.redraw=true;
         }
-        public void SetColor(int _col) { color=_col; }
+
+        public void SetColor(int _col) {
+            color = _col;
+        }
 
         protected final int x;
         protected final int y;
@@ -575,12 +662,14 @@ public class JavaMapper {
     }
 
     static public class CCaptionButton extends CButton {
-        public CCaptionButton(int _x,int _y,int _dx,int _dy) {
-            super(_x,_y,_dx,_dy);
+
+        public CCaptionButton(int _x, int _y, int _dx, int _dy) {
+            super(_x, _y, _dx, _dy);
         }
+
         public void change(String format, Object[] args) {
             caption = format.formatted(args);
-            mapper.redraw=true;
+            mapper.redraw = true;
         }
 
         @Override
@@ -588,49 +677,55 @@ public class JavaMapper {
             if (!enabled) return;
             //DrawText(x+2,y+2,caption,color);
         }
+
         protected String caption;
     }
 
     public static class CTextButton extends CButton {
-	    public CTextButton(int _x,int _y,int _dx,int _dy,String _text) {
-            super(_x,_y,_dx,_dy);
-            text=_text;
+
+        public CTextButton(int _x, int _y, int _dx, int _dy, String _text) {
+            super(_x, _y, _dx, _dy);
+            text = _text;
         }
-	    @Override
+
+        @Override
         public void draw() {
-		    if (!enabled) return;
-		    super.draw();
-		    //DrawText(x+2,y+2,text,color);
-	    }
-	    protected final String text;
+            if (!enabled) return;
+            super.draw();
+            //DrawText(x+2,y+2,text,color);
+        }
+
+        protected final String text;
     }
 
     public static class CEventButton extends CTextButton {
-        public CEventButton(int _x,int _y,int _dx,int _dy,String _text,CEvent _event) {
-            super(_x,_y,_dx,_dy,_text);
-            event=_event;
+
+        public CEventButton(int _x, int _y, int _dx, int _dy, String _text, CEvent _event) {
+            super(_x, _y, _dx, _dy, _text);
+            event = _event;
         }
 
         @Override
         public void click() {
-            if (last_clicked!=null) last_clicked.SetColor(CLR_WHITE);
+            if (last_clicked != null) last_clicked.SetColor(CLR_WHITE);
             this.SetColor(CLR_GREEN);
             setActiveEvent(event);
-            last_clicked=this;
+            last_clicked = this;
         }
+
         protected final CEvent event;
     }
 
     static private void changeActionText(String text, int col) {
-        bind_but.action.change(text,null);
+        bind_but.action.change(text, null);
         bind_but.action.SetColor(col);
     }
 
     static private void setActiveBind(CBind _bind) {
-        mapper.abind=_bind;
+        mapper.abind = _bind;
         if (_bind != null) {
             bind_but.bind_title.Enable(true);
-            bind_but.bind_title.change("BIND:"+_bind.bindName(), null);
+            bind_but.bind_title.change("BIND:" + _bind.bindName(), null);
             bind_but.del.Enable(true);
             bind_but.next.Enable(true);
             bind_but.mod1.Enable(true);
@@ -649,18 +744,18 @@ public class JavaMapper {
     }
 
     static void setActiveEvent(CEvent event) {
-        mapper.aevent=event;
-        mapper.redraw=true;
-        mapper.addbind=false;
-        bind_but.event_title.change("EVENT:"+((event!=null) ? event.getName(): "none"), null);
-        if (event==null) {
-            changeActionText("Select an event to change.",CLR_WHITE);
+        mapper.aevent = event;
+        mapper.redraw = true;
+        mapper.addbind = false;
+        bind_but.event_title.change("EVENT:" + ((event != null) ? event.getName() : "none"), null);
+        if (event == null) {
+            changeActionText("Select an event to change.", CLR_WHITE);
             bind_but.add.Enable(false);
             setActiveBind(null);
         } else {
-            changeActionText("Select a different event or hit the Add/Del/Next buttons.",CLR_WHITE);
-            mapper.abindit=0;
-            if (mapper.abindit!=event.bindlist.size()) {
+            changeActionText("Select a different event or hit the Add/Del/Next buttons.", CLR_WHITE);
+            mapper.abindit = 0;
+            if (mapper.abindit != event.bindlist.size()) {
                 setActiveBind(event.bindlist.get(mapper.abindit));
             } else setActiveBind(null);
             bind_but.add.Enable(true);
@@ -671,135 +766,147 @@ public class JavaMapper {
     static private final int BH = 20;
     static private final int DX = 5;
 
-    static private int px(int x) {return ((x)*BW + DX);}
-    static private int py(int y) {return (10+(y)*BH);}
+    static private int px(int x) {
+        return ((x) * BW + DX);
+    }
+
+    static private int py(int y) {
+        return (10 + (y) * BH);
+    }
 
     static CKeyEvent addKeyButtonEvent(int x, int y, int dx, int dy, String title, String entry, int key) {
-        CKeyEvent event=new CKeyEvent("key_"+entry,key);
-        new CEventButton(x,y,dx,dy,title,event);
+        CKeyEvent event = new CKeyEvent("key_" + entry, key);
+        new CEventButton(x, y, dx, dy, title, event);
         return event;
     }
 
     static private void addModButton(int x, int y, int dx, int dy, String title, int _mod) {
-        CModEvent event=new CModEvent("mod_"+_mod,_mod);
-        new CEventButton(x,y,dx,dy,title,event);
+        CModEvent event = new CModEvent("mod_" + _mod, _mod);
+        new CEventButton(x, y, dx, dy, title, event);
     }
 
     static private class KeyBlock {
+
         public KeyBlock(String title, String entry, int key) {
             this.title = title;
             this.entry = entry;
             this.key = key;
         }
+
         final String title;
         final String entry;
         final int key;
     }
 
     static private final KeyBlock[] combo_f = {
-        new KeyBlock("F1","f1",Keyboard.KBD_KEYS.KBD_f1),		new KeyBlock("F2","f2",Keyboard.KBD_KEYS.KBD_f2),		new KeyBlock("F3","f3",Keyboard.KBD_KEYS.KBD_f3),
-        new KeyBlock("F4","f4",Keyboard.KBD_KEYS.KBD_f4),		new KeyBlock("F5","f5",Keyboard.KBD_KEYS.KBD_f5),		new KeyBlock("F6","f6",Keyboard.KBD_KEYS.KBD_f6),
-        new KeyBlock("F7","f7",Keyboard.KBD_KEYS.KBD_f7),		new KeyBlock("F8","f8",Keyboard.KBD_KEYS.KBD_f8),		new KeyBlock("F9","f9",Keyboard.KBD_KEYS.KBD_f9),
-        new KeyBlock("F10","f10",Keyboard.KBD_KEYS.KBD_f10),	new KeyBlock("F11","f11",Keyboard.KBD_KEYS.KBD_f11),	new KeyBlock("F12","f12",Keyboard.KBD_KEYS.KBD_f12),
+            new KeyBlock("F1", "f1", Keyboard.KBD_KEYS.KBD_f1), new KeyBlock("F2", "f2", Keyboard.KBD_KEYS.KBD_f2), new KeyBlock("F3", "f3", Keyboard.KBD_KEYS.KBD_f3),
+            new KeyBlock("F4", "f4", Keyboard.KBD_KEYS.KBD_f4), new KeyBlock("F5", "f5", Keyboard.KBD_KEYS.KBD_f5), new KeyBlock("F6", "f6", Keyboard.KBD_KEYS.KBD_f6),
+            new KeyBlock("F7", "f7", Keyboard.KBD_KEYS.KBD_f7), new KeyBlock("F8", "f8", Keyboard.KBD_KEYS.KBD_f8), new KeyBlock("F9", "f9", Keyboard.KBD_KEYS.KBD_f9),
+            new KeyBlock("F10", "f10", Keyboard.KBD_KEYS.KBD_f10), new KeyBlock("F11", "f11", Keyboard.KBD_KEYS.KBD_f11), new KeyBlock("F12", "f12", Keyboard.KBD_KEYS.KBD_f12),
     };
 
     static private final KeyBlock[] combo_1 = {
-        new KeyBlock("`~","grave",Keyboard.KBD_KEYS.KBD_grave),	new KeyBlock("1!","1",Keyboard.KBD_KEYS.KBD_1),	new KeyBlock("2@","2",Keyboard.KBD_KEYS.KBD_2),
-        new KeyBlock("3#","3",Keyboard.KBD_KEYS.KBD_3),			new KeyBlock("4$","4",Keyboard.KBD_KEYS.KBD_4),	new KeyBlock("5%","5",Keyboard.KBD_KEYS.KBD_5),
-        new KeyBlock("6^","6",Keyboard.KBD_KEYS.KBD_6),			new KeyBlock("7&","7",Keyboard.KBD_KEYS.KBD_7),	new KeyBlock("8*","8",Keyboard.KBD_KEYS.KBD_8),
-        new KeyBlock("9(","9",Keyboard.KBD_KEYS.KBD_9),			new KeyBlock("0)","0",Keyboard.KBD_KEYS.KBD_0),	new KeyBlock("-_","minus",Keyboard.KBD_KEYS.KBD_minus),
-        new KeyBlock("=+","equals",Keyboard.KBD_KEYS.KBD_equals),	new KeyBlock("\u001B","bspace",Keyboard.KBD_KEYS.KBD_backspace),
+            new KeyBlock("`~", "grave", Keyboard.KBD_KEYS.KBD_grave), new KeyBlock("1!", "1", Keyboard.KBD_KEYS.KBD_1), new KeyBlock("2@", "2", Keyboard.KBD_KEYS.KBD_2),
+            new KeyBlock("3#", "3", Keyboard.KBD_KEYS.KBD_3), new KeyBlock("4$", "4", Keyboard.KBD_KEYS.KBD_4), new KeyBlock("5%", "5", Keyboard.KBD_KEYS.KBD_5),
+            new KeyBlock("6^", "6", Keyboard.KBD_KEYS.KBD_6), new KeyBlock("7&", "7", Keyboard.KBD_KEYS.KBD_7), new KeyBlock("8*", "8", Keyboard.KBD_KEYS.KBD_8),
+            new KeyBlock("9(", "9", Keyboard.KBD_KEYS.KBD_9), new KeyBlock("0)", "0", Keyboard.KBD_KEYS.KBD_0), new KeyBlock("-_", "minus", Keyboard.KBD_KEYS.KBD_minus),
+            new KeyBlock("=+", "equals", Keyboard.KBD_KEYS.KBD_equals), new KeyBlock("\u001B", "bspace", Keyboard.KBD_KEYS.KBD_backspace),
     };
 
     static private final KeyBlock[] combo_2 = {
-        new KeyBlock("q","q",Keyboard.KBD_KEYS.KBD_q),			new KeyBlock("w","w",Keyboard.KBD_KEYS.KBD_w),	new KeyBlock("e","e",Keyboard.KBD_KEYS.KBD_e),
-        new KeyBlock("r","r",Keyboard.KBD_KEYS.KBD_r),			new KeyBlock("t","t",Keyboard.KBD_KEYS.KBD_t),	new KeyBlock("y","y",Keyboard.KBD_KEYS.KBD_y),
-        new KeyBlock("u","u",Keyboard.KBD_KEYS.KBD_u),			new KeyBlock("i","i",Keyboard.KBD_KEYS.KBD_i),	new KeyBlock("o","o",Keyboard.KBD_KEYS.KBD_o),	
-        new KeyBlock("p","p",Keyboard.KBD_KEYS.KBD_p),			new KeyBlock("[","lbracket",Keyboard.KBD_KEYS.KBD_leftbracket),	
-        new KeyBlock("]","rbracket",Keyboard.KBD_KEYS.KBD_rightbracket),	
+            new KeyBlock("q", "q", Keyboard.KBD_KEYS.KBD_q), new KeyBlock("w", "w", Keyboard.KBD_KEYS.KBD_w), new KeyBlock("e", "e", Keyboard.KBD_KEYS.KBD_e),
+            new KeyBlock("r", "r", Keyboard.KBD_KEYS.KBD_r), new KeyBlock("t", "t", Keyboard.KBD_KEYS.KBD_t), new KeyBlock("y", "y", Keyboard.KBD_KEYS.KBD_y),
+            new KeyBlock("u", "u", Keyboard.KBD_KEYS.KBD_u), new KeyBlock("i", "i", Keyboard.KBD_KEYS.KBD_i), new KeyBlock("o", "o", Keyboard.KBD_KEYS.KBD_o),
+            new KeyBlock("p", "p", Keyboard.KBD_KEYS.KBD_p), new KeyBlock("[", "lbracket", Keyboard.KBD_KEYS.KBD_leftbracket),
+            new KeyBlock("]", "rbracket", Keyboard.KBD_KEYS.KBD_rightbracket),
     };
 
     static private final KeyBlock[] combo_3 = {
-        new KeyBlock("a","a",Keyboard.KBD_KEYS.KBD_a),			new KeyBlock("s","s",Keyboard.KBD_KEYS.KBD_s),	new KeyBlock("d","d",Keyboard.KBD_KEYS.KBD_d),
-        new KeyBlock("f","f",Keyboard.KBD_KEYS.KBD_f),			new KeyBlock("g","g",Keyboard.KBD_KEYS.KBD_g),	new KeyBlock("h","h",Keyboard.KBD_KEYS.KBD_h),
-        new KeyBlock("j","j",Keyboard.KBD_KEYS.KBD_j),			new KeyBlock("k","k",Keyboard.KBD_KEYS.KBD_k),	new KeyBlock("l","l",Keyboard.KBD_KEYS.KBD_l),
-        new KeyBlock(";","semicolon",Keyboard.KBD_KEYS.KBD_semicolon),				new KeyBlock("'","quote",Keyboard.KBD_KEYS.KBD_quote),
-        new KeyBlock("\\","backslash",Keyboard.KBD_KEYS.KBD_backslash),	
+            new KeyBlock("a", "a", Keyboard.KBD_KEYS.KBD_a), new KeyBlock("s", "s", Keyboard.KBD_KEYS.KBD_s), new KeyBlock("d", "d", Keyboard.KBD_KEYS.KBD_d),
+            new KeyBlock("f", "f", Keyboard.KBD_KEYS.KBD_f), new KeyBlock("g", "g", Keyboard.KBD_KEYS.KBD_g), new KeyBlock("h", "h", Keyboard.KBD_KEYS.KBD_h),
+            new KeyBlock("j", "j", Keyboard.KBD_KEYS.KBD_j), new KeyBlock("k", "k", Keyboard.KBD_KEYS.KBD_k), new KeyBlock("l", "l", Keyboard.KBD_KEYS.KBD_l),
+            new KeyBlock(";", "semicolon", Keyboard.KBD_KEYS.KBD_semicolon), new KeyBlock("'", "quote", Keyboard.KBD_KEYS.KBD_quote),
+            new KeyBlock("\\", "backslash", Keyboard.KBD_KEYS.KBD_backslash),
     };
 
-    static private final  KeyBlock[] combo_4 = new KeyBlock[] {
-        new KeyBlock("<","lessthan",Keyboard.KBD_KEYS.KBD_extra_lt_gt),
-        new KeyBlock("z","z",Keyboard.KBD_KEYS.KBD_z),			new KeyBlock("x","x",Keyboard.KBD_KEYS.KBD_x),	new KeyBlock("c","c",Keyboard.KBD_KEYS.KBD_c),
-        new KeyBlock("v","v",Keyboard.KBD_KEYS.KBD_v),			new KeyBlock("b","b",Keyboard.KBD_KEYS.KBD_b),	new KeyBlock("n","n",Keyboard.KBD_KEYS.KBD_n),
-        new KeyBlock("m","m",Keyboard.KBD_KEYS.KBD_m),			new KeyBlock(",","comma",Keyboard.KBD_KEYS.KBD_comma),
-        new KeyBlock(".","period",Keyboard.KBD_KEYS.KBD_period),						new KeyBlock("/","slash",Keyboard.KBD_KEYS.KBD_slash),		
+    static private final KeyBlock[] combo_4 = new KeyBlock[] {
+            new KeyBlock("<", "lessthan", Keyboard.KBD_KEYS.KBD_extra_lt_gt),
+            new KeyBlock("z", "z", Keyboard.KBD_KEYS.KBD_z), new KeyBlock("x", "x", Keyboard.KBD_KEYS.KBD_x), new KeyBlock("c", "c", Keyboard.KBD_KEYS.KBD_c),
+            new KeyBlock("v", "v", Keyboard.KBD_KEYS.KBD_v), new KeyBlock("b", "b", Keyboard.KBD_KEYS.KBD_b), new KeyBlock("n", "n", Keyboard.KBD_KEYS.KBD_n),
+            new KeyBlock("m", "m", Keyboard.KBD_KEYS.KBD_m), new KeyBlock(",", "comma", Keyboard.KBD_KEYS.KBD_comma),
+            new KeyBlock(".", "period", Keyboard.KBD_KEYS.KBD_period), new KeyBlock("/", "slash", Keyboard.KBD_KEYS.KBD_slash),
     };
-    
+
     static void createLayout() {
         int i;
         /* Create the buttons for the Keyboard */
 
-        addKeyButtonEvent(px(0), py(0),BW,BH,"ESC","esc", Keyboard.KBD_KEYS.KBD_esc);
-        for (i=0;i<12;i++) addKeyButtonEvent(px(2+i), py(0),BW,BH,combo_f[i].title,combo_f[i].entry,combo_f[i].key);
-        for (i=0;i<14;i++) addKeyButtonEvent(px(  i), py(1),BW,BH,combo_1[i].title,combo_1[i].entry,combo_1[i].key);
+        addKeyButtonEvent(px(0), py(0), BW, BH, "ESC", "esc", Keyboard.KBD_KEYS.KBD_esc);
+        for (i = 0; i < 12; i++)
+            addKeyButtonEvent(px(2 + i), py(0), BW, BH, combo_f[i].title, combo_f[i].entry, combo_f[i].key);
+        for (i = 0; i < 14; i++)
+            addKeyButtonEvent(px(i), py(1), BW, BH, combo_1[i].title, combo_1[i].entry, combo_1[i].key);
 
-        addKeyButtonEvent(px(0), py(2),BW*2,BH,"TAB","tab",Keyboard.KBD_KEYS.KBD_tab);
-        for (i=0;i<12;i++) addKeyButtonEvent(px(2+i), py(2),BW,BH,combo_2[i].title,combo_2[i].entry,combo_2[i].key);
+        addKeyButtonEvent(px(0), py(2), BW * 2, BH, "TAB", "tab", Keyboard.KBD_KEYS.KBD_tab);
+        for (i = 0; i < 12; i++)
+            addKeyButtonEvent(px(2 + i), py(2), BW, BH, combo_2[i].title, combo_2[i].entry, combo_2[i].key);
 
-        addKeyButtonEvent(px(14), py(2),BW*2,BH*2,"ENTER","enter",Keyboard.KBD_KEYS.KBD_enter);
+        addKeyButtonEvent(px(14), py(2), BW * 2, BH * 2, "ENTER", "enter", Keyboard.KBD_KEYS.KBD_enter);
 
-        caps_lock_event= addKeyButtonEvent(px(0), py(3),BW*2,BH,"CLCK","capslock",Keyboard.KBD_KEYS.KBD_capslock);
-        for (i=0;i<12;i++) addKeyButtonEvent(px(2+i), py(3),BW,BH,combo_3[i].title,combo_3[i].entry,combo_3[i].key);
+        caps_lock_event = addKeyButtonEvent(px(0), py(3), BW * 2, BH, "CLCK", "capslock", Keyboard.KBD_KEYS.KBD_capslock);
+        for (i = 0; i < 12; i++)
+            addKeyButtonEvent(px(2 + i), py(3), BW, BH, combo_3[i].title, combo_3[i].entry, combo_3[i].key);
 
-        addKeyButtonEvent(px(0), py(4),BW*2,BH,"SHIFT","lshift",Keyboard.KBD_KEYS.KBD_leftshift);
-        for (i=0;i<11;i++) addKeyButtonEvent(px(2+i), py(4),BW,BH,combo_4[i].title,combo_4[i].entry,combo_4[i].key);
-        addKeyButtonEvent(px(13), py(4),BW*3,BH,"SHIFT","rshift",Keyboard.KBD_KEYS.KBD_rightshift);
+        addKeyButtonEvent(px(0), py(4), BW * 2, BH, "SHIFT", "lshift", Keyboard.KBD_KEYS.KBD_leftshift);
+        for (i = 0; i < 11; i++)
+            addKeyButtonEvent(px(2 + i), py(4), BW, BH, combo_4[i].title, combo_4[i].entry, combo_4[i].key);
+        addKeyButtonEvent(px(13), py(4), BW * 3, BH, "SHIFT", "rshift", Keyboard.KBD_KEYS.KBD_rightshift);
 
         /* Last Row */
-        addKeyButtonEvent(px(0) , py(5),BW*2,BH,"CTRL","lctrl",Keyboard.KBD_KEYS.KBD_leftctrl);
-        addKeyButtonEvent(px(3) , py(5),BW*2,BH,"ALT","lalt",Keyboard.KBD_KEYS.KBD_leftalt);
-        addKeyButtonEvent(px(5) , py(5),BW*6,BH,"SPACE","space",Keyboard.KBD_KEYS.KBD_space);
-        addKeyButtonEvent(px(11), py(5),BW*2,BH,"ALT","ralt",Keyboard.KBD_KEYS.KBD_rightalt);
-        addKeyButtonEvent(px(14), py(5),BW*2,BH,"CTRL","rctrl",Keyboard.KBD_KEYS.KBD_rightctrl);
+        addKeyButtonEvent(px(0), py(5), BW * 2, BH, "CTRL", "lctrl", Keyboard.KBD_KEYS.KBD_leftctrl);
+        addKeyButtonEvent(px(3), py(5), BW * 2, BH, "ALT", "lalt", Keyboard.KBD_KEYS.KBD_leftalt);
+        addKeyButtonEvent(px(5), py(5), BW * 6, BH, "SPACE", "space", Keyboard.KBD_KEYS.KBD_space);
+        addKeyButtonEvent(px(11), py(5), BW * 2, BH, "ALT", "ralt", Keyboard.KBD_KEYS.KBD_rightalt);
+        addKeyButtonEvent(px(14), py(5), BW * 2, BH, "CTRL", "rctrl", Keyboard.KBD_KEYS.KBD_rightctrl);
 
         /* Arrow Keys */
         int XO = 17;
         int YO = 0;
 
-        addKeyButtonEvent(px(XO+0), py(YO),BW,BH,"PRT","printscreen",Keyboard.KBD_KEYS.KBD_printscreen);
-        addKeyButtonEvent(px(XO+1), py(YO),BW,BH,"SCL","scrolllock",Keyboard.KBD_KEYS.KBD_scrolllock);
-        addKeyButtonEvent(px(XO+2), py(YO),BW,BH,"PAU","pause",Keyboard.KBD_KEYS.KBD_pause);
-        addKeyButtonEvent(px(XO+0), py(YO+1),BW,BH,"INS","insert",Keyboard.KBD_KEYS.KBD_insert);
-        addKeyButtonEvent(px(XO+1), py(YO+1),BW,BH,"HOM","home",Keyboard.KBD_KEYS.KBD_home);
-        addKeyButtonEvent(px(XO+2), py(YO+1),BW,BH,"PUP","pageup",Keyboard.KBD_KEYS.KBD_pageup);
-        addKeyButtonEvent(px(XO+0), py(YO+2),BW,BH,"DEL","delete",Keyboard.KBD_KEYS.KBD_delete);
-        addKeyButtonEvent(px(XO+1), py(YO+2),BW,BH,"END","end",Keyboard.KBD_KEYS.KBD_end);
-        addKeyButtonEvent(px(XO+2), py(YO+2),BW,BH,"PDN","pagedown",Keyboard.KBD_KEYS.KBD_pagedown);
-        addKeyButtonEvent(px(XO+1), py(YO+4),BW,BH,"\u0018","up",Keyboard.KBD_KEYS.KBD_up);
-        addKeyButtonEvent(px(XO+0), py(YO+5),BW,BH,"\u001B","left",Keyboard.KBD_KEYS.KBD_left);
-        addKeyButtonEvent(px(XO+1), py(YO+5),BW,BH,"\u0019","down",Keyboard.KBD_KEYS.KBD_down);
-        addKeyButtonEvent(px(XO+2), py(YO+5),BW,BH,"\u001A","right",Keyboard.KBD_KEYS.KBD_right);
+        addKeyButtonEvent(px(XO + 0), py(YO), BW, BH, "PRT", "printscreen", Keyboard.KBD_KEYS.KBD_printscreen);
+        addKeyButtonEvent(px(XO + 1), py(YO), BW, BH, "SCL", "scrolllock", Keyboard.KBD_KEYS.KBD_scrolllock);
+        addKeyButtonEvent(px(XO + 2), py(YO), BW, BH, "PAU", "pause", Keyboard.KBD_KEYS.KBD_pause);
+        addKeyButtonEvent(px(XO + 0), py(YO + 1), BW, BH, "INS", "insert", Keyboard.KBD_KEYS.KBD_insert);
+        addKeyButtonEvent(px(XO + 1), py(YO + 1), BW, BH, "HOM", "home", Keyboard.KBD_KEYS.KBD_home);
+        addKeyButtonEvent(px(XO + 2), py(YO + 1), BW, BH, "PUP", "pageup", Keyboard.KBD_KEYS.KBD_pageup);
+        addKeyButtonEvent(px(XO + 0), py(YO + 2), BW, BH, "DEL", "delete", Keyboard.KBD_KEYS.KBD_delete);
+        addKeyButtonEvent(px(XO + 1), py(YO + 2), BW, BH, "END", "end", Keyboard.KBD_KEYS.KBD_end);
+        addKeyButtonEvent(px(XO + 2), py(YO + 2), BW, BH, "PDN", "pagedown", Keyboard.KBD_KEYS.KBD_pagedown);
+        addKeyButtonEvent(px(XO + 1), py(YO + 4), BW, BH, "\u0018", "up", Keyboard.KBD_KEYS.KBD_up);
+        addKeyButtonEvent(px(XO + 0), py(YO + 5), BW, BH, "\u001B", "left", Keyboard.KBD_KEYS.KBD_left);
+        addKeyButtonEvent(px(XO + 1), py(YO + 5), BW, BH, "\u0019", "down", Keyboard.KBD_KEYS.KBD_down);
+        addKeyButtonEvent(px(XO + 2), py(YO + 5), BW, BH, "\u001A", "right", Keyboard.KBD_KEYS.KBD_right);
 
         XO = 0;
         YO = 7;
         /* Numeric KeyPad */
-        num_lock_event= addKeyButtonEvent(px(XO), py(YO),BW,BH,"NUM","numlock",Keyboard.KBD_KEYS.KBD_numlock);
-        addKeyButtonEvent(px(XO+1), py(YO),BW,BH,"/","kp_divide",Keyboard.KBD_KEYS.KBD_kpdivide);
-        addKeyButtonEvent(px(XO+2), py(YO),BW,BH,"*","kp_multiply",Keyboard.KBD_KEYS.KBD_kpmultiply);
-        addKeyButtonEvent(px(XO+3), py(YO),BW,BH,"-","kp_minus",Keyboard.KBD_KEYS.KBD_kpminus);
-        addKeyButtonEvent(px(XO+0), py(YO+1),BW,BH,"7","kp_7",Keyboard.KBD_KEYS.KBD_kp7);
-        addKeyButtonEvent(px(XO+1), py(YO+1),BW,BH,"8","kp_8",Keyboard.KBD_KEYS.KBD_kp8);
-        addKeyButtonEvent(px(XO+2), py(YO+1),BW,BH,"9","kp_9",Keyboard.KBD_KEYS.KBD_kp9);
-        addKeyButtonEvent(px(XO+3), py(YO+1),BW,BH*2,"+","kp_plus",Keyboard.KBD_KEYS.KBD_kpplus);
-        addKeyButtonEvent(px(XO), py(YO+2),BW,BH,"4","kp_4",Keyboard.KBD_KEYS.KBD_kp4);
-        addKeyButtonEvent(px(XO+1), py(YO+2),BW,BH,"5","kp_5",Keyboard.KBD_KEYS.KBD_kp5);
-        addKeyButtonEvent(px(XO+2), py(YO+2),BW,BH,"6","kp_6",Keyboard.KBD_KEYS.KBD_kp6);
-        addKeyButtonEvent(px(XO+0), py(YO+3),BW,BH,"1","kp_1",Keyboard.KBD_KEYS.KBD_kp1);
-        addKeyButtonEvent(px(XO+1), py(YO+3),BW,BH,"2","kp_2",Keyboard.KBD_KEYS.KBD_kp2);
-        addKeyButtonEvent(px(XO+2), py(YO+3),BW,BH,"3","kp_3",Keyboard.KBD_KEYS.KBD_kp3);
-        addKeyButtonEvent(px(XO+3), py(YO+3),BW,BH*2,"ENT","kp_enter",Keyboard.KBD_KEYS.KBD_kpenter);
-        addKeyButtonEvent(px(XO), py(YO+4),BW*2,BH,"0","kp_0",Keyboard.KBD_KEYS.KBD_kp0);
-        addKeyButtonEvent(px(XO+2), py(YO+4),BW,BH,".","kp_period",Keyboard.KBD_KEYS.KBD_kpperiod);
+        num_lock_event = addKeyButtonEvent(px(XO), py(YO), BW, BH, "NUM", "numlock", Keyboard.KBD_KEYS.KBD_numlock);
+        addKeyButtonEvent(px(XO + 1), py(YO), BW, BH, "/", "kp_divide", Keyboard.KBD_KEYS.KBD_kpdivide);
+        addKeyButtonEvent(px(XO + 2), py(YO), BW, BH, "*", "kp_multiply", Keyboard.KBD_KEYS.KBD_kpmultiply);
+        addKeyButtonEvent(px(XO + 3), py(YO), BW, BH, "-", "kp_minus", Keyboard.KBD_KEYS.KBD_kpminus);
+        addKeyButtonEvent(px(XO + 0), py(YO + 1), BW, BH, "7", "kp_7", Keyboard.KBD_KEYS.KBD_kp7);
+        addKeyButtonEvent(px(XO + 1), py(YO + 1), BW, BH, "8", "kp_8", Keyboard.KBD_KEYS.KBD_kp8);
+        addKeyButtonEvent(px(XO + 2), py(YO + 1), BW, BH, "9", "kp_9", Keyboard.KBD_KEYS.KBD_kp9);
+        addKeyButtonEvent(px(XO + 3), py(YO + 1), BW, BH * 2, "+", "kp_plus", Keyboard.KBD_KEYS.KBD_kpplus);
+        addKeyButtonEvent(px(XO), py(YO + 2), BW, BH, "4", "kp_4", Keyboard.KBD_KEYS.KBD_kp4);
+        addKeyButtonEvent(px(XO + 1), py(YO + 2), BW, BH, "5", "kp_5", Keyboard.KBD_KEYS.KBD_kp5);
+        addKeyButtonEvent(px(XO + 2), py(YO + 2), BW, BH, "6", "kp_6", Keyboard.KBD_KEYS.KBD_kp6);
+        addKeyButtonEvent(px(XO + 0), py(YO + 3), BW, BH, "1", "kp_1", Keyboard.KBD_KEYS.KBD_kp1);
+        addKeyButtonEvent(px(XO + 1), py(YO + 3), BW, BH, "2", "kp_2", Keyboard.KBD_KEYS.KBD_kp2);
+        addKeyButtonEvent(px(XO + 2), py(YO + 3), BW, BH, "3", "kp_3", Keyboard.KBD_KEYS.KBD_kp3);
+        addKeyButtonEvent(px(XO + 3), py(YO + 3), BW, BH * 2, "ENT", "kp_enter", Keyboard.KBD_KEYS.KBD_kpenter);
+        addKeyButtonEvent(px(XO), py(YO + 4), BW * 2, BH, "0", "kp_0", Keyboard.KBD_KEYS.KBD_kp0);
+        addKeyButtonEvent(px(XO + 2), py(YO + 4), BW, BH, ".", "kp_period", Keyboard.KBD_KEYS.KBD_kpperiod);
 
         XO = 10;
         YO = 8;
@@ -815,10 +922,10 @@ public class JavaMapper {
 //        AddJAxisButton  (PX(XO+2),PY(YO+1),BW,BH,"X+",0,0,true,cjaxis);
 //
 //        if (joytype==JOY_2AXIS) {
-//            /* Buttons 1+2 of 2nd Joystick */
+//            // Buttons 1+2 of 2nd Joystick
 //            AddJButtonButton(PX(XO+4),PY(YO),BW,BH,"1" ,1,0);
 //            AddJButtonButton(PX(XO+4+2),PY(YO),BW,BH,"2" ,1,1);
-//            /* Buttons 3+4 of 1st Joystick, not accessible */
+//            // Buttons 3+4 of 1st Joystick, not accessible
 //            AddJButtonButton_hidden(0,2);
 //            AddJButtonButton_hidden(0,3);
 //
@@ -853,16 +960,16 @@ public class JavaMapper {
 //        }
 //
 //        if (joytype==JOY_CH) {
-//            /* Buttons 5+6 of 1st Joystick */
+//            // Buttons 5+6 of 1st Joystick
 //            AddJButtonButton(PX(XO+8),PY(YO),BW,BH,"5" ,0,4);
 //            AddJButtonButton(PX(XO+8+2),PY(YO),BW,BH,"6" ,0,5);
 //        } else {
-//            /* Buttons 5+6 of 1st Joystick, not accessible */
+//            // Buttons 5+6 of 1st Joystick, not accessible
 //            AddJButtonButton_hidden(0,4);
 //            AddJButtonButton_hidden(0,5);
 //        }
 //
-//        /* Hat directions up, left, down, right */
+//        // Hat directions up, left, down, right
 //        AddJHatButton(PX(XO+8+1),PY(YO),BW,BH,"UP",0,0,0);
 //        AddJHatButton(PX(XO+8+0),PY(YO+1),BW,BH,"LFT",0,0,3);
 //        AddJHatButton(PX(XO+8+1),PY(YO+1),BW,BH,"DWN",0,0,2);
@@ -891,53 +998,53 @@ public class JavaMapper {
 //            new CTextButton(PX(XO+8),PY(YO-1),3*BW,20,"Disabled");
 //        }
 
-
-
-        /* The modifier buttons */
-        addModButton(px(0), py(14),50,20,"Mod1",1);
-        addModButton(px(2), py(14),50,20,"Mod2",2);
-        addModButton(px(4), py(14),50,20,"Mod3",3);
-        /* Create Handler buttons */
-        int xpos=3;int ypos=11;
+        // The modifier buttons
+        addModButton(px(0), py(14), 50, 20, "Mod1", 1);
+        addModButton(px(2), py(14), 50, 20, "Mod2", 2);
+        addModButton(px(4), py(14), 50, 20, "Mod3", 3);
+        // Create Handler buttons
+        int xpos = 3;
+        int ypos = 11;
         for (CHandlerEvent hit : handlergroup) {
-            new CEventButton(px(xpos*3), py(ypos),BW*3,BH,hit.ButtonName(),hit);
+            new CEventButton(px(xpos * 3), py(ypos), BW * 3, BH, hit.ButtonName(), hit);
             xpos++;
-            if (xpos>6) {
-                xpos=3;ypos++;
+            if (xpos > 6) {
+                xpos = 3;
+                ypos++;
             }
         }
-        /* Create some text buttons */
-//	new CTextButton(PX(6),0,124,20,"Keyboard Layout");
-//	new CTextButton(PX(17),0,124,20,"Joystick Layout");
+        // Create some text buttons
+//new CTextButton(PX(6),0,124,20,"Keyboard Layout");
+//new CTextButton(PX(17),0,124,20,"Joystick Layout");
 
-        bind_but.action=new CCaptionButton(180,330,0,0);
+        bind_but.action = new CCaptionButton(180, 330, 0, 0);
 
-        bind_but.event_title=new CCaptionButton(0,350,0,0);
-        bind_but.bind_title=new CCaptionButton(0,365,0,0);
+        bind_but.event_title = new CCaptionButton(0, 350, 0, 0);
+        bind_but.bind_title = new CCaptionButton(0, 365, 0, 0);
 
-        /* Create binding support buttons */
+        // Create binding support buttons
 
-        bind_but.mod1=new CCheckButton(20,410,60,20, "mod1",BC_Mod1);
-        bind_but.mod2=new CCheckButton(20,432,60,20, "mod2",BC_Mod2);
-        bind_but.mod3=new CCheckButton(20,454,60,20, "mod3",BC_Mod3);
-        bind_but.hold=new CCheckButton(100,410,60,20,"hold",BC_Hold);
+        bind_but.mod1 = new CCheckButton(20, 410, 60, 20, "mod1", BC_Mod1);
+        bind_but.mod2 = new CCheckButton(20, 432, 60, 20, "mod2", BC_Mod2);
+        bind_but.mod3 = new CCheckButton(20, 454, 60, 20, "mod3", BC_Mod3);
+        bind_but.hold = new CCheckButton(100, 410, 60, 20, "hold", BC_Hold);
 
-        bind_but.next=new CBindButton(250,400,50,20,"Next",BB_Next);
+        bind_but.next = new CBindButton(250, 400, 50, 20, "Next", BB_Next);
 
-        bind_but.add=new CBindButton(250,380,50,20,"Add",BB_Add);
-        bind_but.del=new CBindButton(300,380,50,20,"Del",BB_Del);
+        bind_but.add = new CBindButton(250, 380, 50, 20, "Add", BB_Add);
+        bind_but.del = new CBindButton(300, 380, 50, 20, "Del", BB_Del);
 
-        bind_but.save=new CBindButton(400,450,50,20,"Save",BB_Save);
-        bind_but.exit=new CBindButton(450,450,50,20,"Exit",BB_Exit);
+        bind_but.save = new CBindButton(400, 450, 50, 20, "Save", BB_Save);
+        bind_but.exit = new CBindButton(450, 450, 50, 20, "Exit", BB_Exit);
 
         bind_but.bind_title.change("Bind Title", null);
     }
 
     public static void createStringBind(String in) {
         StringRef line = new StringRef(in.trim());
-        String eventname=StringHelper.StripWord(line);
+        String eventname = StringHelper.StripWord(line);
         CEvent event = null;
-        for (CEvent it: events) {
+        for (CEvent it : events) {
             if (it.getName().equals(eventname)) {
                 event = it;
                 break;
@@ -945,7 +1052,7 @@ public class JavaMapper {
         }
         if (event == null) {
             logger.log(Level.DEBUG, "Can't find matching event for " + eventname);
-            return ;
+            return;
         }
         CBind bind;
         while (true) {
@@ -964,10 +1071,12 @@ public class JavaMapper {
     }
 
     static public class DefaultKey {
+
         public DefaultKey(String s, int i) {
             eventend = s;
             key = i;
         }
+
         public DefaultKey(String s, int i, boolean isLeft, boolean isRight, boolean isNumPad) {
             eventend = s;
             key = i;
@@ -975,6 +1084,7 @@ public class JavaMapper {
             this.isLeft = isLeft;
             this.isNumPad = isNumPad;
         }
+
         final String eventend;
         /*Bitu*/final int key;
         boolean isRight;
@@ -984,27 +1094,27 @@ public class JavaMapper {
 
     static void createDefaultBinds() {
         for (DefaultKey key : KeyboardKey.DefaultKeys) {
-            createStringBind("key_"+key.eventend+" \"key "+key.key+((key.isRight?" right":""))+((key.isLeft?" left":""))+((key.isNumPad?" numpad":""))+"\"");
+            createStringBind("key_" + key.eventend + " \"key " + key.key + ((key.isRight ? " right" : "")) + ((key.isLeft ? " left" : "")) + ((key.isNumPad ? " numpad" : "")) + "\"");
         }
         KeyboardKey.createDefaultBinds();
-        for (CHandlerEvent it: handlergroup) {
+        for (CHandlerEvent it : handlergroup) {
             StringRef buffer = new StringRef();
             it.MakeDefaultBind(buffer);
             createStringBind(buffer.value);
         }
 
-//        /* joystick1, buttons 1-6 */
+//        // joystick1, buttons 1-6
 //        CreateStringBind("jbutton_0_0 \"stick_0 button 0\" ");
 //        CreateStringBind("jbutton_0_1 \"stick_0 button 1\" ");
 //        CreateStringBind("jbutton_0_2 \"stick_0 button 2\" ");
 //        CreateStringBind("jbutton_0_3 \"stick_0 button 3\" ");
 //        CreateStringBind("jbutton_0_4 \"stick_0 button 4\" ");
 //        CreateStringBind("jbutton_0_5 \"stick_0 button 5\" ");
-//        /* joystick2, buttons 1-2 */
+//        // joystick2, buttons 1-2
 //        CreateStringBind("jbutton_1_0 \"stick_1 button 0\" ");
 //        CreateStringBind("jbutton_1_1 \"stick_1 button 1\" ");
 //
-//        /* joystick1, axes 1-4 */
+//        // joystick1, axes 1-4
 //        CreateStringBind("jaxis_0_0- \"stick_0 axis 0 0\" ");
 //        CreateStringBind("jaxis_0_0+ \"stick_0 axis 0 1\" ");
 //        CreateStringBind("jaxis_0_1- \"stick_0 axis 1 0\" ");
@@ -1013,25 +1123,25 @@ public class JavaMapper {
 //        CreateStringBind("jaxis_0_2+ \"stick_0 axis 2 1\" ");
 //        CreateStringBind("jaxis_0_3- \"stick_0 axis 3 0\" ");
 //        CreateStringBind("jaxis_0_3+ \"stick_0 axis 3 1\" ");
-//        /* joystick2, axes 1-2 */
+//        // joystick2, axes 1-2
 //        CreateStringBind("jaxis_1_0- \"stick_1 axis 0 0\" ");
 //        CreateStringBind("jaxis_1_0+ \"stick_1 axis 0 1\" ");
 //        CreateStringBind("jaxis_1_1- \"stick_1 axis 1 0\" ");
 //        CreateStringBind("jaxis_1_1+ \"stick_1 axis 1 1\" ");
 //
-//        /* joystick1, hat */
+//        // joystick1, hat
 //        CreateStringBind("jhat_0_0_0 \"stick_0 hat 0 1\" ");
 //        CreateStringBind("jhat_0_0_1 \"stick_0 hat 0 2\" ");
 //        CreateStringBind("jhat_0_0_2 \"stick_0 hat 0 4\" ");
 //        CreateStringBind("jhat_0_0_3 \"stick_0 hat 0 8\" ");
     }
 
-    public static void MAPPER_AddHandler(Mapper.MAPPER_Handler handler,int key,/*Bitu*/int mods,String eventname,String buttonname) {
-        //Check if it already exists=> if so return.
-        for(CHandlerEvent it : handlergroup)
-            if(it.buttonname.equals(buttonname)) return;
+    public static void MAPPER_AddHandler(Mapper.MAPPER_Handler handler, int key,/*Bitu*/int mods, String eventname, String buttonname) {
+        // Check if it already exists=> if so return.
+        for (CHandlerEvent it : handlergroup)
+            if (it.buttonname.equals(buttonname)) return;
 
-        new CHandlerEvent("hand_"+eventname,handler,key,mods,buttonname);
+        new CHandlerEvent("hand_" + eventname, handler, key, mods, buttonname);
     }
 
     static private void MAPPER_SaveBinds() {
@@ -1041,18 +1151,17 @@ public class JavaMapper {
             for (CEvent event : events) {
                 saveFile.write(event.getName().getBytes());
                 for (CBind bind : event.bindlist) {
-                    String buf = " \""+bind.configName()+bind.AddFlags()+"\"";
+                    String buf = " \"" + bind.configName() + bind.AddFlags() + "\"";
                     saveFile.write(buf.getBytes());
                 }
-                saveFile.writeByte((byte)'\n');
+                saveFile.writeByte((byte) '\n');
             }
             saveFile.close();
             //change_action_text("Mapper file saved.",CLR_WHITE);
         } catch (Exception e) {
-            logger.log(Level.DEBUG, "Can't open "+fileName+" for saving the mappings");
+            logger.log(Level.DEBUG, "Can't open " + fileName + " for saving the mappings");
         }
     }
-
 
     static public boolean MAPPER_LoadBinds(String fileName) {
         try (BufferedReader loadfile = new BufferedReader(new InputStreamReader(FileIOFactory.openStream(fileName)))) {
@@ -1065,7 +1174,7 @@ public class JavaMapper {
         } catch (Exception e) {
             return false;
         }
-        logger.log(Level.DEBUG, "MAPPER: Loading mapper settings from "+fileName);
+        logger.log(Level.DEBUG, "MAPPER: Loading mapper settings from " + fileName);
         return true;
     }
 
@@ -1089,28 +1198,28 @@ public class JavaMapper {
         //MAPPER_SaveBinds();
 //        if (SDL_GetModState()& KMOD_CAPS) {
 //            for (CBindList_it bit=caps_lock_event->bindlist.begin();bit!=caps_lock_event->bindlist.end();bit++) {
-//    #if SDL_VERSION_ATLEAST(1, 2, 14)
+//#if SDL_VERSION_ATLEAST(1, 2, 14)
 //                (*bit)->ActivateBind(32767,true,false);
 //                (*bit)->DeActivateBind(false);
-//    #else
+//#else
 //                (*bit)->ActivateBind(32767,true,true); //Skip the action itself as bios_keyboard.cpp handles the startup state.
-//    #endif
+//#endif
 //            }
 //        }
 //        if (SDL_GetModState()&KMOD_NUM) {
 //            for (CBindList_it bit=num_lock_event->bindlist.begin();bit!=num_lock_event->bindlist.end();bit++) {
-//    #if SDL_VERSION_ATLEAST(1, 2, 14)
+//#if SDL_VERSION_ATLEAST(1, 2, 14)
 //                (*bit)->ActivateBind(32767,true,false);
 //                (*bit)->DeActivateBind(false);
-//    #else
+//#else
 //                (*bit)->ActivateBind(32767,true,true);
-//    #endif
+//#endif
 //            }
 //        }
     }
 
     public static final Section.SectionFunction MAPPER_StartUp = sec -> {
-        Section_prop section=(Section_prop)sec;
+        Section_prop section = (Section_prop) sec;
 
         Prop_path pp = section.Get_path("mapperfile");
         mapperfile = pp.realpath;

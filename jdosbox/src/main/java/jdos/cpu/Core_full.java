@@ -7,6 +7,7 @@ import jdos.cpu.Core_normal.State;
 
 
 public class Core_full {
+
     static final List<State> state = new ArrayList<>();
 
     public static void pushState() {
@@ -18,10 +19,12 @@ public class Core_full {
     public static void removeState() {
         state.removeLast();
     }
+
     public static void popState() {
         Core_normal.State s = state.removeLast();
         Core_normal.loadState(s);
     }
+
     /*Bits*/
     public static final CPU.CPU_Decoder CPU_Core_Full_Run = Core_normal.CPU_Core_Normal_Run::call;
 

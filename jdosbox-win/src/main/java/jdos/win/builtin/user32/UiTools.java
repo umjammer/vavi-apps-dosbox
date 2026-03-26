@@ -4,12 +4,29 @@ import jdos.cpu.CPU_Regs;
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
-import jdos.win.builtin.gdi32.*;
-import jdos.win.system.*;
+import jdos.win.builtin.gdi32.BitBlt;
+import jdos.win.builtin.gdi32.Clipping;
+import jdos.win.builtin.gdi32.GdiObj;
+import jdos.win.builtin.gdi32.LOGBRUSH;
+import jdos.win.builtin.gdi32.Mapping;
+import jdos.win.builtin.gdi32.PaintingGDI;
+import jdos.win.builtin.gdi32.WinBitmap;
+import jdos.win.builtin.gdi32.WinBrush;
+import jdos.win.builtin.gdi32.WinDC;
+import jdos.win.builtin.gdi32.WinFont;
+import jdos.win.builtin.gdi32.WinPen;
+import jdos.win.builtin.gdi32.WinRegion;
+import jdos.win.system.StaticData;
+import jdos.win.system.WinPoint;
+import jdos.win.system.WinRect;
+import jdos.win.system.WinSize;
+import jdos.win.system.WinSystem;
 import jdos.win.utils.Ptr;
 import jdos.win.utils.StringUtil;
 
+
 public class UiTools extends WinAPI {
+
     // BOOL CopyRect(LPRECT lprcDst, const RECT *lprcSrc)
     static public int CopyRect(int lprcDst, int lprcSrc) {
         if (lprcDst == 0 || lprcSrc == 0)

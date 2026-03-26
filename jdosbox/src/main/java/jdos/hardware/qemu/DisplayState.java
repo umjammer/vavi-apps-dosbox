@@ -2,7 +2,9 @@ package jdos.hardware.qemu;
 
 import jdos.gui.Render;
 
+
 public class DisplayState {
+
     public int ds_get_bits_per_pixel() {
         return Render.render.src.bpp;
     }
@@ -12,7 +14,7 @@ public class DisplayState {
     }
 
     public void dpy_update(int x, int y, int cx, int cy) {
-        int ii=0;
+        int ii = 0;
     }
 
     public int ds_get_linesize() {

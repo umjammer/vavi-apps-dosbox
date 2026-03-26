@@ -1,11 +1,13 @@
 package jdos.util;
 
 public class LongHelper {
+
     public static boolean isLessThanUnsigned(long n1, long n2) {
-      return (n1 < n2) ^ ((n1 < 0) != (n2 < 0));
+        return (n1 < n2) ^ ((n1 < 0) != (n2 < 0));
     }
+
     public static boolean isLessThanOrEqualUnsigned(long n1, long n2) {
-          return n1==n2 || ((n1 < n2) ^ ((n1 < 0) != (n2 < 0)));
+        return n1 == n2 || ((n1 < n2) ^ ((n1 < 0) != (n2 < 0)));
     }
 
     public static long unsignedDiv(long l1, long l2) {
@@ -35,14 +37,14 @@ public class LongHelper {
      */
 
     /**
-   * Divides an unsigned long a by an unsigned int b. It is supposed that the
-   * most significant bit of b is set to 1, i.e. b < 0
-   *
-   * @param a the dividend
-   * @param b the divisor
-   * @return the long value containing the unsigned integer remainder in the
-   *         left half and the unsigned integer quotient in the right half
-   */
+     * Divides an unsigned long a by an unsigned int b. It is supposed that the
+     * most significant bit of b is set to 1, i.e. b < 0
+     *
+     * @param a the dividend
+     * @param b the divisor
+     * @return the long value containing the unsigned integer remainder in the
+     * left half and the unsigned integer quotient in the right half
+     */
     public static long divideLongByInt(long a, int b) {
         long quot;
         long rem;
@@ -53,9 +55,9 @@ public class LongHelper {
             rem = (a % bLong);
         } else {
             /*
-            * Make the dividend positive shifting it right by 1 bit then get the
-            * quotient an remainder and correct them properly
-            */
+             * Make the dividend positive shifting it right by 1 bit then get the
+             * quotient an remainder and correct them properly
+             */
             long aPos = a >>> 1;
             long bPos = b >>> 1;
             quot = aPos / bPos;
@@ -76,7 +78,7 @@ public class LongHelper {
                 }
             }
         }
-        if (quot> 0xffffffffL) {
+        if (quot > 0xffffffffL) {
             throw new OverflowException();
         }
         return (rem << 32) | (quot & 0xffffffffL);

@@ -1,13 +1,15 @@
 package jdos.win.builtin.gdi32;
 
 
-import jdos.win.system.WinObject;
-import jdos.win.system.WinRect;
-
 import java.util.ArrayList;
 import java.util.List;
 
+import jdos.win.system.WinObject;
+import jdos.win.system.WinRect;
+
+
 public class WinRegion extends WinGDI {
+
     static public WinRegion create() {
         return new WinRegion(nextObjectId());
     }
@@ -42,7 +44,7 @@ public class WinRegion extends WinGDI {
 
     // HRGN WINAPI CreateRectRgnIndirect( const RECT* rect )
     static public int CreateRectRgnIndirect(WinRect rect) {
-        return CreateRectRgn(rect.left, rect.top, rect.right, rect.bottom );
+        return CreateRectRgn(rect.left, rect.top, rect.right, rect.bottom);
     }
 
     // INT WINAPI CombineRgn(HRGN hDest, HRGN hSrc1, HRGN hSrc2, INT mode)
@@ -66,25 +68,25 @@ public class WinRegion extends WinGDI {
 
         switch (mode) {
             case RGN_AND:
-            if (WinRegion.intersect(destObj, src1Obj, src2Obj))
-                return destObj.getType();
-            break;
+                if (WinRegion.intersect(destObj, src1Obj, src2Obj))
+                    return destObj.getType();
+                break;
             case RGN_OR:
-            if (WinRegion.union(destObj, src1Obj, src2Obj))
-                return destObj.getType();
-            break;
+                if (WinRegion.union(destObj, src1Obj, src2Obj))
+                    return destObj.getType();
+                break;
             case RGN_XOR:
-            if (WinRegion.xor(destObj, src1Obj, src2Obj))
-                return destObj.getType();
-            break;
+                if (WinRegion.xor(destObj, src1Obj, src2Obj))
+                    return destObj.getType();
+                break;
             case RGN_DIFF:
-            if (WinRegion.subtract(destObj, src1Obj, src2Obj))
-                return destObj.getType();
-            break;
+                if (WinRegion.subtract(destObj, src1Obj, src2Obj))
+                    return destObj.getType();
+                break;
         }
         return ERROR;
     }
-    
+
     private WinRegion(int id) {
         super(id);
     }
@@ -139,8 +141,8 @@ public class WinRegion extends WinGDI {
         /*  checks all the simple cases */
 
         /*
-        * Region 1 and 2 are the same or region 1 is empty
-        */
+         * Region 1 and 2 are the same or region 1 is empty
+         */
         if (reg1 == reg2 || reg1.rects.isEmpty()) {
             if (newReg != reg2)
                 newReg.copy(reg2);
@@ -148,8 +150,8 @@ public class WinRegion extends WinGDI {
         }
 
         /*
-        * if nothing to union (region 2 empty)
-        */
+         * if nothing to union (region 2 empty)
+         */
         if (reg2.rects.isEmpty()) {
             if (newReg != reg1)
                 newReg.copy(reg1);
@@ -157,8 +159,8 @@ public class WinRegion extends WinGDI {
         }
 
         /*
-        * Region 1 completely subsumes region 2
-        */
+         * Region 1 completely subsumes region 2
+         */
         if (reg1.rects.size() == 1 && reg1.extents.left <= reg2.extents.left && reg1.extents.top <= reg2.extents.top &&
                 reg1.extents.right >= reg2.extents.right && reg1.extents.bottom >= reg2.extents.bottom) {
             if (newReg != reg1)
@@ -167,8 +169,8 @@ public class WinRegion extends WinGDI {
         }
 
         /*
-        * Region 2 completely subsumes region 1
-        */
+         * Region 2 completely subsumes region 1
+         */
         if (reg2.rects.size() == 1 && reg2.extents.left <= reg1.extents.left && reg2.extents.top <= reg1.extents.top &&
                 reg2.extents.right >= reg1.extents.right && reg2.extents.bottom >= reg1.extents.bottom) {
             if (newReg != reg2)
@@ -199,10 +201,12 @@ public class WinRegion extends WinGDI {
     }
 
     private interface Overlapped {
+
         boolean call(WinRegion rg, List<?> reg1, int r1, int r1Stop, List<?> reg2, int r2, int r2Stop, int top, int bottom);
     }
 
     private interface NonOverlapped {
+
         boolean call(WinRegion rg, List<?> r, int rStart, int rStop, int top, int bottom);
     }
 
@@ -241,21 +245,21 @@ public class WinRegion extends WinGDI {
             right = Math.min(right(reg1, r1), right(reg2, r2));
 
             /*
-            * If there's any overlap between the two rectangles, add that
-            * overlap to the new region.
-            * There's no need to check for subsumption because the only way
-            * such a need could arise is if some region has two rectangles
-            * right next to each other. Since that should never happen...
-            */
+             * If there's any overlap between the two rectangles, add that
+             * overlap to the new region.
+             * There's no need to check for subsumption because the only way
+             * such a need could arise is if some region has two rectangles
+             * right next to each other. Since that should never happen...
+             */
             if (left < right) {
                 pReg.rects.add(new WinRect(left, top, right, bottom));
             }
 
             /*
-            * Need to advance the pointers. Shift the one that extends
-            * to the right the least, since the other still has a chance to
-            * overlap with that region's next rectangle, if you see what I mean.
-            */
+             * Need to advance the pointers. Shift the one that extends
+             * to the right the least, since the other still has a chance to
+             * overlap with that region's next rectangle, if you see what I mean.
+             */
             if (right(reg1, r1) < right(reg2, r2)) {
                 r1++;
             } else if (right(reg2, r2) < right(reg1, r1)) {
@@ -608,6 +612,6 @@ public class WinRegion extends WinGDI {
     }
 
     public String toString() {
-        return "REGION size="+rects.size()+(!rects.isEmpty() ?" rect(1)="+rects.getFirst().toString():"");
+        return "REGION size=" + rects.size() + (!rects.isEmpty() ? " rect(1)=" + rects.getFirst().toString() : "");
     }
 }

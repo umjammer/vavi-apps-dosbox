@@ -1,13 +1,30 @@
 package jdos.dos.drives;
 
-import jdos.dos.*;
-import jdos.hardware.Memory;
-import jdos.ints.Bios_disk;
+import java.io.File;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import jdos.util.*;
 
-import java.io.File;
+import jdos.dos.DOS_Drive_Cache;
+import jdos.dos.DOS_File;
+import jdos.dos.Dos;
+import jdos.dos.Dos_DTA;
+import jdos.dos.Dos_Drive;
+import jdos.dos.Dos_files;
+import jdos.dos.Dos_system;
+import jdos.dos.Dos_tables;
+import jdos.dos.Drives;
+import jdos.dos.FileStat_Block;
+import jdos.hardware.Memory;
+import jdos.ints.Bios_disk;
+import jdos.util.FileIO;
+import jdos.util.FileIOFactory;
+import jdos.util.IntRef;
+import jdos.util.LongRef;
+import jdos.util.Ptr;
+import jdos.util.ShortRef;
+import jdos.util.StringHelper;
+import jdos.util.StringRef;
+
 
 public class Drive_fat extends Dos_Drive {
 
@@ -27,6 +44,7 @@ public class Drive_fat extends Dos_Drive {
     /*Bit32u*/ long curFatSect;
 
     static public class fatFile extends DOS_File {
+
         public fatFile(String name, /*Bit32u*/long startCluster, /*Bit32u*/long fileLen, Drive_fat useDrive) {
             /*Bit32u*/
             LongRef seekto = new LongRef(0);
@@ -277,6 +295,7 @@ public class Drive_fat extends Dos_Drive {
     String[] srchInfo = new String[DOS_Drive_Cache.MAX_OPENDIRS];
 
     static private class Allocation {
+
         /*Bit16u*/ int bytes_sector;
         /*Bit8u*/ short sectors_cluster;
         /*Bit16u*/ int total_clusters;
@@ -905,7 +924,7 @@ public class Drive_fat extends Dos_Drive {
             return true;
         }
         if ((attr.value & Dos_system.DOS_ATTR_VOLUME) != 0) //check for root dir or fcb_findfirst
-            LOG_DOSMISC.log(Level.WARNING,  "findfirst for volumelabel used on fatDrive. Unhandled!!!!!");
+            LOG_DOSMISC.log(Level.WARNING, "findfirst for volumelabel used on fatDrive. Unhandled!!!!!");
         LongRef c = new LongRef(cwdDirCluster);
         if (!getDirClustNum(_dir, c, false)) {
             Dos.DOS_SetError(Dos.DOSERR_PATH_NOT_FOUND);
@@ -1073,7 +1092,7 @@ public class Drive_fat extends Dos_Drive {
             if ((~attrs.value & sectbuf[entryoffset].attrib & (Dos_system.DOS_ATTR_DIRECTORY | Dos_system.DOS_ATTR_HIDDEN | Dos_system.DOS_ATTR_SYSTEM)) != 0)
                 continue;
             if (!Drives.WildFileCmp(find_name, srch_pattern.value)) {
-                if ((!longFileName.isEmpty() && longName!=null && longFileName.equalsIgnoreCase(longName)))
+                if ((!longFileName.isEmpty() && longName != null && longFileName.equalsIgnoreCase(longName)))
                     break;
                 continue;
             }
@@ -1111,13 +1130,13 @@ public class Drive_fat extends Dos_Drive {
             /*Bit32s*/
             int fileidx = 2;
             if (dirClust.value == 0) fileidx = 0;    // root directory
-            int last_idx=0;
+            int last_idx = 0;
             while (directoryBrowse(dirClust.value, fileEntry, fileidx, last_idx)) {
                 if (StringHelper.memcmp(fileEntry.entryname, pathName, 11) == 0) {
                     attr.value = fileEntry.attrib;
                     return true;
                 }
-                last_idx=fileidx;
+                last_idx = fileidx;
                 fileidx++;
             }
             return false;
@@ -1138,10 +1157,11 @@ public class Drive_fat extends Dos_Drive {
         /*Bit32u*/
         long tmpsector;
         /*Bit16u*/
-        if ((start<0) || (start>65535)) return false;
-        /*Bit16u*/int dirPos = start;
-        if (entNum<start) return false;
-        entNum-=start;
+        if ((start < 0) || (start > 65535)) return false;
+        /*Bit16u*/
+        int dirPos = start;
+        if (entNum < start) return false;
+        entNum -= start;
 
         for (int i = 0; i < sectbuf.length; i++)
             sectbuf[i] = new DirEntry();

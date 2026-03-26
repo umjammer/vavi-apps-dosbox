@@ -1,18 +1,22 @@
 package jdos.win.system;
 
-import jdos.win.builtin.kernel32.WinThread;
-import jdos.win.builtin.user32.Input;
-
 import java.util.HashMap;
 import java.util.Map;
 
+import jdos.win.builtin.kernel32.WinThread;
+import jdos.win.builtin.user32.Input;
+
+
 public class Scheduler {
+
     private static class SchedulerItem {
+
         WinThread thread;
         SchedulerItem next;
         SchedulerItem prev;
         int sleepUntil = 0;
     }
+
     private static SchedulerItem currentThread = null;
     private static SchedulerItem first;
     private static final Map<WinThread, SchedulerItem> threadMap = new HashMap<>();
@@ -46,7 +50,7 @@ public class Scheduler {
     }
 
     static private int currentTickCount() {
-        return (int)(System.currentTimeMillis()-start);
+        return (int) (System.currentTimeMillis() - start);
     }
 
     static public void sleep(WinThread thread, int ms) {
@@ -58,7 +62,7 @@ public class Scheduler {
     }
 
     static public void wait(WinThread thread) {
-        if (thread.waitTime==-1)
+        if (thread.waitTime == -1)
             removeThread(thread);
         else {
             SchedulerItem item = threadMap.get(thread);
@@ -86,7 +90,10 @@ public class Scheduler {
                         Input.processInput();
                         if (first != null)
                             break;
-                        try {StaticData.inputQueueMutex.wait();} catch (Exception e){}
+                        try {
+                            StaticData.inputQueueMutex.wait();
+                        } catch (Exception e) {
+                        }
                     }
                 }
                 if (item == currentThread) {
@@ -129,7 +136,10 @@ public class Scheduler {
                 break;
             }
             if (next == start) {
-                try {Thread.sleep(10);} catch (Exception e) {}
+                try {
+                    Thread.sleep(10);
+                } catch (Exception e) {
+                }
                 tickCount = currentTickCount();
             }
             next = next.next;

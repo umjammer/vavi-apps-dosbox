@@ -16,6 +16,7 @@
  *  along with this program; if not, write to the Free Software
  *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
  */
+
 package jdos.hardware;
 
 import jdos.Dosbox;
@@ -27,7 +28,9 @@ import jdos.misc.setup.Section;
 import jdos.misc.setup.Section_prop;
 import jdos.shell.AutoexecObject;
 
+
 public class Gus extends Module_base {
+
     private static final GFGus myGUS = new GFGus();
 
     //Extra bits of precision over normal gus
@@ -43,8 +46,8 @@ public class Gus extends Module_base {
     //private static final int LOG_GUS =0;
 
     private static Mixer.MixerChannel gus_chan;
-    private static final byte[] irqtable = new byte[]{0, 2, 5, 3, 7, 11, 12, 15};
-    private static final byte[] dmatable = new byte[]{0, 1, 3, 5, 6, 7, 0, 0};
+    private static final byte[] irqtable = new byte[] {0, 2, 5, 3, 7, 11, 12, 15};
+    private static final byte[] dmatable = new byte[] {0, 1, 3, 5, 6, 7, 0, 0};
     private static byte[] GUSRam = null; // 1024K of GUS Ram
     private static int AutoAmp = 512;
     private static final char[] vol16bit = new char[4096];
@@ -60,6 +63,7 @@ public class Gus extends Module_base {
     private final Mixer.MixerObject MixerChan = new Mixer.MixerObject();
 
     private static class GUSChannels {
+
         private long WaveStart;
         private long WaveEnd;
         private long WaveAddr;
@@ -739,7 +743,7 @@ public class Gus extends Module_base {
                     ExecuteGlobRegister();
                     break;
                 case 0x307:
-                    if (myGUS.gDramAddr < GUSRam.length) GUSRam[(int) myGUS.gDramAddr] = (byte)val;
+                    if (myGUS.gDramAddr < GUSRam.length) GUSRam[(int) myGUS.gDramAddr] = (byte) val;
                     break;
                 default:
                     //logger.log(Level.DEBUG, "Write GUS at port 0x" + port + " with " + val);
@@ -857,6 +861,7 @@ public class Gus extends Module_base {
      */
 
     static private class GusTimer {
+
         short value;
         boolean reached;
         boolean raiseirq;
@@ -866,6 +871,7 @@ public class Gus extends Module_base {
     }
 
     static private class GFGus {
+
         final GusTimer[] timers = new GusTimer[2];
         short gRegSelect;
         char gRegData;

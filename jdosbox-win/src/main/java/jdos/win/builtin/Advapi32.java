@@ -12,11 +12,13 @@ import jdos.win.loader.Loader;
 import jdos.win.system.StaticData;
 import jdos.win.system.WinSystem;
 
+
 public class Advapi32 extends BuiltinModule {
 
     private static final Logger logger = System.getLogger(Advapi32.class.getName());
 
     public static class Sid {
+
         public static final int SIZE = 8;
         int psid;
         int Attributes;
@@ -44,13 +46,14 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.AddAccessAllowedAce";
         }
+
         @Override
         public void onCall() {
             int pAcl = CPU.CPU_Pop32();
             int dwAceRevision = CPU.CPU_Pop32();
             int AccessMask = CPU.CPU_Pop32();
             int pSid = CPU.CPU_Pop32();
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -61,13 +64,14 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.AddAccessDeniedAce";
         }
+
         @Override
         public void onCall() {
             int pAcl = CPU.CPU_Pop32();
             int dwAceRevision = CPU.CPU_Pop32();
             int AccessMask = CPU.CPU_Pop32();
             int pSid = CPU.CPU_Pop32();
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -78,10 +82,11 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.FreeSid";
         }
+
         @Override
         public void onCall() {
             int pSid = CPU.CPU_Pop32();
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -92,6 +97,7 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.AllocateAndInitializeSid";
         }
+
         @Override
         public void onCall() {
             int pIdentifierAuthority = CPU.CPU_Pop32();
@@ -106,7 +112,7 @@ public class Advapi32 extends BuiltinModule {
             int dwSubAuthority7 = CPU.CPU_Pop32();
             int pSid = CPU.CPU_Pop32();
             Memory.mem_writed(pSid, 1);
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -117,6 +123,7 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.GetTokenInformation";
         }
+
         @Override
         public void onCall() {
             int TokenHandle = CPU.CPU_Pop32();
@@ -129,11 +136,11 @@ public class Advapi32 extends BuiltinModule {
                     Memory.mem_writed(ReturnLength, Sid.SIZE);
                 } else {
                     Memory.mem_writed(TokenInformation, StaticData.user.getHandle());
-                    Memory.mem_writed(TokenInformation+4, 0); // Attributes
+                    Memory.mem_writed(TokenInformation + 4, 0); // Attributes
                     Memory.mem_writed(ReturnLength, Sid.SIZE);
                 }
             } else {
-                logger.log(Level.DEBUG,getName()+" TokenInformationClass "+TokenInformationClass+" not implemented yet");
+                logger.log(Level.DEBUG, getName() + " TokenInformationClass " + TokenInformationClass + " not implemented yet");
                 notImplemented();
             }
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
@@ -146,13 +153,14 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.InitializeAcl";
         }
+
         @Override
         public void onCall() {
             int pAcl = CPU.CPU_Pop32();
             int nAclLength = CPU.CPU_Pop32();
             int dwAclRevision = CPU.CPU_Pop32();
             Memory.mem_zero(pAcl, nAclLength);
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -163,13 +171,14 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.OpenProcessToken";
         }
+
         @Override
         public void onCall() {
             int ProcessHandle = CPU.CPU_Pop32();
             int DesiredAccess = CPU.CPU_Pop32();
             int TokenHandle = CPU.CPU_Pop32();
             Memory.mem_writed(TokenHandle, 1);
-            logger.log(Level.DEBUG,getName()+" faked");
+            logger.log(Level.DEBUG, getName() + " faked");
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
@@ -185,6 +194,7 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.RegCreateKeyExA";
         }
+
         @Override
         public void onCall() {
             int hKey = CPU.CPU_Pop32();
@@ -206,6 +216,7 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.RegOpenKeyExA";
         }
+
         @Override
         public void onCall() {
             int hKey = CPU.CPU_Pop32();
@@ -223,6 +234,7 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.RegQueryValueExA";
         }
+
         @Override
         public void onCall() {
             int hKey = CPU.CPU_Pop32();
@@ -241,15 +253,16 @@ public class Advapi32 extends BuiltinModule {
         public java.lang.String getName() {
             return "Advapi32.RegSetValueExA";
         }
+
         @Override
         public void onCall() {
             int hKey = CPU.CPU_Pop32();
             int lpValueName = CPU.CPU_Pop32();
             int lpReserved = CPU.CPU_Pop32();
-            int dwType  = CPU.CPU_Pop32();
+            int dwType = CPU.CPU_Pop32();
             int lpData = CPU.CPU_Pop32();
             int cbData = CPU.CPU_Pop32();
-            CPU_Regs.reg_eax.dword = WinSystem.registry.setValue(hKey, lpValueName, dwType , lpData, cbData);
+            CPU_Regs.reg_eax.dword = WinSystem.registry.setValue(hKey, lpValueName, dwType, lpData, cbData);
         }
     };
 }

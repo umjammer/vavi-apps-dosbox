@@ -7,20 +7,22 @@ import jdos.win.system.WinPoint;
 import jdos.win.system.WinRect;
 import jdos.win.utils.Error;
 
+
 public class WinPos extends WinAPI {
+
     // BOOL ClientToScreen(HWND hWnd, LPPOINT lpPoint)
     public static int ClientToScreen(int hWnd, int lpPoint) {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return FALSE;
         WinPoint offset = window.getScreenOffset();
-        writed(lpPoint, readd(lpPoint)+offset.x);
-        writed(lpPoint+4, readd(lpPoint+4)+offset.y);
+        writed(lpPoint, readd(lpPoint) + offset.x);
+        writed(lpPoint + 4, readd(lpPoint + 4) + offset.y);
         return TRUE;
     }
 
     // BOOL WINAPI IsIconic(HWND hWnd)
-    public static int IsIconic(int hWnd)  {
+    public static int IsIconic(int hWnd) {
         return BOOL((WinWindow.GetWindowLongA(hWnd, GWL_STYLE) & WS_MINIMIZE) != 0);
     }
 
@@ -33,6 +35,7 @@ public class WinPos extends WinAPI {
         }
         return FALSE;
     }
+
     public static int WIN_GetClientRect(int hWnd, WinRect rect) {
         if (WinWindow.WIN_GetRectangles(hWnd, COORDS_CLIENT, null, rect)) {
             return TRUE;
@@ -66,21 +69,21 @@ public class WinPos extends WinAPI {
         }
 
         /* update the placement according to the current style */
-        if ((pWnd.dwStyle & WS_MINIMIZE)!=0) {
+        if ((pWnd.dwStyle & WS_MINIMIZE) != 0) {
             pWnd.min_pos.x = pWnd.rectWindow.left;
             pWnd.min_pos.y = pWnd.rectWindow.top;
-        } else if ((pWnd.dwStyle & WS_MAXIMIZE)!=0) {
+        } else if ((pWnd.dwStyle & WS_MAXIMIZE) != 0) {
             pWnd.max_pos.x = pWnd.rectWindow.left;
             pWnd.max_pos.y = pWnd.rectWindow.top;
         } else {
             pWnd.normal_rect.copy(pWnd.rectWindow);
         }
 
-        if ((pWnd.dwStyle & WS_MINIMIZE)!=0)
+        if ((pWnd.dwStyle & WS_MINIMIZE) != 0)
             wndpl.showCmd = SW_SHOWMINIMIZED;
         else
-            wndpl.showCmd = (pWnd.dwStyle & WS_MAXIMIZE)!=0 ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL ;
-        if ((pWnd.flags & WIN_RESTORE_MAX)!=0)
+            wndpl.showCmd = (pWnd.dwStyle & WS_MAXIMIZE) != 0 ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+        if ((pWnd.flags & WIN_RESTORE_MAX) != 0)
             wndpl.flags = WPF_RESTORETOMAXIMIZED;
         else
             wndpl.flags = 0;
@@ -93,7 +96,7 @@ public class WinPos extends WinAPI {
     // BOOL WINAPI GetWindowRect( HWND hwnd, LPRECT rect )
     public static int GetWindowRect(int hwnd, int pRect) {
         WinRect rect = new WinRect();
-        if (WinWindow.WIN_GetRectangles( hwnd, COORDS_SCREEN, rect, null)) {
+        if (WinWindow.WIN_GetRectangles(hwnd, COORDS_SCREEN, rect, null)) {
             rect.write(pRect);
             return TRUE;
         }
@@ -110,16 +113,16 @@ public class WinPos extends WinAPI {
         }
         WinPoint fromOffset = from.getScreenOffset();
         WinPoint toOffset = to.getScreenOffset();
-        int cx = fromOffset.x-toOffset.x;
-        int cy = fromOffset.y-toOffset.y;
+        int cx = fromOffset.x - toOffset.x;
+        int cy = fromOffset.y - toOffset.y;
 
-        for (int i=0; i<cPoints; i++) {
-            int px = readd(lpPoints+i*8);
-            int py = readd(lpPoints+i*8+4);
-            px+=cx;
-            py+=cy;
-            writed(lpPoints+i*8, px);
-            writed(lpPoints+i*8+4, py);
+        for (int i = 0; i < cPoints; i++) {
+            int px = readd(lpPoints + i * 8);
+            int py = readd(lpPoints + i * 8 + 4);
+            px += cx;
+            py += cy;
+            writed(lpPoints + i * 8, px);
+            writed(lpPoints + i * 8 + 4, py);
         }
         return MAKELONG(LOWORD(cx), LOWORD(cy));
     }
@@ -127,8 +130,8 @@ public class WinPos extends WinAPI {
     // BOOL WINAPI MoveWindow(HWND hWnd, int X, int Y, int nWidth, int nHeight, BOOL bRepaint)
     public static int MoveWindow(int hWnd, int X, int Y, int nWidth, int nHeight, int bRepaint) {
         int flags = SWP_NOZORDER | SWP_NOACTIVATE;
-        if (bRepaint==0) flags |= SWP_NOREDRAW;
-        return SetWindowPos(hWnd, 0, X, Y, nWidth, nHeight, flags );
+        if (bRepaint == 0) flags |= SWP_NOREDRAW;
+        return SetWindowPos(hWnd, 0, X, Y, nWidth, nHeight, flags);
     }
 
     // BOOL ScreenToClient(HWND hWnd, LPPOINT lpPoint)
@@ -137,8 +140,8 @@ public class WinPos extends WinAPI {
         if (window == null)
             return FALSE;
         WinPoint offset = window.getScreenOffset();
-        writed(lpPoint, readd(lpPoint)-offset.x);
-        writed(lpPoint+4, readd(lpPoint+4)-offset.y);
+        writed(lpPoint, readd(lpPoint) - offset.x);
+        writed(lpPoint + 4, readd(lpPoint + 4) - offset.y);
         return TRUE;
     }
 
@@ -155,29 +158,29 @@ public class WinPos extends WinAPI {
         orig_flags = uFlags;
 
         /* First, check z-order arguments.  */
-        if ((uFlags & SWP_NOZORDER)==0) {
+        if ((uFlags & SWP_NOZORDER) == 0) {
             /* fix sign extension */
             if (hWndInsertAfter == 0xffff) hWndInsertAfter = HWND_TOPMOST;
             else if (hWndInsertAfter == 0xfffe) hWndInsertAfter = HWND_NOTOPMOST;
 
             if (hWndInsertAfter != HWND_TOP && hWndInsertAfter != HWND_BOTTOM && hWndInsertAfter != HWND_TOPMOST && hWndInsertAfter != HWND_NOTOPMOST) {
-                int parent = WinWindow.GetAncestor(hWnd, GA_PARENT );
-                int insertafter_parent = WinWindow.GetAncestor(hWndInsertAfter, GA_PARENT );
+                int parent = WinWindow.GetAncestor(hWnd, GA_PARENT);
+                int insertafter_parent = WinWindow.GetAncestor(hWndInsertAfter, GA_PARENT);
 
                 /* hwndInsertAfter must be a sibling of the window */
-                if (insertafter_parent==0) return FALSE;
+                if (insertafter_parent == 0) return FALSE;
                 if (insertafter_parent != parent) return FALSE;
             }
         }
 
         /* Make sure that coordinates are valid for WM_WINDOWPOSCHANGING */
-        if ((uFlags & SWP_NOMOVE)==0) {
+        if ((uFlags & SWP_NOMOVE) == 0) {
             if (X < -32768) X = -32768;
             else if (X > 32767) X = 32767;
             if (Y < -32768) Y = -32768;
             else if (Y > 32767) Y = 32767;
         }
-        if ((uFlags & SWP_NOSIZE)==0) {
+        if ((uFlags & SWP_NOSIZE) == 0) {
             if (cx < 0) cx = 0;
             else if (cx > 32767) cx = 32767;
             if (cy < 0) cy = 0;
@@ -187,10 +190,10 @@ public class WinPos extends WinAPI {
         if (!SWP_DoWinPosChanging(pos, newWindowRect, newClientRect)) return FALSE;
 
         boolean zOrderChanged = false;
-        if ((uFlags & SWP_NOZORDER)==0) {
+        if ((uFlags & SWP_NOZORDER) == 0) {
             int hParent = 0;
             if (window.parent != 0)
-                hParent = window.parent ;
+                hParent = window.parent;
             else // if (window.owner == 0)
                 hParent = StaticData.desktopWindow;
             if (hParent != 0) {
@@ -212,16 +215,16 @@ public class WinPos extends WinAPI {
                     default:
                         WinWindow sibling = WinWindow.get(hWndInsertAfter);
                         if (sibling == null)
-                            Win.panic("SetWindowPos hWndInsertAfter="+hWndInsertAfter+" was not found");
+                            Win.panic("SetWindowPos hWndInsertAfter=" + hWndInsertAfter + " was not found");
                         int index = parent.children.indexOf(sibling);
-                        if (index<0)
-                            Win.panic("SetWindowPos hWndInsertAfter="+hWndInsertAfter+" is not a sibling window");
+                        if (index < 0)
+                            Win.panic("SetWindowPos hWndInsertAfter=" + hWndInsertAfter + " is not a sibling window");
                         parent.children.add(index, window);
                 }
             }
         }
         /* Common operations */
-        if((uFlags & (SWP_FRAMECHANGED | SWP_NOSIZE)) != SWP_NOSIZE) {
+        if ((uFlags & (SWP_FRAMECHANGED | SWP_NOSIZE)) != SWP_NOSIZE) {
             WinRect window_rect = new WinRect();
             WinRect client_rect = new WinRect();
             WinWindow.WIN_GetRectangles(pos.hwnd, COORDS_PARENT, window_rect, client_rect);
@@ -233,12 +236,12 @@ public class WinPos extends WinAPI {
         }
 
         if (window.rectClient.width() != newClientRect.width() || window.rectClient.height() != newClientRect.height()) {
-            uFlags &=~ SWP_NOCLIENTSIZE;
+            uFlags &= ~SWP_NOCLIENTSIZE;
         } else {
             uFlags |= SWP_NOCLIENTSIZE;
         }
         if (window.rectClient.left != newClientRect.left || window.rectClient.top != newClientRect.top) {
-            uFlags &=~ SWP_NOCLIENTMOVE;
+            uFlags &= ~SWP_NOCLIENTMOVE;
         } else {
             uFlags |= SWP_NOCLIENTMOVE;
         }
@@ -250,11 +253,11 @@ public class WinPos extends WinAPI {
         window.rectWindow.copy(newWindowRect);
         window.rectClient.copy(newClientRect);
 
-        if ((uFlags & SWP_SHOWWINDOW)!=0) window.dwStyle |= WS_VISIBLE;
-        else if ((uFlags & SWP_HIDEWINDOW)!=0) window.dwStyle &= ~WS_VISIBLE;
+        if ((uFlags & SWP_SHOWWINDOW) != 0) window.dwStyle |= WS_VISIBLE;
+        else if ((uFlags & SWP_HIDEWINDOW) != 0) window.dwStyle &= ~WS_VISIBLE;
 
         /* erase parent when hiding or resizing child */
-        if ((orig_flags & SWP_DEFERERASE)==0 && ((orig_flags & SWP_HIDEWINDOW)!=0 || ((orig_flags & SWP_SHOWWINDOW)==0 && geometryChanged))) {
+        if ((orig_flags & SWP_DEFERERASE) == 0 && ((orig_flags & SWP_HIDEWINDOW) != 0 || ((orig_flags & SWP_SHOWWINDOW) == 0 && geometryChanged))) {
             int parent = WinWindow.GetAncestor(hWnd, GA_PARENT);
             if (parent != 0)
                 WinWindow.get(parent).invalidate(window.rectWindow);
@@ -262,15 +265,14 @@ public class WinPos extends WinAPI {
                 DesktopWindow.invalidate();
         }
 
-        if ((uFlags & SWP_HIDEWINDOW)!=0)
+        if ((uFlags & SWP_HIDEWINDOW) != 0)
             Caret.HideCaret(hWnd);
-        else if ((uFlags & SWP_SHOWWINDOW)!=0) {
+        else if ((uFlags & SWP_SHOWWINDOW) != 0) {
             Caret.ShowCaret(hWnd);
             window.invalidate(null);
         }
 
-        if ((uFlags & (SWP_NOACTIVATE|SWP_HIDEWINDOW))==0)
-        {
+        if ((uFlags & (SWP_NOACTIVATE | SWP_HIDEWINDOW)) == 0) {
             /* child windows get WM_CHILDACTIVATE message */
             if ((window.dwStyle & (WS_CHILD | WS_POPUP)) == WS_CHILD)
                 Message.SendMessageA(window.handle, WM_CHILDACTIVATE, 0, 0);
@@ -278,7 +280,7 @@ public class WinPos extends WinAPI {
                 Focus.SetForegroundWindow(hWnd);
         }
 
-          /* And last, send the WM_WINDOWPOSCHANGED message */
+        /* And last, send the WM_WINDOWPOSCHANGED message */
         if (geometryChanged || zOrderChanged) {
             /* WM_WINDOWPOSCHANGED is sent even if SWP_NOSENDCHANGING is set
                and always contains final window position.
@@ -305,74 +307,73 @@ public class WinPos extends WinAPI {
         WinRect newPos = new WinRect();
         int swp = 0;
 
-        switch(nCmdShow)
-        {
+        switch (nCmdShow) {
             case SW_HIDE:
                 if (!wasVisible) return FALSE;
                 showFlag = false;
                 swp |= SWP_HIDEWINDOW | SWP_NOSIZE | SWP_NOMOVE;
-                if ((style & WS_CHILD)!=0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
-            break;
+                if ((style & WS_CHILD) != 0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
+                break;
 
-        case SW_SHOWMINNOACTIVE:
+            case SW_SHOWMINNOACTIVE:
             case SW_MINIMIZE:
             case SW_FORCEMINIMIZE: /* FIXME: Does not work if thread is hung. */
                 swp |= SWP_NOACTIVATE | SWP_NOZORDER;
                 /* fall through */
-        case SW_SHOWMINIMIZED:
+            case SW_SHOWMINIMIZED:
                 swp |= SWP_SHOWWINDOW | SWP_FRAMECHANGED;
                 swp |= WINPOS_MinMaximize(wndPtr, nCmdShow, newPos);
-                if ((style & WS_MINIMIZE)!=0 && wasVisible) return TRUE;
-            break;
+                if ((style & WS_MINIMIZE) != 0 && wasVisible) return TRUE;
+                break;
 
-        case SW_SHOWMAXIMIZED: /* same as SW_MAXIMIZE */
+            case SW_SHOWMAXIMIZED: /* same as SW_MAXIMIZE */
                 if (!wasVisible) swp |= SWP_SHOWWINDOW;
                 swp |= SWP_FRAMECHANGED;
                 swp |= WINPOS_MinMaximize(wndPtr, SW_MAXIMIZE, newPos);
-                if ((style & WS_MAXIMIZE)!=0 && wasVisible) return TRUE;
+                if ((style & WS_MAXIMIZE) != 0 && wasVisible) return TRUE;
                 break;
 
-        case SW_SHOWNA:
+            case SW_SHOWNA:
                 swp |= SWP_NOACTIVATE | SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE;
-                if ((style & WS_CHILD)!=0) swp |= SWP_NOZORDER;
+                if ((style & WS_CHILD) != 0) swp |= SWP_NOZORDER;
                 break;
-        case SW_SHOW:
+            case SW_SHOW:
                 if (wasVisible) return TRUE;
                 swp |= SWP_SHOWWINDOW | SWP_NOSIZE | SWP_NOMOVE;
-                if ((style & WS_CHILD)!=0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
-            break;
+                if ((style & WS_CHILD) != 0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
+                break;
 
-        case SW_SHOWNOACTIVATE:
+            case SW_SHOWNOACTIVATE:
                 swp |= SWP_NOACTIVATE | SWP_NOZORDER;
                 /* fall through */
-        case SW_RESTORE:
+            case SW_RESTORE:
                 /* fall through */
-        case SW_SHOWNORMAL:  /* same as SW_NORMAL: */
-        case SW_SHOWDEFAULT: /* FIXME: should have its own handler */
+            case SW_SHOWNORMAL:  /* same as SW_NORMAL: */
+            case SW_SHOWDEFAULT: /* FIXME: should have its own handler */
                 if (!wasVisible) swp |= SWP_SHOWWINDOW;
-                if ((style & (WS_MINIMIZE | WS_MAXIMIZE))!=0) {
+                if ((style & (WS_MINIMIZE | WS_MAXIMIZE)) != 0) {
                     swp |= SWP_FRAMECHANGED;
                     swp |= WINPOS_MinMaximize(wndPtr, nCmdShow, newPos);
                 } else {
                     if (wasVisible) return TRUE;
                     swp |= SWP_NOSIZE | SWP_NOMOVE;
                 }
-                if ((style & WS_CHILD)!=0 && (swp & SWP_STATECHANGED)==0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
-            break;
+                if ((style & WS_CHILD) != 0 && (swp & SWP_STATECHANGED) == 0) swp |= SWP_NOACTIVATE | SWP_NOZORDER;
+                break;
             default:
                 return BOOL(wasVisible);
         }
 
-        if ((showFlag != wasVisible || nCmdShow == SW_SHOWNA) && nCmdShow != SW_SHOWMAXIMIZED && (swp & SWP_STATECHANGED)==0) {
+        if ((showFlag != wasVisible || nCmdShow == SW_SHOWNA) && nCmdShow != SW_SHOWMAXIMIZED && (swp & SWP_STATECHANGED) == 0) {
             Message.SendMessageA(wndPtr.handle, WM_SHOWWINDOW, BOOL(showFlag), 0);
-            if (WinWindow.IsWindow(hWnd)==0) return BOOL(wasVisible);
+            if (WinWindow.IsWindow(hWnd) == 0) return BOOL(wasVisible);
         }
 
         int parent = WinWindow.GetAncestor(hWnd, GA_PARENT);
-        if (parent!=0 && WinWindow.IsWindowVisible(parent)==0 && (swp & SWP_STATECHANGED)==0) {
+        if (parent != 0 && WinWindow.IsWindowVisible(parent) == 0 && (swp & SWP_STATECHANGED) == 0) {
             /* if parent is not visible simply toggle WS_VISIBLE and return */
-            if (showFlag) wndPtr.dwStyle|=WS_VISIBLE;
-            else wndPtr.dwStyle&=~WS_VISIBLE;
+            if (showFlag) wndPtr.dwStyle |= WS_VISIBLE;
+            else wndPtr.dwStyle &= ~WS_VISIBLE;
         } else {
             SetWindowPos(hWnd, HWND_TOP, newPos.left, newPos.top, newPos.right - newPos.left, newPos.bottom - newPos.top, swp);
         }
@@ -399,17 +400,17 @@ public class WinPos extends WinAPI {
         // if (IsIconic(hWnd)!=0)
         //    WINPOS_ShowIconTitle( hwnd, TRUE );
 
-        if ((wndPtr.flags & WIN_NEED_SIZE)!=0) {
+        if ((wndPtr.flags & WIN_NEED_SIZE) != 0) {
             /* should happen only in CreateWindowEx() */
             int wParam = SIZE_RESTORED;
             WinRect client = new WinRect();
             int lparam;
 
             WinWindow.WIN_GetRectangles(hWnd, COORDS_PARENT, null, client);
-            lparam = MAKELONG( client.right - client.left, client.bottom - client.top );
+            lparam = MAKELONG(client.right - client.left, client.bottom - client.top);
             wndPtr.flags &= ~WIN_NEED_SIZE;
-            if ((wndPtr.dwStyle & WS_MAXIMIZE)!=0) wParam = SIZE_MAXIMIZED;
-            else if ((wndPtr.dwStyle & WS_MINIMIZE)!=0) {
+            if ((wndPtr.dwStyle & WS_MAXIMIZE) != 0) wParam = SIZE_MAXIMIZED;
+            else if ((wndPtr.dwStyle & WS_MINIMIZE) != 0) {
                 wParam = SIZE_MINIMIZED;
                 lparam = 0;
             }
@@ -418,7 +419,7 @@ public class WinPos extends WinAPI {
         }
 
         /* if previous state was minimized Windows sets focus to the window */
-        if ((style & WS_MINIMIZE)!=0) Focus.SetFocus(hWnd);
+        if ((style & WS_MINIMIZE) != 0) Focus.SetFocus(hWnd);
 
         return BOOL(wasVisible);
     }
@@ -435,7 +436,7 @@ public class WinPos extends WinAPI {
 
         /* Send WM_WINDOWPOSCHANGING message */
 
-        if ((pos.flags & SWP_NOSENDCHANGING)==0) {
+        if ((pos.flags & SWP_NOSENDCHANGING) == 0) {
             int address = pos.allocTemp();
             Message.SendMessageA(pos.hwnd, WM_WINDOWPOSCHANGING, 0, address);
         }
@@ -448,21 +449,21 @@ public class WinPos extends WinAPI {
         WinWindow.WIN_GetRectangles(pos.hwnd, COORDS_PARENT, window_rect, client_rect);
 
         pNewWindowRect.copy(window_rect);
-        pNewClientRect.copy((wndPtr.dwStyle & WS_MINIMIZE)!=0 ? window_rect : client_rect);
+        pNewClientRect.copy((wndPtr.dwStyle & WS_MINIMIZE) != 0 ? window_rect : client_rect);
 
-        if ((pos.flags & SWP_NOSIZE)==0) {
-            if ((wndPtr.dwStyle & WS_MINIMIZE)!=0) {
-                pNewWindowRect.right  = pNewWindowRect.left + SysParams.GetSystemMetrics(SM_CXICON);
+        if ((pos.flags & SWP_NOSIZE) == 0) {
+            if ((wndPtr.dwStyle & WS_MINIMIZE) != 0) {
+                pNewWindowRect.right = pNewWindowRect.left + SysParams.GetSystemMetrics(SM_CXICON);
                 pNewWindowRect.bottom = pNewWindowRect.top + SysParams.GetSystemMetrics(SM_CYICON);
             } else {
-                pNewWindowRect.right  = pNewWindowRect.left + pos.cx;
+                pNewWindowRect.right = pNewWindowRect.left + pos.cx;
                 pNewWindowRect.bottom = pNewWindowRect.top + pos.cy;
             }
         }
-        if ((pos.flags & SWP_NOMOVE)==0) {
-            pNewWindowRect.left    = pos.x;
-            pNewWindowRect.top     = pos.y;
-            pNewWindowRect.right  += pos.x - window_rect.left;
+        if ((pos.flags & SWP_NOMOVE) == 0) {
+            pNewWindowRect.left = pos.x;
+            pNewWindowRect.top = pos.y;
+            pNewWindowRect.right += pos.x - window_rect.left;
             pNewWindowRect.bottom += pos.y - window_rect.top;
 
             pNewClientRect.offset(pos.x - window_rect.left, pos.y - window_rect.top);
@@ -478,129 +479,126 @@ public class WinPos extends WinAPI {
 
         GetWindowPlacement(wndPtr, wpl);
 
-        if (Hook.HOOK_CallHooks(WH_CBT, HCBT_MINMAX, wndPtr.handle, cmd)!=0)
+        if (Hook.HOOK_CallHooks(WH_CBT, HCBT_MINMAX, wndPtr.handle, cmd) != 0)
             return SWP_NOSIZE | SWP_NOMOVE;
 
-        if (IsIconic(wndPtr.handle)!=0) {
-            switch (cmd)
-            {
+        if (IsIconic(wndPtr.handle) != 0) {
+            switch (cmd) {
+                case SW_SHOWMINNOACTIVE:
+                case SW_SHOWMINIMIZED:
+                case SW_FORCEMINIMIZE:
+                case SW_MINIMIZE:
+                    return SWP_NOSIZE | SWP_NOMOVE;
+            }
+            if (Message.SendMessageA(wndPtr.handle, WM_QUERYOPEN, 0, 0) == 0) return SWP_NOSIZE | SWP_NOMOVE;
+            swpFlags |= SWP_NOCOPYBITS;
+        }
+
+        switch (cmd) {
             case SW_SHOWMINNOACTIVE:
             case SW_SHOWMINIMIZED:
             case SW_FORCEMINIMIZE:
             case SW_MINIMIZE:
-                return SWP_NOSIZE | SWP_NOMOVE;
-            }
-            if (Message.SendMessageA(wndPtr.handle, WM_QUERYOPEN, 0, 0)==0) return SWP_NOSIZE | SWP_NOMOVE;
-            swpFlags |= SWP_NOCOPYBITS;
-        }
+                if (WinWindow.get(wndPtr.handle) == null) return 0;
+                if ((wndPtr.dwStyle & WS_MAXIMIZE) != 0) wndPtr.flags |= WIN_RESTORE_MAX;
+                else wndPtr.flags &= ~WIN_RESTORE_MAX;
 
-        switch( cmd )
-        {
-        case SW_SHOWMINNOACTIVE:
-        case SW_SHOWMINIMIZED:
-        case SW_FORCEMINIMIZE:
-        case SW_MINIMIZE:
-            if (WinWindow.get(wndPtr.handle)==null) return 0;
-            if((wndPtr.dwStyle & WS_MAXIMIZE)!=0) wndPtr.flags |= WIN_RESTORE_MAX;
-            else wndPtr.flags &= ~WIN_RESTORE_MAX;
+                old_style = wndPtr.dwStyle;
+                wndPtr.dwStyle |= WS_MINIMIZE;
+                wndPtr.dwStyle &= ~WS_MAXIMIZE;
 
-            old_style = wndPtr.dwStyle;
-            wndPtr.dwStyle |= WS_MINIMIZE;
-            wndPtr.dwStyle &=~ WS_MAXIMIZE;
+                wpl.ptMinPosition = WINPOS_FindIconPos(wndPtr, wpl.ptMinPosition);
 
-            wpl.ptMinPosition = WINPOS_FindIconPos(wndPtr, wpl.ptMinPosition);
+                if ((old_style & WS_MINIMIZE) != 0) swpFlags |= SWP_STATECHANGED;
+                rect.set(wpl.ptMinPosition.x, wpl.ptMinPosition.y, wpl.ptMinPosition.x + SysParams.GetSystemMetrics(SM_CXICON), wpl.ptMinPosition.y + SysParams.GetSystemMetrics(SM_CYICON));
+                swpFlags |= SWP_NOCOPYBITS;
+                break;
 
-            if ((old_style & WS_MINIMIZE)!=0) swpFlags |= SWP_STATECHANGED;
-            rect.set(wpl.ptMinPosition.x, wpl.ptMinPosition.y, wpl.ptMinPosition.x + SysParams.GetSystemMetrics(SM_CXICON), wpl.ptMinPosition.y + SysParams.GetSystemMetrics(SM_CYICON) );
-            swpFlags |= SWP_NOCOPYBITS;
-            break;
+            case SW_MAXIMIZE:
+                old_style = wndPtr.dwStyle;
+                if ((old_style & WS_MAXIMIZE) != 0 && (old_style & WS_VISIBLE) != 0) return SWP_NOSIZE | SWP_NOMOVE;
 
-        case SW_MAXIMIZE:
-            old_style = wndPtr.dwStyle;
-            if ((old_style & WS_MAXIMIZE)!=0 && (old_style & WS_VISIBLE)!=0) return SWP_NOSIZE | SWP_NOMOVE;
+                WINPOS_GetMinMaxInfo(wndPtr, size, wpl.ptMaxPosition, null, null);
 
-            WINPOS_GetMinMaxInfo(wndPtr, size, wpl.ptMaxPosition, null, null);
+                old_style = wndPtr.dwStyle;
+                wndPtr.dwStyle |= WS_MAXIMIZE;
+                wndPtr.dwStyle &= ~WS_MINIMIZE;
 
-            old_style = wndPtr.dwStyle;
-            wndPtr.dwStyle |= WS_MAXIMIZE;
-            wndPtr.dwStyle &=~ WS_MINIMIZE;
-
-            if ((old_style & WS_MINIMIZE)!=0) {
-                wndPtr.flags |= WIN_RESTORE_MAX;
-                WINPOS_ShowIconTitle(wndPtr, false);
-            }
-
-            if ((old_style & WS_MAXIMIZE)==0) swpFlags |= SWP_STATECHANGED;
-            rect.set(wpl.ptMaxPosition.x, wpl.ptMaxPosition.y, wpl.ptMaxPosition.x +  size.x, wpl.ptMaxPosition.y + size.y );
-            break;
-
-        case SW_SHOWNOACTIVATE:
-            wndPtr.flags &= ~WIN_RESTORE_MAX;
-            /* fall through */
-        case SW_SHOWNORMAL:
-        case SW_RESTORE:
-        case SW_SHOWDEFAULT: /* FIXME: should have its own handler */
-            old_style = wndPtr.dwStyle;
-            wndPtr.dwStyle &=~ WS_MINIMIZE | WS_MAXIMIZE;
-            if ((old_style & WS_MINIMIZE)!=0) {
-                boolean restore_max;
-
-                WINPOS_ShowIconTitle(wndPtr, false);
-                restore_max = (wndPtr.flags & WIN_RESTORE_MAX) != 0;
-                if (restore_max) {
-                    /* Restore to maximized position */
-                    WINPOS_GetMinMaxInfo(wndPtr, size, wpl.ptMaxPosition, null, null);
-                    wndPtr.dwStyle |= WS_MAXIMIZE;
-                    swpFlags |= SWP_STATECHANGED;
-                    rect.set(wpl.ptMaxPosition.x, wpl.ptMaxPosition.y, wpl.ptMaxPosition.x + size.x, wpl.ptMaxPosition.y + size.y );
-                    break;
+                if ((old_style & WS_MINIMIZE) != 0) {
+                    wndPtr.flags |= WIN_RESTORE_MAX;
+                    WINPOS_ShowIconTitle(wndPtr, false);
                 }
-            }
-            else if ((old_style & WS_MAXIMIZE)==0) break;
 
-            swpFlags |= SWP_STATECHANGED;
+                if ((old_style & WS_MAXIMIZE) == 0) swpFlags |= SWP_STATECHANGED;
+                rect.set(wpl.ptMaxPosition.x, wpl.ptMaxPosition.y, wpl.ptMaxPosition.x + size.x, wpl.ptMaxPosition.y + size.y);
+                break;
 
-            /* Restore to normal position */
+            case SW_SHOWNOACTIVATE:
+                wndPtr.flags &= ~WIN_RESTORE_MAX;
+                /* fall through */
+            case SW_SHOWNORMAL:
+            case SW_RESTORE:
+            case SW_SHOWDEFAULT: /* FIXME: should have its own handler */
+                old_style = wndPtr.dwStyle;
+                wndPtr.dwStyle &= ~WS_MINIMIZE | WS_MAXIMIZE;
+                if ((old_style & WS_MINIMIZE) != 0) {
+                    boolean restore_max;
 
-            rect.copy(wpl.rcNormalPosition);
-            break;
+                    WINPOS_ShowIconTitle(wndPtr, false);
+                    restore_max = (wndPtr.flags & WIN_RESTORE_MAX) != 0;
+                    if (restore_max) {
+                        /* Restore to maximized position */
+                        WINPOS_GetMinMaxInfo(wndPtr, size, wpl.ptMaxPosition, null, null);
+                        wndPtr.dwStyle |= WS_MAXIMIZE;
+                        swpFlags |= SWP_STATECHANGED;
+                        rect.set(wpl.ptMaxPosition.x, wpl.ptMaxPosition.y, wpl.ptMaxPosition.x + size.x, wpl.ptMaxPosition.y + size.y);
+                        break;
+                    }
+                } else if ((old_style & WS_MAXIMIZE) == 0) break;
+
+                swpFlags |= SWP_STATECHANGED;
+
+                /* Restore to normal position */
+
+                rect.copy(wpl.rcNormalPosition);
+                break;
         }
 
         return swpFlags;
     }
 
     static public void WINPOS_ActivateOtherWindow(int hwnd) {
-        int hwndTo=0;
+        int hwndTo = 0;
         boolean done = false;
-        if ((WinWindow.GetWindowLongA(hwnd, GWL_STYLE) & WS_POPUP)!=0 && (hwndTo = WinWindow.GetWindow(hwnd, GW_OWNER))!=0) {
+        if ((WinWindow.GetWindowLongA(hwnd, GWL_STYLE) & WS_POPUP) != 0 && (hwndTo = WinWindow.GetWindow(hwnd, GW_OWNER)) != 0) {
             hwndTo = WinWindow.GetAncestor(hwndTo, GA_ROOT);
-            if (can_activate_window( hwndTo )) done = true;
+            if (can_activate_window(hwndTo)) done = true;
         }
 
         if (!done) {
             hwndTo = hwnd;
             while (true) {
-                if ((hwndTo = WinWindow.GetWindow(hwndTo, GW_HWNDNEXT))==0) break;
-                if (can_activate_window( hwndTo )) break;
+                if ((hwndTo = WinWindow.GetWindow(hwndTo, GW_HWNDNEXT)) == 0) break;
+                if (can_activate_window(hwndTo)) break;
             }
         }
 
         int fg = Focus.GetForegroundWindow();
-        if (fg==0 || (hwnd == fg)) {
-            if (Focus.SetForegroundWindow(hwndTo)!=0)
+        if (fg == 0 || (hwnd == fg)) {
+            if (Focus.SetForegroundWindow(hwndTo) != 0)
                 return;
         }
-        if (Focus.SetActiveWindow(hwndTo)==0) Focus.SetActiveWindow(0);
+        if (Focus.SetActiveWindow(hwndTo) == 0) Focus.SetActiveWindow(0);
     }
 
     static boolean can_activate_window(int hwnd) {
         int style;
 
-        if (hwnd==0) return false;
+        if (hwnd == 0) return false;
         style = WinWindow.GetWindowLongA(hwnd, GWL_STYLE);
-        if ((style & WS_VISIBLE)==0) return false;
-        if ((style & (WS_POPUP|WS_CHILD)) == WS_CHILD) return false;
-        return (style & WS_DISABLED)!=0;
+        if ((style & WS_VISIBLE) == 0) return false;
+        if ((style & (WS_POPUP | WS_CHILD)) == WS_CHILD) return false;
+        return (style & WS_DISABLED) != 0;
     }
 
     static WinPoint WINPOS_FindIconPos(WinWindow wndPtr, WinPoint pt) {

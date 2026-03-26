@@ -1,10 +1,12 @@
 package jdos.cpu;
 
-import jdos.cpu.core_normal.Prefix_66_0f;
-import jdos.hardware.Memory;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+
+import jdos.cpu.core_normal.Prefix_66_0f;
+import jdos.hardware.Memory;
 import jdos.misc.setup.Config;
+
 
 public class Core_normal extends Prefix_66_0f {
 
@@ -14,6 +16,7 @@ public class Core_normal extends Prefix_66_0f {
     public static int start = 0;
 
     public static class State {
+
         public int s_opcode_index;
         public int s_cseip;
         public int s_prefixes;
@@ -47,44 +50,44 @@ public class Core_normal extends Prefix_66_0f {
     }
 
     static public final String[] desc = new String[] {
-            "ADD",      "ADD",      "ADD",      "ADD",      "ADD",      "ADD",      "PUSH ES",  "POP ES",
-            "OR",       "OR",       "OR",       "OR",       "OR",       "OR",       "PUSH CS",  "2 byte",
-            "ADC",      "ADC",      "ADC",      "ADC",      "ADC",      "ADC",      "PUSH SS",  "POP SS",
-            "SBB",      "SBB",      "SBB",      "SBB",      "SBB",      "SBB",      "PUSH DS",  "POP DS",
-            "AND",      "AND",      "ABD",      "ABD",      "ABD",      "ABD",      "SEG ES",   "DAA",
-            "SUB",      "SUB",      "SUB",      "SUB",      "SUB",      "SUB",      "SEG CS",   "DAS",
-            "XOR",      "XOR",      "XOR",      "XOR",      "XOR",      "XOR",      "SEG SS",   "AAA",
-            "CMP",      "CMP",      "CMP",      "CMP",      "CMP",      "CMP",      "SEG DS",   "AAS",
-            "INC",      "INC",      "INC",      "INC",      "INC",      "INC",      "INC",      "INC",
-            "DEC",      "DEC",      "DEC",      "DEC",      "DEC",      "DEC",      "DEC",      "DEC",
-            "PUSH",     "PUSH",     "PUSH",     "PUSH",     "PUSH",     "PUSH",     "PUSH",     "PUSH",
-            "POP",      "POP",      "POP",      "POP",      "POP",      "POP",      "POP",      "POP",
-            "PUSHA",    "POPA",     "BOUND",    "ARPL",     "SEG FS",   "SEG GS",   "SIZE PREF","ADDR PREF",
-            "PUSH",     "IMUL",     "PUSH",     "IMUL",     "INSB",     "INSW",     "OUTSB",    "OUTSW",
-            "JO",       "JNO",      "JB",       "JNB",      "JZ",       "JNZ",      "JBE",      "JNBE",
-            "JS",       "JNS",      "JP",       "JNP",      "JL",       "JNL",      "JLE",      "JNLE",
-        };
-    public static int count=1;
+            "ADD", "ADD", "ADD", "ADD", "ADD", "ADD", "PUSH ES", "POP ES",
+            "OR", "OR", "OR", "OR", "OR", "OR", "PUSH CS", "2 byte",
+            "ADC", "ADC", "ADC", "ADC", "ADC", "ADC", "PUSH SS", "POP SS",
+            "SBB", "SBB", "SBB", "SBB", "SBB", "SBB", "PUSH DS", "POP DS",
+            "AND", "AND", "ABD", "ABD", "ABD", "ABD", "SEG ES", "DAA",
+            "SUB", "SUB", "SUB", "SUB", "SUB", "SUB", "SEG CS", "DAS",
+            "XOR", "XOR", "XOR", "XOR", "XOR", "XOR", "SEG SS", "AAA",
+            "CMP", "CMP", "CMP", "CMP", "CMP", "CMP", "SEG DS", "AAS",
+            "INC", "INC", "INC", "INC", "INC", "INC", "INC", "INC",
+            "DEC", "DEC", "DEC", "DEC", "DEC", "DEC", "DEC", "DEC",
+            "PUSH", "PUSH", "PUSH", "PUSH", "PUSH", "PUSH", "PUSH", "PUSH",
+            "POP", "POP", "POP", "POP", "POP", "POP", "POP", "POP",
+            "PUSHA", "POPA", "BOUND", "ARPL", "SEG FS", "SEG GS", "SIZE PREF", "ADDR PREF",
+            "PUSH", "IMUL", "PUSH", "IMUL", "INSB", "INSW", "OUTSB", "OUTSW",
+            "JO", "JNO", "JB", "JNB", "JZ", "JNZ", "JBE", "JNBE",
+            "JS", "JNS", "JP", "JNP", "JL", "JNL", "JLE", "JNLE",
+    };
+    public static int count = 1;
 
     /*Bits*/
     public static final CPU.CPU_Decoder CPU_Core_Normal_Run = () -> {
         //logger.log(Level.DEBUG,"CPU_Core_Normal_Run");
-        while (CPU.CPU_Cycles-->0) {
+        while (CPU.CPU_Cycles-- > 0) {
             // inlined
             //LOADIP();
-            cseip=CPU_Regs.reg_csPhys.dword+CPU_Regs.reg_eip;
+            cseip = CPU_Regs.reg_csPhys.dword + CPU_Regs.reg_eip;
             if (CPU.cpu.code.big) {
-                opcode_index=0x200;
-                prefixes=1;
+                opcode_index = 0x200;
+                prefixes = 1;
                 EA16 = false;
             } else {
-                opcode_index=0;
-                prefixes=0;
+                opcode_index = 0;
+                prefixes = 0;
                 EA16 = true;
             }
-            base_ds=CPU_Regs.reg_dsPhys.dword;
-            base_ss=CPU_Regs.reg_ssPhys.dword;
-            base_val_ds=ds;
+            base_ds = CPU_Regs.reg_dsPhys.dword;
+            base_ss = CPU_Regs.reg_ssPhys.dword;
+            base_val_ds = ds;
 //                if (Config.C_DEBUG) {
 //                    if (Config.C_HEAVY_DEBUG) {
 //                        if (Debug.DEBUG_HeavyIsBreakpoint()) {
@@ -94,14 +97,14 @@ public class Core_normal extends Prefix_66_0f {
 //                    }
 //                    Debug.cycle_count++;
 //                }
-    //restart_opcode:
+            //restart_opcode:
             while (true) {
-                int c = opcode_index+Fetchb();
-                if ((prefixes & PREFIX_LOCK)!=0) {
+                int c = opcode_index + Fetchb();
+                if ((prefixes & PREFIX_LOCK) != 0) {
                     if (Core.isInvalidLock(c & ~0x200)) {
-                        CPU.CPU_Exception(6,0);
+                        CPU.CPU_Exception(6, 0);
                     }
-                    prefixes&=~PREFIX_LOCK;// only check the prefix once
+                    prefixes &= ~PREFIX_LOCK;// only check the prefix once
                 }
 //                    last = c;
 //                    if (Config.DEBUG_LOG)
@@ -115,36 +118,36 @@ public class Core_normal extends Prefix_66_0f {
 //                            int ii = 0;
 //                        }
 //                    }
-                    int result = ops[c].call();
-                    if (result != HANDLED) {
-                        if (result == CONTINUE) {
-                            break;
-                        } else if (result == RETURN) {
-                            return returnValue;
-                        } else if (result == RESTART) {
-                            continue;
-                        } else if (result == CBRET_NONE) {
-                            return Callback.CBRET_NONE;
-                        } else if (result == DECODE_END) {
-                            SAVEIP();
-                            Flags.FillFlags();
-                            return Callback.CBRET_NONE;
-                        } else if (result == NOT_HANDLED || result == ILLEGAL_OPCODE) {
-                            if (Config.C_DEBUG)
-                            {
-                                /*Bitu*/int len=GETIP()-reg_eip;
-                                LOADIP();
-                                if (len>16) len=16;
-                                StringBuilder tempcode=new StringBuilder();
-                                for (;len>0;len--) {
-                                    tempcode.append(Integer.toHexString(Memory.mem_readb(cseip++)));
-                                }
+                int result = ops[c].call();
+                if (result != HANDLED) {
+                    if (result == CONTINUE) {
+                        break;
+                    } else if (result == RETURN) {
+                        return returnValue;
+                    } else if (result == RESTART) {
+                        continue;
+                    } else if (result == CBRET_NONE) {
+                        return Callback.CBRET_NONE;
+                    } else if (result == DECODE_END) {
+                        SAVEIP();
+                        Flags.FillFlags();
+                        return Callback.CBRET_NONE;
+                    } else if (result == NOT_HANDLED || result == ILLEGAL_OPCODE) {
+                        if (Config.C_DEBUG) {
+                            /*Bitu*/
+                            int len = GETIP() - reg_eip;
+                            LOADIP();
+                            if (len > 16) len = 16;
+                            StringBuilder tempcode = new StringBuilder();
+                            for (; len > 0; len--) {
+                                tempcode.append(Integer.toHexString(Memory.mem_readb(cseip++)));
                             }
-                            LOG_CPU.log(Level.DEBUG, "Illegal/Unhandled opcode "+Integer.toHexString(c));
-                            CPU.CPU_Exception(6,0);
-                            break;
                         }
+                        LOG_CPU.log(Level.DEBUG, "Illegal/Unhandled opcode " + Integer.toHexString(c));
+                        CPU.CPU_Exception(6, 0);
+                        break;
                     }
+                }
 //                    } finally {
 //                        if (Config.DEBUG_LOG)
 //                            Debug.stop(Debug.TYPE_CPU, c);
@@ -152,7 +155,7 @@ public class Core_normal extends Prefix_66_0f {
 
                 // inlined
                 // SAVEIP();
-                CPU_Regs.reg_eip=cseip- CPU_Regs.reg_csPhys.dword;
+                CPU_Regs.reg_eip = cseip - CPU_Regs.reg_csPhys.dword;
                 break;
             }
         }
@@ -162,17 +165,19 @@ public class Core_normal extends Prefix_66_0f {
 
     /*Bits*/
     public static final CPU.CPU_Decoder CPU_Core_Normal_Trap_Run = () -> {
-        /*Bits*/int oldCycles = CPU.CPU_Cycles;
+        /*Bits*/
+        int oldCycles = CPU.CPU_Cycles;
         CPU.CPU_Cycles = 1;
         CPU.cpu.trap_skip = false;
 
-        /*Bits*/int ret=CPU_Core_Normal_Run.call();
+        /*Bits*/
+        int ret = CPU_Core_Normal_Run.call();
         if (!CPU.cpu.trap_skip) CPU.CPU_HW_Interrupt(1);
-        CPU.CPU_Cycles = oldCycles-1;
+        CPU.CPU_Cycles = oldCycles - 1;
         CPU.cpudecoder = CPU_Core_Normal_Run;
         return ret;
     };
-    
+
     public static void CPU_Core_Normal_Init() {
     }
 }
