@@ -300,6 +300,7 @@ public class WinPos extends WinAPI {
         WinWindow wndPtr = WinWindow.get(hWnd);
         if (wndPtr == null)
             return FALSE;
+        traceUi("ShowWindow hwnd=" + hWnd + " cmd=" + nCmdShow + " visibleBefore=" + (((wndPtr.dwStyle & WS_VISIBLE) != 0) ? 1 : 0));
 
         int style = wndPtr.dwStyle;
         boolean wasVisible = (style & WS_VISIBLE) != 0;

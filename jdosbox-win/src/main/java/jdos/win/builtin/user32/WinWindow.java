@@ -89,6 +89,9 @@ public class WinWindow extends WinObject {
         }
         WinWindow wndPtr = WinWindow.create();
         int hwnd = wndPtr.getHandle();
+        String classNameForTrace = winClass.className;
+        String windowNameForTrace = lpWindowName != 0 ? StringUtil.getString(lpWindowName) : "";
+        traceUi("CreateWindowExA hwnd=" + hwnd + " class=" + classNameForTrace + " text=" + windowNameForTrace + " style=0x" + Integer.toHexString(dwStyle));
 
         /* Fill the window structure */
         wndPtr.thread = Scheduler.getCurrentThread();
@@ -215,20 +218,35 @@ public class WinWindow extends WinObject {
             return 0;
         }
 
-        /* send the size messages */
-        Message.SendMessageA(wndPtr.handle, WM_SIZE, SIZE_RESTORED, MAKELONG(wndPtr.rectWindow.width(), wndPtr.rectWindow.height()));
-        Message.SendMessageA(wndPtr.handle, WM_MOVE, 0, MAKELONG(wndPtr.rectWindow.left, wndPtr.rectWindow.top));
+        /* Child windows often depend on parent initialization performed later in WM_CREATE.
+         * Queue initial size/move notifications to avoid re-entering them too early.
+         */
+        if ((wndPtr.dwStyle & WS_CHILD) != 0) {
+            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> post WM_SIZE");
+            Message.PostMessageA(wndPtr.handle, WM_SIZE, SIZE_RESTORED, MAKELONG(wndPtr.rectWindow.width(), wndPtr.rectWindow.height()));
+            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> post WM_MOVE");
+            Message.PostMessageA(wndPtr.handle, WM_MOVE, 0, MAKELONG(wndPtr.rectWindow.left, wndPtr.rectWindow.top));
+        } else {
+            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> WM_SIZE");
+            Message.SendMessageA(wndPtr.handle, WM_SIZE, SIZE_RESTORED, MAKELONG(wndPtr.rectWindow.width(), wndPtr.rectWindow.height()));
+            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> WM_MOVE");
+            Message.SendMessageA(wndPtr.handle, WM_MOVE, 0, MAKELONG(wndPtr.rectWindow.left, wndPtr.rectWindow.top));
+        }
 
         Scheduler.getCurrentThread().windows.add(wndPtr);
 
         /* Notify the parent window only */
+        traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> parentNotify");
         wndPtr.parentNotify(WM_CREATE);
         if (IsWindow(hwnd) == FALSE)
             return 0;
 
         if ((dwStyle & WS_VISIBLE) != 0) {
+            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> ShowWindow");
             WinPos.ShowWindow(hwnd, SW_SHOW);
         }
+
+        traceUi("CreateWindowExA complete hwnd=" + hwnd);
 
         /* Call WH_SHELL hook */
         if ((wndPtr.dwStyle & WS_CHILD) == 0 && wndPtr.owner == 0)
@@ -528,7 +546,11 @@ public class WinWindow extends WinObject {
 
     // LONG WINAPI GetWindowLongA( HWND hwnd, INT offset );
     public static int GetWindowLongA(int hwnd, int offset) {
-        return WIN_GetWindowLong(hwnd, offset, 4, FALSE);
+        int result = WIN_GetWindowLong(hwnd, offset, 4, FALSE);
+        if (offset >= 0 || offset == GWLP_USERDATA) {
+            traceUi("GetWindowLongA hwnd=" + hwnd + " offset=" + offset + " -> 0x" + Integer.toHexString(result));
+        }
+        return result;
     }
 
     // int WINAPI GetWindowText(HWND hWnd, LPTSTR lpString, int nMaxCount)
@@ -642,7 +664,11 @@ public class WinWindow extends WinObject {
 
     // LONG WINAPI SetWindowLong(HWND hWnd, int nIndex, LONG dwNewLong)
     static public int SetWindowLongA(int hWnd, int nIndex, int dwNewLong) {
-        return WIN_SetWindowLong(hWnd, nIndex, 4, dwNewLong);
+        int result = WIN_SetWindowLong(hWnd, nIndex, 4, dwNewLong);
+        if (nIndex >= 0 || nIndex == GWLP_USERDATA) {
+            traceUi("SetWindowLongA hwnd=" + hWnd + " index=" + nIndex + " new=0x" + Integer.toHexString(dwNewLong) + " old=0x" + Integer.toHexString(result));
+        }
+        return result;
     }
 
     // BOOL WINAPI SetWindowText(HWND hWnd, LPCTSTR lpString)
@@ -1108,6 +1134,7 @@ public class WinWindow extends WinObject {
 
     public void parentNotify(int msg) {
         if ((dwStyle & (WS_CHILD | WS_POPUP)) == WS_CHILD && (dwExStyle & WS_EX_NOPARENTNOTIFY) == 0) {
+            traceUi("parentNotify child=" + handle + " parent=" + GetParent(handle) + " msg=0x" + Integer.toHexString(msg));
             Message.SendMessageA(GetParent(handle), WM_PARENTNOTIFY, MAKEWPARAM(msg, wIDmenu), handle);
         }
     }

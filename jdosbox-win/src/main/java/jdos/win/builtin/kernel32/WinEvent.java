@@ -22,7 +22,7 @@ public class WinEvent extends WaitObject {
     public WinEvent(int handle, String name, boolean manual, boolean set) {
         super(handle);
         this.name = name;
-        this.manual = set;
+        this.manual = manual;
         this.set = set;
     }
 

@@ -19,6 +19,8 @@ public class WinAPI extends Error {
     final static public boolean LOG_GDI = LOG;
     final static public boolean LOG_MM = false;
     final static public boolean MSGLOG = false;
+    final static public boolean TRACE_UI = Boolean.getBoolean("jdos.trace.ui");
+    final static public boolean TRACE_IMPORTS = Boolean.getBoolean("jdos.trace.imports");
     static public final int NULL = 0;
 
     static public void log(String s) {
@@ -38,6 +40,18 @@ public class WinAPI extends Error {
 
     static public void faked() {
         log(HandlerBase.currentHandler.getName() + " faked");
+    }
+
+    static public void traceUi(String s) {
+        if (TRACE_UI) {
+            System.out.println("[trace-ui] " + s);
+        }
+    }
+
+    static public void traceImport(String s) {
+        if (TRACE_IMPORTS) {
+            System.out.println("[trace-import] " + s);
+        }
     }
 
     static public int MAKELONG(int low, int high) {
@@ -429,6 +443,11 @@ public class WinAPI extends Error {
     static public final int MM_MCINOTIFY = 0x03B9;
 
     static public final int WM_USER = 0x0400;
+
+    static public final int SB_HORZ = 0;
+    static public final int SB_VERT = 1;
+    static public final int SB_CTL = 2;
+    static public final int SB_BOTH = 3;
 
     static public final int WS_OVERLAPPED = 0x00000000;
     static public final int WS_POPUP = 0x80000000;
@@ -1258,6 +1277,13 @@ public class WinAPI extends Error {
     static final public int DT_RTLREADING = 0x00020000;
     static final public int DT_WORD_ELLIPSIS = 0x00040000;
 
+    static final public int SIF_RANGE = 0x0001;
+    static final public int SIF_PAGE = 0x0002;
+    static final public int SIF_POS = 0x0004;
+    static final public int SIF_DISABLENOSCROLL = 0x0008;
+    static final public int SIF_TRACKPOS = 0x0010;
+    static final public int SIF_ALL = SIF_RANGE | SIF_PAGE | SIF_POS | SIF_TRACKPOS;
+
     /* ExtTextOut() parameters */
     static final public int ETO_GRAYED = 0x0001;
     static final public int ETO_OPAQUE = 0x0002;
@@ -1939,6 +1965,7 @@ public class WinAPI extends Error {
 
     /* WAVE form wFormatTag IDs */
     static final public int WAVE_FORMAT_UNKNOWN = 0x0000;    /*  Microsoft Corporation  */
+    static final public int WAVE_FORMAT_PCM = 0x0001;    /*  Microsoft Corporation  */
     static final public int WAVE_FORMAT_ADPCM = 0x0002;    /*  Microsoft Corporation  */
     static final public int WAVE_FORMAT_IEEE_FLOAT = 0x0003;    /*  Microsoft Corporation  */
     static final public int WAVE_FORMAT_IBM_CVSD = 0x0005;    /*  IBM Corporation  */
@@ -2024,4 +2051,3 @@ public class WinAPI extends Error {
 
     static final public int DSOUND_FREQSHIFT = 20;
 }
-

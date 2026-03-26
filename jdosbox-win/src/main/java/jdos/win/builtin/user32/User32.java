@@ -16,6 +16,7 @@ public class User32 extends BuiltinModule {
         add(Painting.class, "BeginPaint", new String[] {"hWnd", "(HEX)lps"});
         add(Hook.class, "CallNextHookEx", new String[] {"hhk", "nCode", "wParam", "lParam"});
         add(Winproc.class, "CallWindowProcA", (MSGLOG ? new String[] {"lpPrevWndFunc", "hWnd", "(HEX)Msg", "wParam", "lParam"} : null));
+        add(Str.class, "CharNextA", new String[] {"(STRING)lpsz", "(HEX)result"});
         add(Str.class, "CharUpperA", new String[] {"(STRING)lpsz", "(STRING)result"});
         add(Str.class, "CharUpperBuffA", new String[] {"(STRING)lpsz", "cchLength", "result", "00(STRING)lpsz"});
         add(WinMenu.class, "CheckMenuItem", new String[] {"hmenu", "uIDCheckItem", "uCheck"});
@@ -27,6 +28,7 @@ public class User32 extends BuiltinModule {
         add(WinWindow.class, "CreateWindowExA", new String[] {"(HEX)dwExStyle", "(STRING)lpClassName", "(STRING)lpWindowName", "(HEX)dwStyle", "x", "y", "nWidth", "nHeight", "hWndParent", "hMenu", "hInstance", "lpParam"});
         add(DefDlg.class, "DefDlgProcA", (MSGLOG ? new String[] {"hWnd", "(HEX)Msg", "wParam", "lParam"} : null));
         add(DefWnd.class, "DefWindowProcA", (MSGLOG ? new String[] {"hWnd", "(HEX)Msg", "wParam", "lParam"} : null));
+        add(WinMenu.class, "DestroyMenu", new String[] {"hMenu", "(BOOL)result"});
         add(WinWindow.class, "DestroyWindow", new String[] {"hWnd"});
         add(Message.class, "DispatchMessageA", (MSGLOG ? new String[] {"(MSG)lpmsg"} : null));
         add(UiTools.class, "DrawEdge", new String[] {"hdc", "(RECT)qrc", "(HEX)edge", "(HEX)grfFlags", "(BOOL)result"});
@@ -60,6 +62,7 @@ public class User32 extends BuiltinModule {
         add(WinWindow.class, "GetDesktopWindow", new String[0]);
         add(WinDialog.class, "GetDlgCtrlID", new String[] {"hwndCtl"});
         add(WinDialog.class, "GetDlgItem", new String[] {"hwndDlg", "id"});
+        add(Focus.class, "GetFocus", new String[0]);
         add(Focus.class, "GetForegroundWindow", new String[0]);
         add(Input.class, "GetKeyboardState", new String[] {"(HEX)lpKeyState"});
         add(Input.class, "GetKeyNameTextA", new String[] {"lParam", "(HEX)lpString", "cchSize", "result", "01(STRING)lpString"});
@@ -79,6 +82,8 @@ public class User32 extends BuiltinModule {
         add(SysParams.class, "GetSysColorBrush", new String[] {"nIndex"});
         add(WinMenu.class, "GetSystemMenu", new String[] {"hWnd", "(BOOL)bRevert"});
         add(WinWindow.class, "GetTopWindow", new String[] {"hWnd"});
+        add(WinScroll.class, "GetScrollInfo", new String[] {"hWnd", "nBar", "(HEX)lpsi", "(BOOL)result"});
+        add(WinScroll.class, "GetScrollPos", new String[] {"hWnd", "nBar"});
         add(Painting.class, "GetUpdateRgn", new String[] {"hWnd", "hRgn", "(BOOL)bErase"});
         add(WinWindow.class, "GetWindow", new String[] {"hwnd", "rel"});
         add(WinWindow.class, "GetWindowLongA", new String[] {"hwnd", "offset"});
@@ -113,6 +118,7 @@ public class User32 extends BuiltinModule {
         add(Message.class, "PeekMessageA", (MSGLOG ? new String[] {"(HEX)lpMsg", "hWnd", "wMsgFilterMin", "wMsgFilterMax", "wRemoveMsg", "(BOOL)result", "00(MSG)lpMsg"} : null));
         add(Painting.class, "Pie", new String[] {"hdc", "nLeftRect", "nTopRect", "nRightRect", "nBottomRect", "nXRadial1", "nYRadial1", "nXRadial2", "nYRadial2"});
         add(Message.class, "PostMessageA", (MSGLOG ? new String[] {"hWnd", "(MSG)Msg", "wParam", "lParam"} : null));
+        add(Message.class, "PostQuitMessage", new String[] {"nExitCode"});
         add(Painting.class, "Rectangle", new String[] {"hdc", "nLeftRect", "nTopRect", "nRightRect", "nBottomRect", "(BOOL)result"});
         add(Painting.class, "RedrawWindow", new String[] {"hWnd", "(RECT)lprcUpdate", "hrgnUpdate", "(HEX)flags", "(BOOL)result"});
         add(WinClass.class, "RegisterClassA", new String[] {"(CLASS)lpWndClass"});
@@ -134,11 +140,14 @@ public class User32 extends BuiltinModule {
         add(Focus.class, "SetForegroundWindow", new String[] {"hWnd", "(BOOL)result"});
         add(WinMenu.class, "SetMenu", new String[] {"hWnd", "hMenu", "(BOOL)result"});
         add(WinMenu.class, "SetMenuItemInfoA", new String[] {"hMenu", "uItem", "(BOOL)fByPosition", "lpmii", "(BOOL)result"});
+        add(WinScroll.class, "SetScrollInfo", new String[] {"hWnd", "nBar", "(HEX)lpsi", "(BOOL)redraw"});
+        add(WinScroll.class, "SetScrollPos", new String[] {"hWnd", "nBar", "nPos", "(BOOL)redraw"});
         add(WinWindow.class, "SetParent", new String[] {"hWndChild", "hWndNewParent"});
         add(Property.class, "SetPropA", new String[] {"hWnd", "(STRING)lpString", "hData"});
         add(UiTools.class, "SetRect", new String[] {"(HEX)lprc", "xLeft", "yTop", "xRight", "yBottom", "(BOOL)result", "00(RECT)lprc"});
         add(UiTools.class, "SetRectEmpty", new String[] {"(RECT)lprc", "(BOOL)result", "00(RECT)lprc"});
         add(Message.class, "SetTimer", new String[] {"hWnd", "nIDEvent", "uElapse", "(HEX)lpTimerFunc"});
+        add(Message.class, "KillTimer", new String[] {"hWnd", "uIDEvent", "(BOOL)result"});
         add(WinWindow.class, "SetWindowLongA", new String[] {"hWnd", "nIndex", "dwNewLong"});
         add(WinPos.class, "SetWindowPos", new String[] {"hWnd", "hWndInsertAfter", "X", "Y", "cx", "cy", "(HEX)uFlags"});
         add(Hook.class, "SetWindowsHookExA", new String[] {"idHook", "(HEX)lpfn", "hMod", "dwThreadId"});

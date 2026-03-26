@@ -7,6 +7,7 @@ import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.builtin.directx.ddraw.IDirectDrawSurface;
 import jdos.win.builtin.kernel32.WinProcess;
+import jdos.win.builtin.kernel32.WinThread;
 import jdos.win.system.Scheduler;
 import jdos.win.system.StaticData;
 import jdos.win.system.WinSystem;
@@ -21,6 +22,9 @@ public class Message extends WinAPI {
         int msg = readd(lpmsg + 4);
         int wParam = readd(lpmsg + 8);
         int lParam = readd(lpmsg + 12);
+        if (msg == WinWindow.WM_PAINT || msg == WinWindow.WM_CREATE || msg == WinWindow.WM_INITDIALOG || msg == WinWindow.WM_SHOWWINDOW || msg == WinWindow.WM_SIZE || msg == WinWindow.WM_MOVE || msg == WinWindow.WM_PARENTNOTIFY) {
+            traceUi("DispatchMessageA hwnd=" + hWnd + " msg=0x" + Integer.toHexString(msg));
+        }
         int result = call_window_proc(hWnd, msg, wParam, lParam, false);
         if (msg == WinWindow.WM_PAINT) {
             if (Scheduler.monitor != 0) {
@@ -32,7 +36,14 @@ public class Message extends WinAPI {
 
     // BOOL WINAPI GetMessage(LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax)
     static public int GetMessageA(int lpMsg, int hWnd, int wMsgFilterMin, int wMsgFilterMax) {
-        return Scheduler.getCurrentThread().getNextMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+        int result = Scheduler.getCurrentThread().getNextMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
+        if (result != WAIT_SWITCH && result != FALSE && lpMsg != 0) {
+            int msg = readd(lpMsg + 4);
+            if (msg == WinWindow.WM_PAINT || msg == WinWindow.WM_CREATE || msg == WinWindow.WM_INITDIALOG || msg == WinWindow.WM_SHOWWINDOW || msg == WinWindow.WM_SIZE || msg == WinWindow.WM_MOVE || msg == WinWindow.WM_PARENTNOTIFY) {
+                traceUi("GetMessageA hwnd=" + readd(lpMsg) + " msg=0x" + Integer.toHexString(msg));
+            }
+        }
+        return result;
     }
 
     // DWORD WINAPI GetMessagePos(void);
@@ -65,6 +76,11 @@ public class Message extends WinAPI {
         return TRUE;
     }
 
+    // void WINAPI PostQuitMessage(int nExitCode)
+    static public void PostQuitMessage(int nExitCode) {
+        Scheduler.getCurrentThread().postQuitMessage(nExitCode);
+    }
+
     // If the message is successfully registered, the return value is a message identifier in the range 0xC000 through 0xFFFF
     // UINT WINAPI RegisterWindowMessage(LPCTSTR lpString)
     static public int RegisterWindowMessageA(int lpString) {
@@ -89,6 +105,18 @@ public class Message extends WinAPI {
         if (window == null)
             return 0;
         return window.timer.addTimer(uElapse, nIDEvent, lpTimerFunc);
+    }
+
+    // BOOL WINAPI KillTimer(HWND hWnd, UINT_PTR uIDEvent)
+    static public int KillTimer(int hWnd, int uIDEvent) {
+        if (hWnd == 0) {
+            return WinThread.current().killTimer(uIDEvent);
+        }
+        WinWindow window = WinWindow.get(hWnd);
+        if (window == null) {
+            return FALSE;
+        }
+        return window.timer.killTimer(uIDEvent);
     }
 
     // BOOL WINAPI TranslateMessage(const MSG *lpMsg)
@@ -157,8 +185,14 @@ public class Message extends WinAPI {
             Win.panic("Need to implement intra thread SendMessage");
 
         /* now call the window procedure */
+        if (msg == WinWindow.WM_NCCREATE || msg == WinWindow.WM_CREATE || msg == WinWindow.WM_PAINT || msg == WinWindow.WM_SHOWWINDOW || msg == WinWindow.WM_SIZE || msg == WinWindow.WM_MOVE || msg == WinWindow.WM_PARENTNOTIFY) {
+            traceUi("call_window_proc enter hwnd=" + hwnd + " proc=0x" + Integer.toHexString(wndPtr.winproc) + " msg=0x" + Integer.toHexString(msg));
+        }
         WinSystem.call(wndPtr.winproc, hwnd, msg, wparam, lparam);
         int result = CPU_Regs.reg_eax.dword;
+        if (msg == WinWindow.WM_NCCREATE || msg == WinWindow.WM_CREATE || msg == WinWindow.WM_PAINT || msg == WinWindow.WM_SHOWWINDOW || msg == WinWindow.WM_SIZE || msg == WinWindow.WM_MOVE || msg == WinWindow.WM_PARENTNOTIFY) {
+            traceUi("call_window_proc leave hwnd=" + hwnd + " msg=0x" + Integer.toHexString(msg) + " result=0x" + Integer.toHexString(result));
+        }
 
         /* and finally the WH_CALLWNDPROCRET hook */
         int cwpret = getTempBuffer(20);

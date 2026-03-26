@@ -14,6 +14,7 @@ public class MsgBox extends WinAPI {
         String caption = "";
         if (lpCaption != 0)
             caption = StringUtil.getString(lpCaption);
+        traceUi("MessageBoxA caption=" + caption + " text=" + text);
         int type = JOptionPane.INFORMATION_MESSAGE;
         if ((uType & 0x00000040) != 0) // MB_ICONINFORMATION
             type = JOptionPane.INFORMATION_MESSAGE;

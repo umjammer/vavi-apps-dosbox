@@ -14,6 +14,14 @@ public class Str extends WinAPI {
         return lpsz;
     }
 
+    // LPSTR WINAPI CharNextA(LPCSTR lpsz)
+    static public int CharNextA(int lpsz) {
+        if (lpsz == 0 || Memory.mem_readb(lpsz) == 0) {
+            return lpsz;
+        }
+        return lpsz + 1;
+    }
+
     // DWORD WINAPI CharUpperBuff(LPTSTR lpsz, DWORD cchLength)
     static public int CharUpperBuffA(int lpsz, int cchLength) {
         String value = StringUtil.getString(lpsz, cchLength);

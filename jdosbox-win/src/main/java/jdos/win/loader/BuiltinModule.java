@@ -330,9 +330,15 @@ public class BuiltinModule extends Module {
                     args[i] = CPU.CPU_Peek32(i);
             }
             try {
+                if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
+                    System.out.println("[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
+                }
                 if (LOG && params != null)
                     preLog(name, args, params);
                 Integer result = (Integer) method.invoke(null, (Object[]) args);
+                if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
+                    System.out.println("[trace-ui] result " + method.getDeclaringClass().getSimpleName() + "." + name + "=" + result);
+                }
                 if (LOG && params != null)
                     postLog(name, result, (params != null && params.length > args.length) ? params[args.length] : null, args, params);
                 return result;
@@ -374,6 +380,9 @@ public class BuiltinModule extends Module {
                     args[i] = CPU.CPU_Peek32(i);
             }
             try {
+                if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
+                    System.out.println("[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
+                }
                 if (LOG && params != null)
                     preLog(name, args, params);
                 method.invoke(null, (Object[]) args);
@@ -553,11 +562,17 @@ public class BuiltinModule extends Module {
         Callback.Handler handler = functions.get(functionName);
         if (handler == null) {
             logger.log(Level.DEBUG, "Unknown " + name + " function: " + functionName);
+            traceImport(name + "!" + functionName + (loadFake ? " -> fake" : " -> missing"));
             if (loadFake) {
+                final boolean[] called = {false};
                 handler = new HandlerBase() {
                     @Override
                     public void onCall() {
-                        notImplemented();
+                        if (!called[0]) {
+                            called[0] = true;
+                            traceImport(name + "!" + functionName + " called -> stubbed 0");
+                        }
+                        CPU_Regs.reg_eax.dword = 0;
                     }
 
                     @Override

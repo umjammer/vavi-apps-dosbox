@@ -112,8 +112,10 @@ public class WinClass extends WinObject {
         if (!c.loadEx(lpwcx)) {
             SetLastError(Error.ERROR_CLASS_ALREADY_EXISTS);
             c.close();
+            traceUi("RegisterClassExA failed");
             return 0;
         }
+        traceUi("RegisterClassExA class=" + c.className + " atom=" + c.handle + " cbWndExtra=" + c.cbWndExtra + " wndproc=0x" + Integer.toHexString(c.eip));
         return c.handle;
     }
 

@@ -59,6 +59,24 @@ public class WinThread extends WaitObject {
         return Scheduler.getCurrentThread().getLastError();
     }
 
+    static public int ResumeThread(int hThread) {
+        WinThread thread = get(hThread);
+        if (thread == null) {
+            Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
+            return -1;
+        }
+        return thread.resume();
+    }
+
+    static public int SuspendThread(int hThread) {
+        WinThread thread = get(hThread);
+        if (thread == null) {
+            Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
+            return -1;
+        }
+        return thread.suspend();
+    }
+
     static public WinThread current() {
         return Scheduler.getCurrentThread();
     }
@@ -84,6 +102,7 @@ public class WinThread extends WaitObject {
     private boolean quit = false;
     private final WinTimer timer = new WinTimer(0);
     public int priority = THREAD_PRIORITY_NORMAL;
+    private int suspendCount = 0;
     public BitSet keyState;
     public int msg_window;
     final private WinEvent msgReady = WinEvent.create(null, true, true);
@@ -191,6 +210,26 @@ public class WinThread extends WaitObject {
 
     public void setPriority(int nPriority) {
 
+    }
+
+    public int suspend() {
+        int previous = suspendCount;
+        suspendCount++;
+        if (previous == 0) {
+            Scheduler.removeThread(this);
+        }
+        return previous;
+    }
+
+    public int resume() {
+        int previous = suspendCount;
+        if (suspendCount > 0) {
+            suspendCount--;
+            if (suspendCount == 0) {
+                Scheduler.addThread(this, false);
+            }
+        }
+        return previous;
     }
 
     public void postMessage(int hWnd, int message, int wParam, int lParam) {
@@ -333,6 +372,14 @@ public class WinThread extends WaitObject {
                 return msgQueue.getLast();
         }
         return null;
+    }
+
+    public void postQuitMessage(int exitCode) {
+        quit = true;
+    }
+
+    public int killTimer(int id) {
+        return timer.killTimer(id);
     }
 
     public void sleep(int ms) {

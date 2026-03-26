@@ -1,7 +1,7 @@
 package jdos.cpu;
 
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
+import java.util.HashSet;
+import java.util.Set;
 
 import jdos.cpu.core_normal.Prefix_66_0f;
 import jdos.hardware.Memory;
@@ -10,10 +10,12 @@ import jdos.misc.setup.Config;
 
 public class Core_normal extends Prefix_66_0f {
 
-    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
+    private static final java.lang.System.Logger LOG_CPU = System.getLogger("LOG_CPU");
 
     public static boolean log = false;
     public static int start = 0;
+    private static final Set<Integer> traceEips = parseTraceEips();
+    private static final Set<Integer> seenTraceEips = new HashSet<>();
 
     public static class State {
 
@@ -73,6 +75,7 @@ public class Core_normal extends Prefix_66_0f {
     public static final CPU.CPU_Decoder CPU_Core_Normal_Run = () -> {
         //logger.log(Level.DEBUG,"CPU_Core_Normal_Run");
         while (CPU.CPU_Cycles-- > 0) {
+            traceInstructionPointer();
             // inlined
             //LOADIP();
             cseip = CPU_Regs.reg_csPhys.dword + CPU_Regs.reg_eip;
@@ -143,7 +146,7 @@ public class Core_normal extends Prefix_66_0f {
                                 tempcode.append(Integer.toHexString(Memory.mem_readb(cseip++)));
                             }
                         }
-                        LOG_CPU.log(Level.DEBUG, "Illegal/Unhandled opcode " + Integer.toHexString(c));
+                        LOG_CPU.log(java.lang.System.Logger.Level.DEBUG, "Illegal/Unhandled opcode " + Integer.toHexString(c));
                         CPU.CPU_Exception(6, 0);
                         break;
                     }
@@ -162,6 +165,44 @@ public class Core_normal extends Prefix_66_0f {
         Flags.FillFlags();
         return Callback.CBRET_NONE;
     };
+
+    private static Set<Integer> parseTraceEips() {
+        String value = System.getProperty("jdos.trace.eip");
+        Set<Integer> result = new HashSet<>();
+        if (value == null || value.isBlank()) {
+            return result;
+        }
+        for (String part : value.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            try {
+                result.add(Integer.decode(trimmed));
+            } catch (NumberFormatException ignored) {
+            }
+        }
+        return result;
+    }
+
+    private static void traceInstructionPointer() {
+        int eip = CPU_Regs.reg_eip;
+        if (!traceEips.contains(eip) || !seenTraceEips.add(eip)) {
+            return;
+        }
+        System.out.println(
+                String.format(
+                        "[trace-eip] eip=0x%08x eax=0x%08x ecx=0x%08x edx=0x%08x ebx=0x%08x esp=0x%08x ebp=0x%08x esi=0x%08x edi=0x%08x",
+                        eip,
+                        CPU_Regs.reg_eax.dword,
+                        CPU_Regs.reg_ecx.dword,
+                        CPU_Regs.reg_edx.dword,
+                        CPU_Regs.reg_ebx.dword,
+                        CPU_Regs.reg_esp.dword,
+                        CPU_Regs.reg_ebp.dword,
+                        CPU_Regs.reg_esi.dword,
+                        CPU_Regs.reg_edi.dword));
+    }
 
     /*Bits*/
     public static final CPU.CPU_Decoder CPU_Core_Normal_Trap_Run = () -> {

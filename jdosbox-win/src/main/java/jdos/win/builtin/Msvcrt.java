@@ -1,6 +1,7 @@
 package jdos.win.builtin;
 
 import jdos.hardware.Memory;
+import jdos.cpu.CPU_Regs;
 import jdos.win.Console;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
@@ -16,11 +17,12 @@ public class Msvcrt extends BuiltinModule {
     private final int commode;
     private final int fmode;
     private final int iob;
+    private final int envData;
 
     public Msvcrt(Loader loader, int handle) {
         super(loader, "msvcrt.dll", handle);
 
-        add_cdecl(Msvcrt.class, "__getmainargs", new String[] {"(HEX)argc", "(HEX)argv", "(HEX)envp", "expand_wildcards"});
+        add_cdecl(Msvcrt.class, "__getmainargs", new String[] {"(HEX)argc", "(HEX)argv", "(HEX)envp", "expand_wildcards", "(HEX)startup_info"});
         add_cdecl(Msvcrt.class, "__p___initenv");
         add_cdecl(Msvcrt.class, "__p__acmdln");
         add_cdecl(Msvcrt.class, "__p__commode");
@@ -50,26 +52,38 @@ public class Msvcrt extends BuiltinModule {
         commode = addData("_commode", 4);
         fmode = addData("_fmode", 4);
         iob = addData("__iob", FILE_STRUCT_SIZE * 3);
+        envData = WinSystem.getCurrentProcess().heap.alloc(4, false);
 
         Memory.mem_writed(acmdln, WinSystem.getCurrentProcess().getCommandLine());
-        Memory.mem_writed(initenv, 0);
+        Memory.mem_writed(envData, 0);
+        Memory.mem_writed(initenv, envData);
         Memory.mem_writed(commode, 0);
         Memory.mem_writed(fmode, 0);
         Memory.mem_zero(iob, FILE_STRUCT_SIZE * 3);
     }
 
-    public static void __getmainargs(int argc, int argv, int envp, int expandWildcards) {
+    public static int __getmainargs(int argc, int argv, int envp, int expandWildcards, int startupInfo) {
         String[] args = StringUtil.parseQuotedString(StringUtil.getString(WinSystem.getCurrentProcess().getCommandLine()));
         if (args.length == 1 && args[0].isEmpty()) {
             args = new String[0];
         }
+        int initenvPtr = WinSystem.getCurrentProcess().loader.getModuleByName("msvcrt.dll").getProcAddress("__initenv", false);
+        int envData = Memory.mem_readd(initenvPtr);
+        if (envData == 0) {
+            envData = WinSystem.getCurrentProcess().heap.alloc(4, false);
+            Memory.mem_writed(envData, 0);
+            Memory.mem_writed(initenvPtr, envData);
+        }
         Memory.mem_writed(argc, args.length);
-        int argvData = WinSystem.getCurrentProcess().heap.alloc(Math.max(4, args.length * 4), false);
+        int argvData = WinSystem.getCurrentProcess().heap.alloc(Math.max(4, (args.length + 1) * 4), false);
         for (int i = 0; i < args.length; i++) {
             Memory.mem_writed(argvData + i * 4, StringUtil.allocateA(args[i]));
         }
+        Memory.mem_writed(argvData + args.length * 4, 0);
         Memory.mem_writed(argv, argvData);
-        Memory.mem_writed(envp, 0);
+        Memory.mem_writed(envp, envData);
+        traceUi("__getmainargs argc=" + args.length + " expandWildcards=" + expandWildcards + " startupInfo=0x" + Integer.toHexString(startupInfo));
+        return 0;
     }
 
     public static int __p___initenv() {
@@ -100,6 +114,7 @@ public class Msvcrt extends BuiltinModule {
     }
 
     public static void _amsg_exit(int code) {
+        traceUi("_amsg_exit code=" + code + " returnEip=0x" + Integer.toHexString(CPU_Regs.reg_eip));
         WinSystem.getCurrentProcess().exit();
     }
 
@@ -128,6 +143,7 @@ public class Msvcrt extends BuiltinModule {
         int total = Math.max(0, count * size);
         int result = WinSystem.getCurrentProcess().heap.alloc(total, false);
         Memory.mem_zero(result, total);
+        traceUi("calloc count=" + count + " size=" + size + " -> 0x" + Integer.toHexString(result));
         return result;
     }
 
@@ -146,7 +162,9 @@ public class Msvcrt extends BuiltinModule {
     }
 
     public static int malloc(int size) {
-        return WinSystem.getCurrentProcess().heap.alloc(size, false);
+        int result = WinSystem.getCurrentProcess().heap.alloc(size, false);
+        traceUi("malloc size=" + size + " -> 0x" + Integer.toHexString(result));
+        return result;
     }
 
     public static int memcpy(int dst, int src, int size) {
@@ -159,7 +177,9 @@ public class Msvcrt extends BuiltinModule {
     }
 
     public static int strlen(int str) {
-        return StringUtil.strlenA(str);
+        int result = StringUtil.strlenA(str);
+        traceUi("strlen ptr=0x" + Integer.toHexString(str) + " -> " + result);
+        return result;
     }
 
     public static int strncmp(int s1, int s2, int count) {

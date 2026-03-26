@@ -4,7 +4,9 @@ import java.io.ByteArrayOutputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jdos.Dosbox;
 import jdos.cpu.CPU;
@@ -41,6 +43,7 @@ public class NativeModule extends Module {
     private final Loader loader;
     private int baseAddress;
     private int resourceStartAddress;
+    private final Map<String, Integer> tracedProcAddresses = new HashMap<>();
 
     public NativeModule(Loader loader, int handle) {
         super(handle);
@@ -107,12 +110,93 @@ public class NativeModule extends Module {
 
     @Override
     public int getProcAddress(String name, boolean loadFake) {
+        Integer traced = tracedProcAddresses.get(name);
+        if (traced != null) {
+            return traced;
+        }
         LongRef exportAddress = new LongRef(0);
         LongRef exportSize = new LongRef(0);
         if (RtlImageDirectoryEntryToData(HeaderImageOptional.IMAGE_DIRECTORY_ENTRY_EXPORT, exportAddress, exportSize)) {
-            return (int) findNameExport(exportAddress.value, exportSize.value, name, -1);
+            int address = (int) findNameExport(exportAddress.value, exportSize.value, name, -1);
+            int argCount = getTracedExportArgCount(name);
+            if (address != 0 && argCount >= 0) {
+                int tracedAddress = createTracedProcAddress(name, address, argCount);
+                tracedProcAddresses.put(name, tracedAddress);
+                return tracedAddress;
+            }
+            return address;
         }
         return 0;
+    }
+
+    private int createTracedProcAddress(String functionName, int originalAddress, int argCount) {
+        int callback = WinCallback.addCallback(new Callback.Handler() {
+            @Override
+            public String getName() {
+                return NativeModule.this.name + "!" + functionName + " traced";
+            }
+
+            @Override
+            public int call() {
+                int returnEip = CPU.CPU_Pop32();
+                StringBuilder args = new StringBuilder();
+                for (int i = 0; i < argCount; i++) {
+                    if (i > 0) {
+                        args.append(", ");
+                    }
+                    args.append("0x").append(Integer.toHexString(Memory.mem_readd(CPU_Regs.reg_esp.dword + i * 4)));
+                }
+                System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + "(" + args + ") -> call 0x" + Integer.toHexString(originalAddress));
+                try {
+                    WinSystem.call(originalAddress,
+                            argCount >= 1 ? Memory.mem_readd(CPU_Regs.reg_esp.dword) : 0,
+                            argCount >= 2 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 4) : 0,
+                            argCount >= 3 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 8) : 0,
+                            argCount >= 4 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 12) : 0,
+                            argCount >= 5 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 16) : 0);
+                    System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + " result=0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
+                } catch (Throwable t) {
+                    System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + " threw " + t);
+                    t.printStackTrace(System.out);
+                    throw t;
+                } finally {
+                    CPU_Regs.reg_eip = returnEip;
+                }
+                return 0;
+            }
+        });
+        return loader.registerFunction(callback);
+    }
+
+    private int getTracedExportArgCount(String functionName) {
+        String value = System.getProperty("jdos.trace.exports");
+        if (value == null || value.isBlank()) {
+            return -1;
+        }
+        String moduleName = this.name.toLowerCase();
+        String targetName = functionName.toLowerCase();
+        for (String part : value.split(",")) {
+            String trimmed = part.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            int bang = trimmed.indexOf('!');
+            int colon = trimmed.lastIndexOf(':');
+            if (bang <= 0 || colon <= bang + 1 || colon == trimmed.length() - 1) {
+                continue;
+            }
+            String module = trimmed.substring(0, bang).toLowerCase();
+            String name = trimmed.substring(bang + 1, colon).toLowerCase();
+            if (!module.equals(moduleName) || !name.equals(targetName)) {
+                continue;
+            }
+            try {
+                return Integer.parseInt(trimmed.substring(colon + 1));
+            } catch (NumberFormatException ignored) {
+                return -1;
+            }
+        }
+        return -1;
     }
 
     private HeaderImageExportDirectory exports = null;

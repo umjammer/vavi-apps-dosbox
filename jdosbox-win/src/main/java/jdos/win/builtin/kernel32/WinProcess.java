@@ -1,5 +1,6 @@
 package jdos.win.builtin.kernel32;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -253,15 +254,13 @@ public class WinProcess extends WaitObject {
     }
 
     public FilePath getFile(String name) {
-        if (!name.contains(":"))
-            name = currentWorkingDirectory + name;
-        // TODO add support for relative paths
+        name = WinPath.normalizePath(name, currentWorkingDirectory);
         for (Path path : paths) {
             if (name.toLowerCase().startsWith(path.winPath.toLowerCase())) {
-                return new FilePath(path.nativePath + name.substring(path.winPath.length()));
+                return new FilePath(WinPath.toHostPath(name, path.nativePath, path.winPath));
             }
         }
-        return new FilePath((paths.getFirst()).nativePath + name);
+        return new FilePath(paths.getFirst().nativePath + name.replace('\\', File.separatorChar));
     }
 
     public boolean load(String exe, String commandLine, List<Path> paths) {

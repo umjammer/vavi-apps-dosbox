@@ -71,6 +71,7 @@ public class Kernel32 extends BuiltinModule {
         add(EnumSystemLocalesA);
         add(EnumSystemLocalesW);
         add(ExitProcess);
+        add(ExitThread);
         add(FatalAppExitA);
         add(FileTimeToLocalFileTime);
         add(FileTimeToSystemTime);
@@ -102,6 +103,7 @@ public class Kernel32 extends BuiltinModule {
         add(GetEnvironmentStrings);
         add(GetEnvironmentStringsA);
         add(GetEnvironmentStringsW);
+        add(Environ.class, "GetEnvironmentVariableA", new String[] {"(STRING)lpName", "(HEX)lpBuffer", "nSize", "result", "01(STRING)lpBuffer"});
         add(GetFileAttributesA);
         add(GetFileSize);
         add(GetFileType);
@@ -184,6 +186,7 @@ public class Kernel32 extends BuiltinModule {
         add(KResource.class, "LockResource", new String[] {"(HEX)hResData", "(HEX)result"});
         add(WinString.class, "lstrcatA", new String[] {"(STRING)lpString1", "(STRING)lpString2", "(STRING)result"});
         add(WinLocale.class, "lstrcmpA", new String[] {"(STRING)lpString1", "(STRING)lpString2"});
+        add(WinLocale.class, "lstrcmpiA", new String[] {"(STRING)lpString1", "(STRING)lpString2"});
         add(lstrcpyA);
         add(lstrlenA);
         add(lstrlenW);
@@ -199,6 +202,7 @@ public class Kernel32 extends BuiltinModule {
         add(RaiseException);
         add(ReadFile);
         add(ReleaseMutex);
+        add(ResetEvent);
         add(RtlMoveMemory);
         add(RtlUnwind);
         add(RtlZeroMemory);
@@ -213,6 +217,8 @@ public class Kernel32 extends BuiltinModule {
         add(SetLastError);
         add(SetStdHandle);
         add(SetThreadPriority);
+        add(WinThread.class, "ResumeThread", new String[] {"hThread"});
+        add(WinThread.class, "SuspendThread", new String[] {"hThread"});
         add(SetUnhandledExceptionFilter);
         add(Sleep);
         add(TerminateProcess);
@@ -542,14 +548,13 @@ public class Kernel32 extends BuiltinModule {
             if ((flags & 0x00010000) != 0) {
                 stackSizeCommit = 0;
             }
-            if ((flags & 0x00000004) != 0) {
-                logger.log(Level.DEBUG, "CreateThread with suspend flags not supported yet");
-                Win.exit();
-            }
             if (attributes != 0) {
                 logger.log(Level.DEBUG, "***WARNING*** attributes are not supported for CreateThread");
             }
             WinThread thread = WinSystem.getCurrentProcess().createThread(start, stackSizeCommit, stackSizeReserved);
+            if ((flags & 0x00000004) != 0) {
+                thread.suspend();
+            }
             if (threadCleanup == 0) {
                 int cb = WinCallback.addCallback(CreateThreadCleanup);
                 threadCleanup = loader.registerFunction(cb);
@@ -1471,6 +1476,7 @@ public class Kernel32 extends BuiltinModule {
             String name = new LittleEndianFile(procName).readCString();
             logger.log(Level.DEBUG, "GetProcAddress " + name);
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getProcAddress(handle, name);
+            traceUi("GetProcAddress h=0x" + Integer.toHexString(handle) + " " + name + " -> 0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
         }
     };
 
@@ -2712,6 +2718,7 @@ public class Kernel32 extends BuiltinModule {
             String name = new LittleEndianFile(CPU.CPU_Pop32()).readCString();
             log("name=" + name);
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().loadModule(name);
+            traceUi("LoadLibraryA " + name + " -> 0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
         }
     };
 
@@ -3064,6 +3071,27 @@ public class Kernel32 extends BuiltinModule {
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
             } else {
                 CPU_Regs.reg_eax.dword = event.set();
+            }
+        }
+    };
+
+    // BOOL WINAPI ResetEvent(HANDLE hEvent)
+    private final Callback.Handler ResetEvent = new HandlerBase() {
+        @Override
+        public String getName() {
+            return "Kernel32.ResetEvent";
+        }
+
+        @Override
+        public void onCall() {
+            int hEvent = CPU.CPU_Pop32();
+            WinEvent event = WinEvent.get(hEvent);
+            if (event == null) {
+                CPU_Regs.reg_eax.dword = WinAPI.FALSE;
+                Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
+            } else {
+                event.reset();
+                CPU_Regs.reg_eax.dword = WinAPI.TRUE;
             }
         }
     };

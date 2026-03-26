@@ -31,7 +31,12 @@ public class Waveform extends WinAPI {
     private static class WaveObject extends WinObject {
 
         static public WaveObject create(WAVEFORMATEX format) {
-            return new WaveObject(nextObjectId(), format);
+            WaveObject object = new WaveObject(nextObjectId(), format);
+            if (!object.thread.ready) {
+                object.close();
+                return null;
+            }
+            return object;
         }
 
         static public WaveObject get(int handle) {
@@ -54,7 +59,7 @@ public class Waveform extends WinAPI {
 
         public WaveOutThread(WAVEFORMATEX format) {
             this.format = format;
-            open();
+            ready = open();
         }
 
         public boolean open() {
@@ -78,6 +83,7 @@ public class Waveform extends WinAPI {
         final List<WAVEHDR> buffers = new ArrayList<>();
         final WAVEFORMATEX format;
         boolean exit = false;
+        final boolean ready;
         SourceDataLine line;
 
         @Override
@@ -85,7 +91,9 @@ public class Waveform extends WinAPI {
             while (!exit) {
                 while (!buffers.isEmpty()) {
                     WAVEHDR hdr = buffers.removeFirst();
-                    line.write(hdr.data, 0, hdr.data.length);
+                    if (line != null) {
+                        line.write(hdr.data, 0, hdr.data.length);
+                    }
                     hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
                     hdr.dwFlags |= WAVEHDR.WHDR_DONE;
                     hdr.writeFlags();
@@ -98,9 +106,11 @@ public class Waveform extends WinAPI {
                         }
                 }
             }
-            line.stop();
-            line.close();
-            line = null;
+            if (line != null) {
+                line.stop();
+                line.close();
+                line = null;
+            }
         }
     }
 
@@ -155,12 +165,41 @@ public class Waveform extends WinAPI {
         if (res != WinMM.MMSYSERR_NOERROR)
             return res;
 
-        if (fdwOpen != 0)
-            Win.panic("WinMM.waveOutOpen fdwOpen=" + Ptr.toString(fdwOpen) + " not supported yet");
-        if (uDeviceID != WinMM.WAVE_MAPPER)
-            Win.panic("WinMM.waveOutOpen uDeviceID=" + uDeviceID + " not supported yet");
+        int supportedFlags = CALLBACK_TYPEMASK | WinMM.WAVE_FORMAT_QUERY | WinMM.WAVE_ALLOWSYNC | WinMM.WAVE_MAPPED | WinMM.WAVE_FORMAT_DIRECT;
+        int unsupportedFlags = fdwOpen & ~supportedFlags;
+        if (unsupportedFlags != 0) {
+            traceUi("waveOutOpen unsupported flags fdwOpen=0x" + Ptr.toString(fdwOpen));
+            return WinMM.MMSYSERR_INVALFLAG;
+        }
+        if (uDeviceID != WinMM.WAVE_MAPPER && uDeviceID != 0) {
+            traceUi("waveOutOpen unsupported device uDeviceID=" + uDeviceID);
+            return WinMM.MMSYSERR_BADDEVICEID;
+        }
+        if (pwfx == 0)
+            return WinMM.MMSYSERR_INVALPARAM;
 
-        writed(lphWaveOut, WaveObject.create(new WAVEFORMATEX(pwfx)).handle);
+        WAVEFORMATEX format = new WAVEFORMATEX(pwfx);
+        traceUi(
+                "waveOutOpen device=" + uDeviceID +
+                        " flags=0x" + Ptr.toString(fdwOpen) +
+                        " fmt=0x" + Ptr.toString(format.wFormatTag) +
+                        " ch=" + format.nChannels +
+                        " rate=" + format.nSamplesPerSec +
+                        " bits=" + format.wBitsPerSample +
+                        " avg=" + format.nAvgBytesPerSec +
+                        " align=" + format.nBlockAlign
+        );
+        if (!isSupportedFormat(format))
+            return WinMM.WAVERR_BADFORMAT;
+        if ((fdwOpen & WinMM.WAVE_FORMAT_QUERY) != 0)
+            return WinMM.MMSYSERR_NOERROR;
+
+        WaveObject object = WaveObject.create(format);
+        if (object == null) {
+            traceUi("waveOutOpen failed to create audio line, continuing without wave output");
+            return WinMM.MMSYSERR_NODRIVER;
+        }
+        writed(lphWaveOut, object.handle);
 
 //        info.format = (WAVEFORMATEX*)lpFormat;
 //        info.callback = dwCallback;
@@ -183,6 +222,15 @@ public class Waveform extends WinAPI {
 //        WINMM_NotifyClient(&cb_info, WOM_OPEN, 0, 0);
 
         return res;
+    }
+
+    private static boolean isSupportedFormat(WAVEFORMATEX format) {
+        if (format.nChannels <= 0 || format.nSamplesPerSec <= 0 || format.wBitsPerSample <= 0)
+            return false;
+        return switch (format.wFormatTag) {
+            case WAVE_FORMAT_UNKNOWN, WAVE_FORMAT_PCM, WAVE_FORMAT_IEEE_FLOAT -> true;
+            default -> false;
+        };
     }
 
     // MMRESULT waveOutPrepareHeader(HWAVEOUT hwo, LPWAVEHDR pwh, UINT cbwh)

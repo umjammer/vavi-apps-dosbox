@@ -14,4 +14,9 @@ public class WinLocale {
     public static int lstrcmpA(int lpString1, int lpString2) {
         return StringUtil.strcmp(lpString1, lpString2);
     }
+
+    // int WINAPI lstrcmpi(LPCTSTR lpString1, LPCTSTR lpString2)
+    public static int lstrcmpiA(int lpString1, int lpString2) {
+        return StringUtil.getString(lpString1).compareToIgnoreCase(StringUtil.getString(lpString2));
+    }
 }

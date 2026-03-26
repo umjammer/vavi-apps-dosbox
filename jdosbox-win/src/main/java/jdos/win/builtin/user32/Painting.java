@@ -24,6 +24,7 @@ public class Painting extends WinAPI {
         WinWindow win = WinWindow.get(hwnd);
 
         if (lps == 0) return 0;
+        traceUi("BeginPaint hwnd=" + hwnd + " invalid=" + (win != null && win.invalidationRect != null));
 
         Caret.HideCaret(hwnd);
 
@@ -82,6 +83,7 @@ public class Painting extends WinAPI {
         Caret.ShowCaret(hWnd);
         Main.drawImage(StaticData.screen.getImage());
         WinWindow.get(hWnd).validate();
+        traceUi("EndPaint hwnd=" + hWnd);
         return TRUE;
     }
 
@@ -126,6 +128,7 @@ public class Painting extends WinAPI {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return FALSE; // TODO invalidate all windows
+        traceUi("InvalidateRect hwnd=" + hWnd + " erase=" + bErase + " rectPtr=0x" + Integer.toHexString(lpRect));
         WinRect rect = null;
         if (lpRect != 0) {
             rect = new WinRect(lpRect);
