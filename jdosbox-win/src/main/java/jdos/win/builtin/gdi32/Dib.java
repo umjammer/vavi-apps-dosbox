@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import jdos.win.builtin.WinAPI;
 
 
+import jdos.win.utils.Pixel;
+
 public class Dib extends WinAPI {
 
     // UINT GetDIBColorTable(HDC hdc, UINT uStartIndex, UINT cEntries, RGBQUAD *pColors)
@@ -38,6 +40,9 @@ public class Dib extends WinAPI {
         Graphics2D g = dc.getGraphics();
         BitBlt.StretchBlt2D(g, dc.x + XDest, dc.x + YDest, nDestWidth, nDestHeight, bitmap.createJavaBitmap(true).getImage(), XSrc, bitmap.height - YSrc - 1 - nSrcHeight, nSrcWidth, nSrcHeight, dwRop);
         g.dispose();
+        if (dc.getImage() == jdos.win.system.StaticData.screen.getImage()) {
+            jdos.gui.Main.drawImage(dc.getImage());
+        }
         return nDestHeight;
     }
 }

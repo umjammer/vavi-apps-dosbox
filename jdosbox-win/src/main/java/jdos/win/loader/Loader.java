@@ -56,9 +56,9 @@ public class Loader {
         if (nextFunctionAddress >= maxFunctionAddress) {
             throw new IllegalStateException("Need to increase maximum number of function lookups to more than " + (nextFunctionAddress - maxFunctionAddress));
         }
-        Memory.mem_writed((int) nextFunctionAddress, (cb << 16) + 0x38FE);
-        long result = nextFunctionAddress;
-        nextFunctionAddress += 4;
+        long result = callbackHeap.alloc(4, false);
+        Memory.mem_writed((int) result, (cb << 16) + 0x38FE);
+        nextFunctionAddress = result + 4;
         return (int) result;
     }
 
@@ -133,6 +133,8 @@ public class Loader {
                 }
             }
         } catch (Exception e) {
+            logger.log(Level.TRACE, "Exception in load_native_module:");
+            e.printStackTrace(System.out);
             logger.log(Level.ERROR, e.getMessage(), e);
         }
         return null;
@@ -270,6 +272,7 @@ public class Loader {
                     return false;
                 } else {
                     module.writeThunk(importDescriptor, i, thunk);
+                    logger.log(Level.TRACE, "Import resolved: " + functionName.value + " thunk=" + Long.toHexString(thunk) + " in " + name);
                 }
             }
         }

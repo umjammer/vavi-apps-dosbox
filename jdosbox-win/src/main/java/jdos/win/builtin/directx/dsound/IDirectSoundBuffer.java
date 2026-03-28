@@ -5,6 +5,7 @@ import java.lang.System.Logger.Level;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
 import jdos.cpu.CPU;
@@ -733,6 +734,12 @@ public class IDirectSoundBuffer extends IUnknown {
             open();
         }
 
+        public static void volume(DataLine line, double gain) {
+            FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+            float dB = (float) (Math.log10(gain) * 20.0);
+            gainControl.setValue(dB);
+        }
+
         public boolean open() {
             try {
                 AudioFormat af = new AudioFormat(DSMixer.DEVICE_SAMPLE_RATE, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
@@ -740,8 +747,9 @@ public class IDirectSoundBuffer extends IUnknown {
                 line = (SourceDataLine) AudioSystem.getLine(info);
                 line.open(af, LINE_SIZE);
                 line.start();
+                volume(line, Double.parseDouble(System.getProperty("jdosbox.volume", "0.02")));
             } catch (Exception e) {
-                logger.log(Level.ERROR, e.getMessage(), e);
+                logger.log(Level.ERROR, "Failed to open SourceDataLine: " + e.getMessage(), e);
                 return false;
             }
             return true;
@@ -775,6 +783,7 @@ public class IDirectSoundBuffer extends IUnknown {
             while (!bExit) {
                 playing = true;
                 do {
+                    int emptyLoops = 0;
                     while (true) {
                         int start;
                         int end;
@@ -791,9 +800,13 @@ public class IDirectSoundBuffer extends IUnknown {
                             buffer = data.tmp_buffer;
                             bufferLen = data.tmp_buffer_len;
                         }
-                        if (end > start)
+                        if (end > start) {
                             play(buffer, bufferLen, start, end);
-                        else {
+                        } else {
+                            emptyLoops++;
+                            if (emptyLoops > 100) {
+                                emptyLoops = 0;
+                            }
                             play(buffer, bufferLen, start, data.tmp_buffer_len);
                             if (!stop && buffer == data.tmp_buffer)
                                 play(buffer, bufferLen, 0, end);

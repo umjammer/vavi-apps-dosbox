@@ -396,7 +396,24 @@ public class FilePath {
         }
 
         public JavaPath(String path) {
-            file = new File(path);
+            File f = new File(path);
+            // Windows is case-insensitive; do a case-insensitive fallback lookup
+            if (!f.exists()) {
+                File parent = f.getParentFile();
+                if (parent != null && parent.isDirectory()) {
+                    String targetName = f.getName();
+                    File[] siblings = parent.listFiles();
+                    if (siblings != null) {
+                        for (File sibling : siblings) {
+                            if (sibling.getName().equalsIgnoreCase(targetName)) {
+                                f = sibling;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+            file = f;
         }
 
         @Override

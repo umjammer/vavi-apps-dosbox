@@ -7,6 +7,7 @@ import javax.sound.midi.MidiSystem;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.DataLine;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
 import jdos.misc.Program;
@@ -22,6 +23,12 @@ public class AudioLayer {
 
     static private Thread audioThread;
 
+    public static void volume(DataLine line, double gain) {
+        FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
+        float dB = (float) (Math.log10(gain) * 20.0);
+        gainControl.setValue(dB);
+    }
+
     public static boolean open(int bufferSize, int freq) {
         AudioFormat format = new AudioFormat(freq, 16, 2, true, false);
         try {
@@ -29,6 +36,7 @@ public class AudioLayer {
             line = (SourceDataLine) AudioSystem.getLine(info);
             line.open(format, bufferSize);
             line.start();
+            volume(line, Double.parseDouble(System.getProperty("jdosbox.volume", "0.02")));
             audioThreadExit = false;
             audioThread = new Thread(() -> {
                 while (!audioThreadExit) {

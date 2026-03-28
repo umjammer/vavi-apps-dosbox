@@ -3,6 +3,12 @@ package jdos.win.kernel;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 
+import jdos.cpu.CPU_Regs;
+import jdos.cpu.Paging;
+import jdos.win.builtin.kernel32.VirtualMemory;
+import jdos.win.builtin.kernel32.WinProcess;
+import jdos.win.system.WinSystem;
+
 import jdos.cpu.CPU;
 import jdos.cpu.Callback;
 import jdos.hardware.Memory;
@@ -51,6 +57,7 @@ public class KernelMemory {
             }
             int tmp = placement_address;
             placement_address += sz;
+            logger.log(Level.TRACE, "kmalloc(" + sz + ", " + align + ") -> " + Integer.toHexString(tmp) + ", placement=" + Integer.toHexString(placement_address));
             return tmp;
         }
     }
@@ -207,7 +214,7 @@ public class KernelMemory {
         int page = Memory.mem_readd(pagePtr);
         page = Page.set(page, true, Page.PRESENT_MASK); // Mark it as present.
         page = Page.set(page, is_writeable, Page.RW_MASK); // Should the page be writeable?
-        page = Page.set(page, !is_kernel, Page.RW_MASK); // Should the page be user-mode?
+        page = Page.set(page, !is_kernel, Page.USER_MASK); // Should the page be user-mode?
         page = Page.setFrame(page, frame);
         Memory.mem_writed(pagePtr, page);
     }
@@ -225,9 +232,13 @@ public class KernelMemory {
             set_frame(idx); // this frame is now ours!
             page = Page.set(page, true, Page.PRESENT_MASK); // Mark it as present.
             page = Page.set(page, is_writeable, Page.RW_MASK); // Should the page be writeable?
-            page = Page.set(page, !is_kernel, Page.RW_MASK); // Should the page be user-mode?
+            page = Page.set(page, !is_kernel, Page.USER_MASK); // Should the page be user-mode?
             page = Page.setFrame(page, idx);
+            if (pagePtr == 0x101420) {
+                logger.log(Level.TRACE, "alloc_frame for 108000: page=" + Integer.toHexString(page) + " idx=" + Integer.toHexString(idx));
+            }
             Memory.mem_writed(pagePtr, page);
+            jdos.cpu.Paging.PAGING_ClearTLB();
         }
     }
 
@@ -282,8 +293,9 @@ public class KernelMemory {
             alloc_frame(get_page((int) i, true, kernel_directory), false, false);
             i += 0x1000;
         }
+        int heapStart = (placement_address + 0xFFF) & ~0xFFF;
         int oldPlacement = placement_address;
-        for (i = KHEAP_START; i < KHEAP_START + KHEAP_INITIAL_SIZE; i += 0x1000) {
+        for (i = heapStart; i < heapStart + KHEAP_INITIAL_SIZE; i += 0x1000) {
             alloc_frame(get_page((int) i, true, kernel_directory), false, false);
         }
         if (placement_address > oldPlacement + 0x1000) {
@@ -293,7 +305,7 @@ public class KernelMemory {
         // Now, enable paging!
         switch_page_directory(kernel_directory);
 
-        heap = new KernelHeap(this, kernel_directory, KHEAP_START, KHEAP_START + KHEAP_INITIAL_SIZE, KHEAP_END, false, false);
+        heap = new KernelHeap(this, kernel_directory, heapStart, heapStart + KHEAP_INITIAL_SIZE, KHEAP_END, false, false);
     }
 
     public void switch_page_directory(int dir) {
@@ -306,11 +318,11 @@ public class KernelMemory {
         // Turn the address into an index.
         address >>>= 12;
         // Find the page table containing this address.
-        int table_idx = address >> 10;
+        int table_idx = address >>> 10;
         // dir->tables[idx]
         int tablePtr = Memory.phys_readd(dir + PageDirectory.TABLES_OFFSET + table_idx * PageDirectory.TABLES_ENTRY_SIZE);
         if (tablePtr != 0) { // If this table is already assigned
-            return tablePtr + (address % 1024) * PageDirectory.TABLES_ENTRY_SIZE;
+            return tablePtr + (address & 0x3FF) * PageDirectory.TABLES_ENTRY_SIZE;
         } else if (make) {
             IntRef phys = new IntRef(0);
             tablePtr = kmalloc(PageDirectory.PAGE_TABLE_COUNT * PageDirectory.TABLES_ENTRY_SIZE, true, phys);
@@ -318,21 +330,75 @@ public class KernelMemory {
             Memory.phys_writed(dir + PageDirectory.TABLES_OFFSET + table_idx * PageDirectory.TABLES_ENTRY_SIZE, tablePtr);
 
             Memory.phys_writed(dir + PageDirectory.TABLES_PHYSICAL_OFFSET + table_idx * PageDirectory.TABLES_PHYSICAL_SIZE, phys.value | 0x7); // PRESENT, RW, US.
-            return tablePtr + (address % 1024) * PageDirectory.TABLES_ENTRY_SIZE;
+            
+            if (dir != current_directory) {
+                Memory.phys_writed(current_directory + PageDirectory.TABLES_OFFSET + table_idx * PageDirectory.TABLES_ENTRY_SIZE, tablePtr);
+                Memory.phys_writed(current_directory + PageDirectory.TABLES_PHYSICAL_OFFSET + table_idx * PageDirectory.TABLES_PHYSICAL_SIZE, phys.value | 0x7); // PRESENT, RW, US.
+            }
+            
+            // Clear the TLB so any stale cache of this page table's virtual address is flushed!
+            jdos.cpu.Paging.PAGING_ClearTLB();
+            
+            return tablePtr + (address & 0x3FF) * PageDirectory.TABLES_ENTRY_SIZE;
         } else {
             return 0;
         }
     }
 
     public void registerPageFault(Interrupts interrupts) {
-        interrupts.registerHandler(Interrupts.IRQ14, pageFaultHandler);
+        interrupts.registerHandler(14, pageFaultHandler);
     }
 
     final Callback.Handler pageFaultHandler = new Callback.Handler() {
         @Override
         public int call() {
-            logger.log(Level.DEBUG, "Page Fault");
-            System.exit(0);
+            int faultAddr = Paging.cr2;
+            int faultPage = faultAddr >>> 12;
+
+            WinProcess process = WinSystem.getCurrentProcess();
+            if (process != null) {
+                // Check if the address falls in a VirtualMemory region (reserved via VirtualAlloc)
+                VirtualMemory vm = process.getVirtualMemory(faultAddr & 0xFFFFFFFFL);
+                if (vm != null) {
+                    // Demand-commit: allocate a frame for the faulting page
+                    int pageAligned = faultAddr & ~0xFFF;
+                    int pagePtr = get_page(pageAligned, true, process.page_directory);
+                    int page = Memory.mem_readd(pagePtr);
+                    if ((page & 0xFFFFF000) == 0) {
+                        // No frame yet — allocate one
+                        setPage(pagePtr, getNextFrame(), false, true);
+                        Paging.PAGING_ClearTLB();
+                        // Zero the newly mapped page
+                        Memory.mem_zero(pageAligned, 0x1000);
+                        logger.log(Level.TRACE, "PageFault: demand-paged 0x" + Integer.toHexString(faultAddr) + " (page 0x" + Integer.toHexString(pageAligned) + ")");
+                        return jdos.cpu.Callback.inHandler > 1 ? 1 : 0; // retry the faulting instruction
+                    } else {
+                        // Frame already present but TLB stale — just clear TLB
+                        Paging.PAGING_ClearTLB();
+                        logger.log(Level.TRACE, "PageFault: TLB refresh for 0x" + Integer.toHexString(faultAddr));
+                        return jdos.cpu.Callback.inHandler > 1 ? 1 : 0;
+                    }
+                }
+
+                // Also handle addresses in the process address space that have page tables but no frames
+                int pagePtr = get_page(faultAddr & ~0xFFF, false, process.page_directory);
+                if (pagePtr != 0) {
+                    int page = Memory.mem_readd(pagePtr);
+                    if ((page & 0xFFFFF000) == 0) {
+                        setPage(pagePtr, getNextFrame(), false, true);
+                        Paging.PAGING_ClearTLB();
+                        Memory.mem_zero(faultAddr & ~0xFFF, 0x1000);
+                        logger.log(Level.TRACE, "PageFault: demand-paged (no VM region) 0x" + Integer.toHexString(faultAddr));
+                        return jdos.cpu.Callback.inHandler > 1 ? 1 : 0;
+                    }
+                }
+            }
+
+            // Truly unmapped — cannot recover
+            logger.log(Level.TRACE, "FATAL PageFault: address=0x" + Integer.toHexString(faultAddr)
+                    + " eip=0x" + Integer.toHexString(CPU_Regs.reg_eip)
+                    + " esp=0x" + Integer.toHexString(CPU_Regs.reg_esp.dword));
+            Win.exit();
             return 0;
         }
 

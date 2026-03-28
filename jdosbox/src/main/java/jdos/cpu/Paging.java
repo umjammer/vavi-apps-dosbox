@@ -542,6 +542,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
         //PrintPageInfo("FA+",lin_addr,faultcode, prepare_only);
 
         if (pageFault) {
+            logger.log(Level.TRACE, "Double PageFault! cr2=" + Integer.toHexString(cr2) + " esp=" + Integer.toHexString(CPU_Regs.reg_esp.dword));
             throw new IllegalStateException("Double PageFault");
         }
         if (prepare_only) {
@@ -551,6 +552,63 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
             CPU.iret = false;
             // Callbacks are not re-entrant
             if (Callback.inHandler == 0) {
+                logger.log(Level.TRACE, "PageFault(throw)! lin_addr=" + Integer.toHexString(lin_addr) + " eip=" + Integer.toHexString(CPU_Regs.reg_eip) + " esp=" + Integer.toHexString(CPU_Regs.reg_esp.dword) + " eax=" + Integer.toHexString(CPU_Regs.reg_eax.dword) + " ebx=" + Integer.toHexString(CPU_Regs.reg_ebx.dword) + " ecx=" + Integer.toHexString(CPU_Regs.reg_ecx.dword) + " edx=" + Integer.toHexString(CPU_Regs.reg_edx.dword) + " esi=" + Integer.toHexString(CPU_Regs.reg_esi.dword) + " edi=" + Integer.toHexString(CPU_Regs.reg_edi.dword) + " ebp=" + Integer.toHexString(CPU_Regs.reg_ebp.dword) + " faultcode=" + faultcode);
+                try {
+                    StringBuilder dis = new StringBuilder("  bytes@eip:");
+                    for (int i = 0; i < 16; i++) {
+                        dis.append(' ').append(String.format("%02x", jdos.hardware.Memory.mem_readb(CPU_Regs.reg_eip + i) & 0xFF));
+                    }
+                    logger.log(Level.TRACE, dis.toString());
+                    StringBuilder st = new StringBuilder("  stack@esp:");
+                    for (int i = 0; i < 8; i++) {
+                        st.append(' ').append(Integer.toHexString(jdos.hardware.Memory.mem_readd(CPU_Regs.reg_esp.dword + i * 4)));
+                    }
+                    logger.log(Level.TRACE, st.toString());
+                    try {
+                        int walkBp = CPU_Regs.reg_ebp.dword;
+                        StringBuilder bp = new StringBuilder("  ebp-chain:");
+                        for (int i = 0; i < 10 && walkBp != 0; i++) {
+                            int savedBp = jdos.hardware.Memory.mem_readd(walkBp);
+                            int retAddr = jdos.hardware.Memory.mem_readd(walkBp + 4);
+                            bp.append(" [").append(Integer.toHexString(walkBp)).append("]->ret=").append(Integer.toHexString(retAddr));
+                            if (savedBp == walkBp || savedBp == 0) break;
+                            walkBp = savedBp;
+                        }
+                        logger.log(Level.TRACE, bp.toString());
+                    } catch (Throwable bpT) { /* bp walk may hit unmapped */ }
+                    if ((CPU_Regs.reg_eip & 0xFFFF0000) == 0) {
+                        StringBuilder b0 = new StringBuilder("  bytes@0:");
+                        for (int i = 0; i < 32; i++) {
+                            b0.append(' ').append(String.format("%02x", jdos.hardware.Memory.mem_readb(i) & 0xFF));
+                        }
+                        logger.log(Level.TRACE, b0.toString());
+                        StringBuilder scan = new StringBuilder("  stack-scan:");
+                        int spBase = CPU_Regs.reg_esp.dword & ~3;
+                        int found = 0;
+                        int firstRet = 0;
+                        int firstRetOff = -1;
+                        for (int off = 0; off < 0x1000 && found < 24; off += 4) {
+                            int v = jdos.hardware.Memory.mem_readd(spBase + off);
+                            int hi = v & 0xFFF00000;
+                            if (hi == 0x10000000 || hi == 0x10100000 || hi == 0x10300000 || hi == 0x00400000) {
+                                scan.append(" +").append(Integer.toHexString(off)).append(":").append(Integer.toHexString(v));
+                                found++;
+                                if (firstRetOff < 0) {
+                                    firstRet = v;
+                                    firstRetOff = off;
+                                }
+                            }
+                        }
+                        logger.log(Level.TRACE, scan.toString());
+                        if (firstRet != 0) {
+                            StringBuilder call = new StringBuilder("  callsite@" + Integer.toHexString(firstRet - 16) + ":");
+                            for (int i = 0; i < 20; i++) {
+                                call.append(' ').append(String.format("%02x", jdos.hardware.Memory.mem_readb(firstRet - 16 + i) & 0xFF));
+                            }
+                            logger.log(Level.TRACE, call.toString());
+                        }
+                    }
+                } catch (Throwable t) { /* ignore nested PFs */ }
                 CPU_Regs.FillFlags();
                 CPU.CPU_PrepareException(CPU.EXCEPTION_PF, faultcode);
                 throw new PageFaultException();
@@ -573,9 +631,14 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
             entry.mpl = CPU.cpu.mpl;
             CPU.cpu.mpl = 3;
 
+            logger.log(Level.TRACE, "PageFault! lin_addr=" + Integer.toHexString(lin_addr) + " eip=" + Integer.toHexString(CPU_Regs.reg_eip) + " faultcode=" + faultcode);
+
             pageFault = true;
-            CPU.CPU_Exception(CPU.EXCEPTION_PF, faultcode);
-            pageFault = false;
+            try {
+                CPU.CPU_Exception(CPU.EXCEPTION_PF, faultcode);
+            } finally {
+                pageFault = false;
+            }
 
             Core_full.pushState();
             Dosbox.DOSBOX_RunMachinePF();
@@ -971,28 +1034,30 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
                         Memory.phys_writed(dirEntryAddr, dir_entry.load());
                     }
 
-                    if (table_entry.block.p == 0) {
-                        // physpage pointer is not present, do a page fault
-                        PAGING_NewPageFault(lin_addr, tableEntryAddr, prepare_only, (writing ? 2 : 0) | (isUser ? 4 : 0));
+            if (table_entry.block.p == 0) {
+                logger.log(Level.TRACE, "InitPage: table_entry.block.p == 0 for " + Integer.toHexString(lin_addr) + " dir_entry=" + Integer.toHexString(dir_entry.load()) + " tableEntryAddr=" + Integer.toHexString(tableEntryAddr) + " table_entry=" + Integer.toHexString(table_entry.load()));
+                // physpage pointer is not present, do a page fault
+                PAGING_NewPageFault(lin_addr, tableEntryAddr, prepare_only, (writing ? 2 : 0) | (isUser ? 4 : 0));
 
-                        if (prepare_only) return true;
-                        else continue; //goto initpage_retry;
-                    }
-                    //PrintPageInfo("INI",lin_addr,writing,prepare_only);
+                if (prepare_only) return true;
+                else continue; //goto initpage_retry;
+            }
+            //PrintPageInfo("INI",lin_addr,writing,prepare_only);
 
-                    /*Bitu*/
-                    int result = translate_array[((dir_entry.load() << 1) & 0xc) | ((table_entry.load() >> 1) & 0x3)];
+            /*Bitu*/
+            int result = translate_array[((dir_entry.load() << 1) & 0xc) | ((table_entry.load() >> 1) & 0x3)];
 
-                    // If a page access right exception occurs we shouldn't change a or d
-                    // I'd prefer running into the prepared exception handler but we'd need
-                    // an additional handler that sets the 'a' bit - idea - foiler read?
-                    /*Bitu*/
-                    int ft_index = result | (writing ? 8 : 0) | (isUser ? 4 : 0) | (wp ? 16 : 0);
+            // If a page access right exception occurs we shouldn't change a or d
+            // I'd prefer running into the prepared exception handler but we'd need
+            // an additional handler that sets the 'a' bit - idea - foiler read?
+            /*Bitu*/
+            int ft_index = result | (writing ? 8 : 0) | (isUser ? 4 : 0) | (wp ? 16 : 0);
 
-                    if (fault_table[ft_index] != 0) {
-                        // exception error code format:
-                        // bit0 - protection violation, bit1 - writing, bit2 - user mode
-                        PAGING_NewPageFault(lin_addr, tableEntryAddr, prepare_only, 1 | (writing ? 2 : 0) | (isUser ? 4 : 0));
+            if (fault_table[ft_index] != 0) {
+                logger.log(Level.TRACE, "InitPage: protection fault for " + Integer.toHexString(lin_addr) + " isUser=" + isUser + " writing=" + writing + " dir_entry=" + Integer.toHexString(dir_entry.load()) + " table_entry=" + Integer.toHexString(table_entry.load()) + " ft_index=" + ft_index);
+                // exception error code format:
+                // bit0 - protection violation, bit1 - writing, bit2 - user mode
+                PAGING_NewPageFault(lin_addr, tableEntryAddr, prepare_only, 1 | (writing ? 2 : 0) | (isUser ? 4 : 0));
 
                         if (prepare_only) return true;
                         else continue; //goto initpage_retry; // unlikely to happen?

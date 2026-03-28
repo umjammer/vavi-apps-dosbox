@@ -256,7 +256,7 @@ public class BuiltinModule extends Module {
     private static void preLog(String name, Integer[] args, String[] params) {
         startTime = System.currentTimeMillis();
         if (inPre)
-            logger.log(Level.DEBUG, "");
+            System.out.println("");
         inPre = true;
         for (int i = 0; i < indent; i++) {
             System.out.print("    ");
@@ -331,13 +331,13 @@ public class BuiltinModule extends Module {
             }
             try {
                 if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
-                    System.out.println("[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
+                    logger.log(Level.TRACE, "[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
                 }
                 if (LOG && params != null)
                     preLog(name, args, params);
                 Integer result = (Integer) method.invoke(null, (Object[]) args);
                 if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
-                    System.out.println("[trace-ui] result " + method.getDeclaringClass().getSimpleName() + "." + name + "=" + result);
+                    logger.log(Level.TRACE, "[trace-ui] result " + method.getDeclaringClass().getSimpleName() + "." + name + "=" + result);
                 }
                 if (LOG && params != null)
                     postLog(name, result, (params != null && params.length > args.length) ? params[args.length] : null, args, params);
@@ -381,7 +381,7 @@ public class BuiltinModule extends Module {
             }
             try {
                 if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
-                    System.out.println("[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
+                    logger.log(Level.TRACE, "[trace-ui] call " + method.getDeclaringClass().getSimpleName() + "." + name);
                 }
                 if (LOG && params != null)
                     preLog(name, args, params);
@@ -439,8 +439,9 @@ public class BuiltinModule extends Module {
                     preLog(name, args, params);
                 Integer result = (Integer) method.invoke(null, (Object[]) args);
                 if (wait) {
-                    if (LOG && params != null) {
-                        System.out.print(" THREAD PUT TO SLEEP, WILL TRY AGAIN LATER");
+                    if (LOG) {
+                        if (params != null) System.out.print(" THREAD PUT TO SLEEP, WILL TRY AGAIN LATER");
+                        else logger.log(Level.TRACE, name + " THREAD PUT TO SLEEP, WILL TRY AGAIN LATER");
                         indent--;
                     }
                     CPU_Regs.reg_eip = eip;
@@ -450,6 +451,14 @@ public class BuiltinModule extends Module {
                     if (LOG && params != null)
                         postLog(name, result, (params != null && params.length > args.length) ? params[args.length] : null, args, params);
                     CPU_Regs.reg_eax.dword = result;
+                    // Cooperative yield: if a wait method with INFINITE timeout returned immediately
+                    // (event already signaled), give other threads a chance to run. This mirrors
+                    // real OS behavior and prevents one thread from monopolizing the CPU between
+                    // back-to-back wait calls. Must be the last action: after Scheduler.sleep the
+                    // shared CPU_Regs belong to a different thread.
+                    if ("WaitForSingleObject".equals(name) && args.length >= 2 && args[1] == -1 && HandlerBase.level == 1) {
+                        Scheduler.sleep(Scheduler.getCurrentThread(), 0);
+                    }
                 }
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);

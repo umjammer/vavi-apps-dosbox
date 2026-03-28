@@ -66,13 +66,20 @@ public class Crtdll extends BuiltinModule {
 
     // void __cdecl _initterm(PVFV *, PVFV *)
     public static void _initterm(int start, int end) {
+        logger.log(Level.TRACE, "[crtdll] _initterm start=0x" + Integer.toHexString(start) + " end=0x" + Integer.toHexString(end));
         while (start < end) {
             int next = Memory.mem_readd(start);
             if (next != 0) {
-                logger.log(Level.DEBUG, "Crtdll._initterm faked");
+                logger.log(Level.TRACE, "[crtdll] _initterm calling initializer at 0x" + Integer.toHexString(next));
+                try {
+                    WinSystem.call(next, 0, 0);
+                } catch (Exception e) {
+                    logger.log(Level.TRACE, "[crtdll] _initterm initializer at 0x" + Integer.toHexString(next) + " threw: " + e);
+                }
             }
             start += 4;
         }
+        logger.log(Level.TRACE, "[crtdll] _initterm done");
     }
 
     private static final Random random = new Random();

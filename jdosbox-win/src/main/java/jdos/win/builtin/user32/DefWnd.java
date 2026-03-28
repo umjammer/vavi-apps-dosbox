@@ -12,6 +12,9 @@ public class DefWnd extends WinAPI {
 
     // LRESULT WINAPI DefWindowProc(HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam)
     static public int DefWindowProcA(int hWnd, int Msg, int wParam, int lParam) {
+        if (Msg == WinWindow.WM_ERASEBKGND) {
+            traceUi("DefWindowProcA hwnd=" + hWnd + " msg=WM_ERASEBKGND");
+        }
         int result = 0;
 
         switch (Msg) {

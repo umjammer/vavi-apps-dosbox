@@ -27,10 +27,11 @@ public class WinAPI extends Error {
         if (BuiltinModule.inPre) {
             BuiltinModule.inPre = false;
         }
-        if (BuiltinModule.indent > 0)
-            logger.log(Level.DEBUG, "");
-        for (int i = 0; i < BuiltinModule.indent; i++)
-            System.out.print("    ");
+//        if (BuiltinModule.indent > 0)
+//            System.out.println("");
+//        for (int i = 0; i < BuiltinModule.indent; i++)
+//            System.out.print("    ");
+//        System.out.println(s);
         logger.log(Level.DEBUG, s);
     }
 
@@ -44,13 +45,13 @@ public class WinAPI extends Error {
 
     static public void traceUi(String s) {
         if (TRACE_UI) {
-            System.out.println("[trace-ui] " + s);
+            logger.log(Level.TRACE, "[trace-ui] " + s);
         }
     }
 
     static public void traceImport(String s) {
         if (TRACE_IMPORTS) {
-            System.out.println("[trace-import] " + s);
+            logger.log(Level.TRACE, "[trace-import] " + s);
         }
     }
 

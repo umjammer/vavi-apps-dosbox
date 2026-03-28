@@ -243,8 +243,11 @@ public class Dos_files {
                     }
 
                     ext = ext.substring(0, Math.min(4, ext.length()));
-                    if ((StringHelper.strlen(tempdir) - ext.length()) > 8)
-                        System.arraycopy(ext.getBytes(), 0, tempdir, 8, 4);
+                    if ((StringHelper.strlen(tempdir) - ext.length()) > 8) {
+                        byte[] extBytes = ext.getBytes();
+                        System.arraycopy(extBytes, 0, tempdir, 8, extBytes.length);
+                        tempdir[8 + extBytes.length] = 0;
+                    }
 
                 } else tempdir[8] = 0;
 

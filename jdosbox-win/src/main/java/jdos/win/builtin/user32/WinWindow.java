@@ -102,7 +102,7 @@ public class WinWindow extends WinObject {
         wndPtr.text = null;
         wndPtr.dwStyle = dwStyle & ~WS_VISIBLE;
         wndPtr.dwExStyle = dwExStyle;
-        wndPtr.wIDmenu = 0;
+        wndPtr.wIDmenu = hMenu;
         wndPtr.helpContext = 0;
         //wndPtr->pScroll        = NULL;
         wndPtr.userdata = 0;
@@ -219,14 +219,9 @@ public class WinWindow extends WinObject {
         }
 
         /* Child windows often depend on parent initialization performed later in WM_CREATE.
-         * Queue initial size/move notifications to avoid re-entering them too early.
+         * Windows does not send WM_SIZE/WM_MOVE to child windows during CreateWindowEx.
          */
-        if ((wndPtr.dwStyle & WS_CHILD) != 0) {
-            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> post WM_SIZE");
-            Message.PostMessageA(wndPtr.handle, WM_SIZE, SIZE_RESTORED, MAKELONG(wndPtr.rectWindow.width(), wndPtr.rectWindow.height()));
-            traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> post WM_MOVE");
-            Message.PostMessageA(wndPtr.handle, WM_MOVE, 0, MAKELONG(wndPtr.rectWindow.left, wndPtr.rectWindow.top));
-        } else {
+        if ((wndPtr.dwStyle & WS_CHILD) == 0) {
             traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> WM_SIZE");
             Message.SendMessageA(wndPtr.handle, WM_SIZE, SIZE_RESTORED, MAKELONG(wndPtr.rectWindow.width(), wndPtr.rectWindow.height()));
             traceUi("CreateWindowExA post-create hwnd=" + hwnd + " -> WM_MOVE");

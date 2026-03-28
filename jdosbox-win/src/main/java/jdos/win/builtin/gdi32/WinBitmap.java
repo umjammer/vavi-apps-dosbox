@@ -39,6 +39,20 @@ public class WinBitmap extends WinGDI {
         return create(nWidth, nHeight, cBitsPerPel, lpvBits, null, false).handle;
     }
 
+    // HBITMAP CreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT usage, void **ppvBits, HANDLE hSection, DWORD offset)
+    static public int CreateDIBSection(int hdc, int pbmi, int usage, int ppvBits, int hSection, int offset) {
+        WinDC dc = WinDC.get(hdc);
+        WinBitmap bitmap = new WinBitmap(nextObjectId(), pbmi, usage, dc != null ? dc.hPalette : 0, true);
+        int size = jdos.win.utils.Pixel.getPitch(bitmap.getWidth(), bitmap.bitCount) * Math.abs(bitmap.getHeight());
+        if (size > 0) {
+            bitmap.bits = jdos.win.system.WinSystem.getCurrentProcess().heap.alloc(size, true);
+        }
+        if (ppvBits != 0) {
+            writed(ppvBits, bitmap.bits);
+        }
+        return bitmap.handle;
+    }
+
     // HBITMAP CreateCompatibleBitmap(HDC hdc, int nWidth, int nHeight)
     static public int CreateCompatibleBitmap(int hdc, int nWidth, int nHeight) {
         WinDC dc = WinDC.get(hdc);

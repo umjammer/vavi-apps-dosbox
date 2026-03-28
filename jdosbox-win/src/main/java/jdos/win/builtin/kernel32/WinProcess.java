@@ -205,13 +205,15 @@ public class WinProcess extends WaitObject {
     public NativeModule mainModule;
     public final int page_directory;
     public final KernelMemory kernelMemory;
-    public final Heap addressSpace = new Heap(0x00100000L, 0xFFF00000L);
+    public final Heap addressSpace = new Heap(0x00100000L, 0x7FFF0000L);
     public final List<VirtualMemory> virtualMemory = new ArrayList<>();
     public final Map<String, WinClass> classNames = new HashMap<>();
     public final WinEvent readyForInput = WinEvent.create(null, true, false);
     public int tlsSize = 0;
     public final List<Integer> freeTLS = new ArrayList<>();
     public int mmTimerThreadEIP;
+    public int waveOutCallbackThreadEIP;
+    public int returnEip;
     public final List<Runnable> playSound = new ArrayList<>();
 
     public WinProcess(int handle, KernelMemory memory, String workingDirectory) {
@@ -267,7 +269,7 @@ public class WinProcess extends WaitObject {
         this.paths = paths;
         this.commandLine = commandLine;
         // by now we should be running in this process' memory space
-        this.heap = new KernelHeap(kernelMemory, page_directory, ADDRESS_HEAP_START, ADDRESS_HEAP_START + 0x1000, ADDRESS_HEAP_END, false, false);
+        this.heap = new KernelHeap(kernelMemory, page_directory, ADDRESS_HEAP_START, ADDRESS_HEAP_START + 0x100000, ADDRESS_HEAP_END, false, false);
         this.winHeap = new WinHeap(this.heap);
         loader = new Loader(this, kernelMemory, page_directory, paths);
         this.heapHandle = winHeap.createHeap(0, 0);
@@ -350,7 +352,9 @@ public class WinProcess extends WaitObject {
         }
         release();
         loader.unload();
-        for (WinThread thread : threads) {
+        WinThread[] copy = threads.toArray(new WinThread[0]);
+        threads.clear();
+        for (WinThread thread : copy) {
             thread.exit(0);
         }
         winHeap.deallocate();
@@ -401,7 +405,7 @@ public class WinProcess extends WaitObject {
     }
 
     public Module getModuleByHandle(int handle) {
-        if (handle == 0) handle = 1;
+        if (handle == 0) return mainModule;
         return loader.getModuleByHandle(handle);
     }
 

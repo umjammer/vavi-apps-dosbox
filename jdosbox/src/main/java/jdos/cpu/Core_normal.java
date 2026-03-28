@@ -1,5 +1,7 @@
 package jdos.cpu;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -10,7 +12,8 @@ import jdos.misc.setup.Config;
 
 public class Core_normal extends Prefix_66_0f {
 
-    private static final java.lang.System.Logger LOG_CPU = System.getLogger("LOG_CPU");
+    private static final Logger logger = System.getLogger(Core_normal.class.getName());
+    private static final Logger LOG_CPU = System.getLogger("LOG_CPU");
 
     public static boolean log = false;
     public static int start = 0;
@@ -187,10 +190,15 @@ public class Core_normal extends Prefix_66_0f {
 
     private static void traceInstructionPointer() {
         int eip = CPU_Regs.reg_eip;
-        if (!traceEips.contains(eip) || !seenTraceEips.add(eip)) {
+        if (!traceEips.contains(eip)) {
             return;
         }
-        System.out.println(
+        boolean firstHit = seenTraceEips.add(eip);
+        boolean debugHook = (eip == 0x100ec20b) || (eip == 0x100ec1f8) || (eip == 0x100ec207);
+        if (!firstHit && !debugHook) {
+            return;
+        }
+        logger.log(Level.TRACE,
                 String.format(
                         "[trace-eip] eip=0x%08x eax=0x%08x ecx=0x%08x edx=0x%08x ebx=0x%08x esp=0x%08x ebp=0x%08x esi=0x%08x edi=0x%08x",
                         eip,
@@ -202,6 +210,23 @@ public class Core_normal extends Prefix_66_0f {
                         CPU_Regs.reg_ebp.dword,
                         CPU_Regs.reg_esi.dword,
                         CPU_Regs.reg_edi.dword));
+        if (debugHook) {
+            try {
+                int esi = CPU_Regs.reg_esi.dword;
+                int eax = CPU_Regs.reg_eax.dword;
+                int vtbl = Memory.mem_readd(esi);
+                int slot50inVtbl = Memory.mem_readd(vtbl + 0x50);
+                int slot50inEax = Memory.mem_readd(eax + 0x50);
+                int slot4c = Memory.mem_readd(esi + 0x4c);
+                int slot50esi = Memory.mem_readd(esi + 0x50);
+                logger.log(Level.TRACE,
+                        String.format(
+                                "  vtbl@[esi]=0x%08x vtbl[0x50]=0x%08x [eax+0x50]=0x%08x [esi+0x4c]=0x%08x [esi+0x50]=0x%08x",
+                                vtbl, slot50inVtbl, slot50inEax, slot4c, slot50esi));
+            } catch (Throwable t) {
+                logger.log(Level.TRACE, "  (memory read failed: " + t + ")");
+            }
+        }
     }
 
     /*Bits*/

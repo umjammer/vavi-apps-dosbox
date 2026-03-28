@@ -12,6 +12,6 @@ public class StringRef {
     public String value;
 
     public String toString() {
-        throw new RuntimeException("Ooops");
+        return value;
     }
 }

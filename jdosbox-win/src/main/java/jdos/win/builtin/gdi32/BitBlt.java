@@ -28,6 +28,9 @@ public class BitBlt extends WinAPI {
         Graphics2D g = dest.getGraphics();
         StretchBlt2D(g, dest.x + nXOriginDest, dest.y + nYOriginDest, nWidthDest, nHeightDest, src.getImage(), nXOriginSrc, nYOriginSrc, nWidthSrc, nHeightSrc, dwRop);
         g.dispose();
+        if (dest.getImage() == jdos.win.system.StaticData.screen.getImage()) {
+            jdos.gui.Main.drawImage(dest.getImage());
+        }
         return TRUE;
     }
 

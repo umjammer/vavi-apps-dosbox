@@ -33,6 +33,8 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
 
     @Override
     public int call() {
+        jdos.win.builtin.winmm.Waveform.pollCallbacks();
+
         currentHandler = this;
         if (level == 0) {
             WinSystem.getCurrentProcess().checkAndResetTemps();
@@ -42,13 +44,14 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
         if (resetError)
             Scheduler.getCurrentThread().setLastError(Error.ERROR_SUCCESS);
         if (preCall()) {
+            int preEsp = CPU_Regs.reg_esp.dword;
             CPU_Regs.reg_eip = CPU.CPU_Pop32();
-//            long start = System.currentTimeMillis();
             onCall();
-//            if (!getName().endsWith("WinMM.timeGetTime") && !getName().endsWith("PeekMessageA"))
-//            logger.log(Level.DEBUG,"*** "+ Ptr.toString(CPU_Regs.reg_eip)+" "+getName()+" "+(System.currentTimeMillis()-start)+"ms");
+            int postEsp = CPU_Regs.reg_esp.dword;
+            logger.log(Level.TRACE, "*** "+ Integer.toHexString(CPU_Regs.reg_eip)+" "+getName() + " esp: " + Integer.toHexString(preEsp) + " -> " + Integer.toHexString(postEsp));
         }
         level--;
+        
         currentHandler = null;
         if (tick) {
             Scheduler.tick();

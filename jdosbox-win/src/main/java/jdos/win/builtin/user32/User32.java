@@ -118,6 +118,7 @@ public class User32 extends BuiltinModule {
         add(Message.class, "PeekMessageA", (MSGLOG ? new String[] {"(HEX)lpMsg", "hWnd", "wMsgFilterMin", "wMsgFilterMax", "wRemoveMsg", "(BOOL)result", "00(MSG)lpMsg"} : null));
         add(Painting.class, "Pie", new String[] {"hdc", "nLeftRect", "nTopRect", "nRightRect", "nBottomRect", "nXRadial1", "nYRadial1", "nXRadial2", "nYRadial2"});
         add(Message.class, "PostMessageA", (MSGLOG ? new String[] {"hWnd", "(MSG)Msg", "wParam", "lParam"} : null));
+        add(Message.class, "PostThreadMessageA", new String[] {"idThread", "(MSG)Msg", "wParam", "lParam"});
         add(Message.class, "PostQuitMessage", new String[] {"nExitCode"});
         add(Painting.class, "Rectangle", new String[] {"hdc", "nLeftRect", "nTopRect", "nRightRect", "nBottomRect", "(BOOL)result"});
         add(Painting.class, "RedrawWindow", new String[] {"hWnd", "(RECT)lprcUpdate", "hrgnUpdate", "(HEX)flags", "(BOOL)result"});
@@ -162,7 +163,7 @@ public class User32 extends BuiltinModule {
         add(Painting.class, "ValidateRect", new String[] {"hWnd", "(RECT)lpRect", "(BOOL)result"});
         add_wait(Message.class, "WaitForInputIdle", new String[] {"hProcess", "dwMilliseconds"});
         add_wait(Message.class, "WaitMessage", new String[] {"(BOOL)result"});
-        add(WinPos.class, "WindowFromPoint", new String[] {"(POINT)Point"});
+        add(WinPos.class, "WindowFromPoint", new String[] {"x", "y"});
         add_cdecl(Wsprintf.class, "wsprintfA", new String[] {"(HEX)lpOut", "(STRING)lpFmt", "result", "00(STRING)lpOut"});
 
         WinDialog.registerClass(this, WinSystem.getCurrentProcess());

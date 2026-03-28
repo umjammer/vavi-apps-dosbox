@@ -134,6 +134,27 @@ public class WinDC extends WinObject {
         return SIMPLEREGION;
     }
 
+    // BOOL PtVisible(HDC hdc, int x, int y)
+    static public int PtVisible(int hdc, int x, int y) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null) return FALSE;
+        if (dc.hClipRgn != 0)
+            return WinRegion.PtInRegion(dc.hClipRgn, x, y);
+        return (x >= 0 && x < dc.clipCx && y >= 0 && y < dc.clipCy) ? TRUE : FALSE;
+    }
+
+    // BOOL RectVisible(HDC hdc, const RECT *lprect)
+    static public int RectVisible(int hdc, int lprect) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null) return FALSE;
+        if (dc.hClipRgn != 0)
+            return WinRegion.RectInRegion(dc.hClipRgn, lprect);
+        WinRect rect = new WinRect(lprect);
+        WinRect clip = new WinRect(0, 0, dc.clipCx, dc.clipCy);
+        WinRect intersection = new WinRect();
+        return intersection.intersect(clip, rect) ? TRUE : FALSE;
+    }
+
     // int GetDeviceCaps(HDC hdc, int nIndex)
     static public int GetDeviceCaps(int hdc, int nIndex) {
         WinDC dc = WinDC.get(hdc);
@@ -302,14 +323,41 @@ public class WinDC extends WinObject {
         return SelectObject(hdc, hpal);
     }
 
+    static public int SaveDC(int hdc) {
+        Win.log("SaveDC not fully implemented");
+        return 1;
+    }
+
+    static public int RestoreDC(int hdc, int nSavedDC) {
+        Win.log("RestoreDC not fully implemented");
+        return 1;
+    }
+
+    static public int GetCurrentPositionEx(int hdc, int lpPoint) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null) return 0;
+        if (lpPoint != 0) {
+            jdos.hardware.Memory.mem_writed(lpPoint, dc.x);
+            jdos.hardware.Memory.mem_writed(lpPoint + 4, dc.y);
+        }
+        return 1;
+    }
+
     // COLORREF SetBkColor(HDC hdc, COLORREF crColor)
     static public int SetBkColor(int hdc, int crColor) {
         WinDC dc = WinDC.get(hdc);
         if (dc == null)
             return CLR_INVALID;
-        int result = dc.bkColor;
+        int old = dc.bkColor;
         dc.bkColor = crColor;
-        return result;
+        return old;
+    }
+
+    static public int GetBkColor(int hdc) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null)
+            return CLR_INVALID;
+        return dc.bkColor;
     }
 
     // int SetBkMode(HDC hdc, int iBkMode)

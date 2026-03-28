@@ -9,6 +9,6 @@ public class IntRef {
     public int value;
 
     public String toString() {
-        throw new RuntimeException("Ooops");
+        return String.valueOf(value);
     }
 }

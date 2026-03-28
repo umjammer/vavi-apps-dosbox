@@ -99,7 +99,12 @@ public class Interrupts {
                 return interrupt_handlers[index].call();
             else {
                 if (index == 14) {
-                    logger.log(Level.DEBUG, "Page Fault at " + Integer.toHexString(Paging.cr2));
+                    logger.log(Level.TRACE, "FATAL: Page Fault at " + Integer.toHexString(jdos.cpu.Paging.cr2) + " EIP=" + Integer.toHexString(jdos.cpu.CPU_Regs.reg_eip));
+                    logger.log(Level.TRACE, "Disassembly at fault:");
+                    for (int i = 0; i < 10; i++) {
+                        logger.log(Level.TRACE, Integer.toHexString(jdos.cpu.CPU_Regs.reg_eip + i) + ": " + Integer.toHexString(jdos.hardware.Memory.mem_readb(jdos.cpu.CPU_Regs.reg_eip + i) & 0xFF));
+                    }
+                    logger.log(Level.DEBUG, "Page Fault at " + Integer.toHexString(jdos.cpu.Paging.cr2));
                     Win.exit();
                 }
             }

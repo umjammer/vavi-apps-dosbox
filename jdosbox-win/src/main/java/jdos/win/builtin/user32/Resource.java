@@ -79,12 +79,17 @@ public class Resource extends WinAPI {
                 int len = readw(stringAddress);
                 stringAddress += 2;
                 String result = StringUtil.getStringW(stringAddress, len);
+                logger.log(Level.TRACE, "LoadStringA found string for uID " + uID + " in " + m.name + ": " + result);
                 StringUtil.strncpy(lpBuffer, result, nBufferMax);
                 return Math.min(result.length(), nBufferMax);
+            } else {
+                logger.log(Level.TRACE, "LoadStringA failed to find string block " + ((uID >> 4) + 1) + " for uID " + uID + " in " + m.name);
             }
+        } else {
+            logger.log(Level.TRACE, "LoadStringA failed because module not found for hInstance " + Integer.toHexString(hInstance));
         }
         if (lpBuffer != 0 && nBufferMax > 0)
-            writeb(lpBuffer, 0);
+            Memory.mem_writeb(lpBuffer, 0);
         return 0;
     }
 }

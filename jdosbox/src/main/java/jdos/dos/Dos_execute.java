@@ -291,11 +291,11 @@ public class Dos_execute {
     static private Method winMethod = null;
     static private boolean loadedWinMethod = false;
 
-    static private boolean winRun(String path) {
+    static private boolean winRun(String path, String args) {
         if (!loadedWinMethod) {
             try {
                 Class<?> c = Class.forName("jdos.win.Win");
-                winMethod = c.getDeclaredMethod("run", String.class);
+                winMethod = c.getDeclaredMethod("run", String.class, String.class);
                 logger.log(Level.DEBUG, "Win32 support available");
             } catch (Exception e) {
                 logger.log(Level.DEBUG, "Win32 support not available");
@@ -305,7 +305,7 @@ public class Dos_execute {
         }
         if (winMethod != null) {
             try {
-                Object result = winMethod.invoke(null, path);
+                Object result = winMethod.invoke(null, path, args);
                 return (Boolean) result;
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
@@ -316,11 +316,11 @@ public class Dos_execute {
         return false;
     }
 
-    static private boolean winRun(Drive_fat drive, Drive_fat.fatFile file, String path) {
+    static private boolean winRun(Drive_fat drive, Drive_fat.fatFile file, String path, String args) {
         if (!loadedWinMethod) {
             try {
                 Class<?> c = Class.forName("jdos.win.Win");
-                winMethod = c.getDeclaredMethod("run", Drive_fat.class, Drive_fat.fatFile.class, String.class);
+                winMethod = c.getDeclaredMethod("run", Drive_fat.class, Drive_fat.fatFile.class, String.class, String.class);
                 logger.log(Level.DEBUG, "Win32 support available");
             } catch (Exception e) {
                 logger.log(Level.DEBUG, "Win32 support not available");
@@ -330,7 +330,7 @@ public class Dos_execute {
         }
         if (winMethod != null) {
             try {
-                Object result = winMethod.invoke(null, drive, file, path);
+                Object result = winMethod.invoke(null, drive, file, path, args);
                 return (Boolean) result;
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
@@ -369,18 +369,29 @@ public class Dos_execute {
             Dos.DOS_SetError(Dos.DOSERR_FILE_NOT_FOUND);
             return false;
         }
+
+        int cmdtail = block.exec.cmdtail;
+        int argsLength = Memory.real_readb(Memory.RealSeg(cmdtail), Memory.RealOff(cmdtail));
+        StringBuilder argsBuilder = new StringBuilder();
+        for (int j = 0; j < argsLength; j++) {
+            char c = (char) Memory.real_readb(Memory.RealSeg(cmdtail), Memory.RealOff(cmdtail) + 1 + j);
+            if (c == '\r') break;
+            argsBuilder.append(c);
+        }
+        String args = argsBuilder.toString().trim();
+
         if (Dos_files.Files[Dos.RealHandle(fhandle.value)] instanceof Drive_local.localFile) {
             String path = ((Drive_local.localFile) Dos_files.Files[Dos.RealHandle(fhandle.value)]).GetPath();
-            if (winRun(path)) {
+            if (winRun(path, args)) {
                 return true;
             }
         } else if (Dos_files.Files[Dos.RealHandle(fhandle.value)] instanceof Drive_zip.Zip_File) {
             String path = "" + (char) ('A' + Dos_files.Files[Dos.RealHandle(fhandle.value)].GetDrive());
-            if (winRun(path)) {
+            if (winRun(path, args)) {
                 return true;
             }
         } else if (Dos_files.Files[Dos.RealHandle(fhandle.value)] instanceof Drive_fat.fatFile file) {
-            if (winRun(file.myDrive, file, "C:\\" + file.myDrive.curdir + file.name)) {
+            if (winRun(file.myDrive, file, "C:\\" + file.myDrive.curdir + file.name, args)) {
                 return true;
             }
         }

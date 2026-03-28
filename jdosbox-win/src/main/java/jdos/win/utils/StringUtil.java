@@ -129,7 +129,9 @@ public class StringUtil extends WinAPI {
                 break;
             Memory.mem_writeb(address + i, c);
         }
-        Memory.mem_writeb(address + count - 1, 0);
+        for (int j = i; j < count; j++) {
+            Memory.mem_writeb(address + j, 0);
+        }
         return i;
     }
 

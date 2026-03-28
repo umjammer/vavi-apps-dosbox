@@ -426,9 +426,8 @@ public class WinPos extends WinAPI {
     }
 
     // HWND WINAPI WindowFromPoint(POINT Point)
-    public static int WindowFromPoint(int Point) {
-        WinPoint p = new WinPoint(Point);
-        return WinWindow.get(StaticData.desktopWindow).findWindowFromPoint(p.x, p.y).handle;
+    public static int WindowFromPoint(int x, int y) {
+        return WinWindow.get(StaticData.desktopWindow).findWindowFromPoint(x, y).handle;
     }
 
     private static boolean SWP_DoWinPosChanging(WINDOWPOS pos, WinRect pNewWindowRect, WinRect pNewClientRect) {

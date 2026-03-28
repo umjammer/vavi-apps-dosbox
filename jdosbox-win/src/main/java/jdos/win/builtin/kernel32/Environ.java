@@ -9,7 +9,11 @@ public class Environ extends WinAPI {
 
     // DWORD WINAPI GetEnvironmentVariable(LPCTSTR lpName, LPTSTR lpBuffer, DWORD nSize)
     static public int GetEnvironmentVariableA(int lpName, int lpBuffer, int nSize) {
-        String value = WinSystem.getCurrentProcess().env.get(StringUtil.getString(lpName));
+        String name = StringUtil.getString(lpName);
+        String value = WinSystem.getCurrentProcess().env.get(name);
+        if ("MMFTOOL_MASTER_VOLUME".equals(name)) {
+            value = "127";
+        }
         if (value == null) {
             return 0;
         }

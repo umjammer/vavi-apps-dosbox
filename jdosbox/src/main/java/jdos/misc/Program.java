@@ -1,5 +1,6 @@
 package jdos.misc;
 
+import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,6 +21,8 @@ import jdos.util.StringRef;
 
 
 public abstract class Program {
+
+    private static final Logger logger = System.getLogger(Program.class.getName());
 
     static private /*Bitu*/ int call_program;
 
@@ -137,6 +140,7 @@ public abstract class Program {
     static byte last_written_character = 0;//For 0xA to OxD 0xA expansion
 
     public void writeOut(String format, Object... args) {
+//logger.log(Level.TRACE, format + ", " + (args != null ? Arrays.stream(args).map(o -> o.getClass().getName()).toList() : ""));
         String buf = args != null ? format.formatted(args) : format;
         /*Bit16u*/
         int size = buf.length();

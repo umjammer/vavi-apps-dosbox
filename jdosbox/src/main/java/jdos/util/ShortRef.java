@@ -17,6 +17,6 @@ public class ShortRef {
     public short value;
 
     public String toString() {
-        throw new RuntimeException("Ooops");
+        return String.valueOf(value);
     }
 }

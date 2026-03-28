@@ -62,7 +62,7 @@ public class FPU {
             tags[i] = ((tag >> (2 * i)) & 3);
     }
 
-    static private void FPU_SetCW(/*Bitu*/int word) {
+    static public void FPU_SetCW(/*Bitu*/int word) {
         cw = word;
         /*Bit16u*/
         cw_mask_all = word | 0x3f;

@@ -49,6 +49,7 @@ public class WinMM extends BuiltinModule {
         add(Waveform.class, "waveOutClose", LOG_MM ? new String[] {"(HEX)hwo"} : null);
         add(Waveform.class, "waveOutGetDevCapsA", LOG_MM ? new String[] {"uDeviceID", "(HEX)pwoc", "cbwoc"} : null);
         add(Waveform.class, "waveOutOpen", LOG_MM ? new String[] {"(HEX)lphWaveOut", "uDeviceID", "(HEX)pwfx", "(HEX)dwCallback", "dwCallbackInstance", "(HEX)fdwOpen"} : null);
+        add(Waveform.class, "waveOutPause", LOG_MM ? new String[] {"(HEX)hwo"} : null);
         add(Waveform.class, "waveOutPrepareHeader", LOG_MM ? new String[] {"(HEX)hwo", "(HEX)pwh", "cbwh"} : null);
         add(Waveform.class, "waveOutReset", LOG_MM ? new String[] {"(HEX)hwo"} : null);
         add(Waveform.class, "waveOutUnprepareHeader", LOG_MM ? new String[] {"(HEX)hwo", "(HEX)pwh", "cbwh"} : null);

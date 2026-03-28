@@ -135,8 +135,24 @@ public class Pixel {
                 int pitch = getPitch(width, srcBpp);
                 for (int y = 0; y < height; y++) {
                     int address = src + pitch * (flip ? height - y - 1 : y);
-                    for (int x = 0; x < width; x++) {
-                        pixels[y * width + x] = (byte) Memory.mem_readb(address + x);
+                    if (srcBpp == 8) {
+                        for (int x = 0; x < width; x++) {
+                            pixels[y * width + x] = (byte) Memory.mem_readb(address + x);
+                        }
+                    } else if (srcBpp == 4) {
+                        for (int x = 0; x < width; x++) {
+                            int pxByte = Memory.mem_readb(address + (x / 2));
+                            if ((x % 2) == 0) pixels[y * width + x] = (byte) ((pxByte >> 4) & 0xF);
+                            else pixels[y * width + x] = (byte) (pxByte & 0xF);
+                        }
+                    } else if (srcBpp == 1) {
+                        for (int x = 0; x < width; x++) {
+                            int pxByte = Memory.mem_readb(address + (x / 8));
+                            int bit = 7 - (x % 8);
+                            pixels[y * width + x] = (byte) ((pxByte >> bit) & 1);
+                        }
+                    } else {
+                        Win.panic("Currently only 24-bit, 16-bit, 8-bit, 4-bit and 1-bit bitmaps are supported. Got bpp: " + srcBpp);
                     }
                 }
             }
@@ -147,8 +163,10 @@ public class Pixel {
                     sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_BYTE, width, height, new int[] {0xFF});
                 else if (srcBpp == 4)
                     sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_BYTE, width, height, new int[] {0xF});
+                else if (srcBpp == 1)
+                    sampleModel = new SinglePixelPackedSampleModel(DataBuffer.TYPE_BYTE, width, height, new int[] {0x1});
                 else
-                    Win.panic("Currently only 24-bit, 16-bit, 8-bit and 4-bit bitmaps are supported");
+                    Win.panic("Currently only 24-bit, 16-bit, 8-bit, 4-bit and 1-bit bitmaps are supported. Got bpp: " + srcBpp);
                 WritableRaster raster = Raster.createWritableRaster(sampleModel, dataBuffer, null);
                 BufferedImage bi = new BufferedImage(sp, raster, false, null);
                 // Main.drawImage(bi);try {Thread.sleep(1000*5);} catch (Exception e) {}

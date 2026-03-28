@@ -74,9 +74,11 @@ public class NativeModule extends Module {
     @Override
     public void callDllMain(int dwReason) {
         if (header.imageOptional.AddressOfEntryPoint == 0) {
+            logger.log(Level.TRACE, "Skipping DllMain for " + name + " (AddressOfEntryPoint is 0)");
             if (WinAPI.LOG)
                 logger.log(Level.DEBUG, name + " has no DllMain");
         } else {
+            logger.log(Level.TRACE, "Calling DllMain for " + name + " reason=" + dwReason);
             int esp = CPU_Regs.reg_esp.dword;
             // This code helps debug DllMain by giving the same stack pointer
 //                                KernelHeap stack = new KernelHeap(WinSystem.memory, WinSystem.getCurrentProcess().page_directory, 0x100000, 0x140000, 0x140000, true, false);
@@ -146,7 +148,7 @@ public class NativeModule extends Module {
                     }
                     args.append("0x").append(Integer.toHexString(Memory.mem_readd(CPU_Regs.reg_esp.dword + i * 4)));
                 }
-                System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + "(" + args + ") -> call 0x" + Integer.toHexString(originalAddress));
+                logger.log(Level.TRACE, "[trace-export] " + NativeModule.this.name + "!" + functionName + "(" + args + ") -> call 0x" + Integer.toHexString(originalAddress));
                 try {
                     WinSystem.call(originalAddress,
                             argCount >= 1 ? Memory.mem_readd(CPU_Regs.reg_esp.dword) : 0,
@@ -154,13 +156,14 @@ public class NativeModule extends Module {
                             argCount >= 3 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 8) : 0,
                             argCount >= 4 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 12) : 0,
                             argCount >= 5 ? Memory.mem_readd(CPU_Regs.reg_esp.dword + 16) : 0);
-                    System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + " result=0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
+                    logger.log(Level.TRACE, "[trace-export] " + NativeModule.this.name + "!" + functionName + " result=0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
                 } catch (Throwable t) {
-                    System.out.println("[trace-export] " + NativeModule.this.name + "!" + functionName + " threw " + t);
+                    logger.log(Level.TRACE, "[trace-export] " + NativeModule.this.name + "!" + functionName + " threw " + t);
                     t.printStackTrace(System.out);
                     throw t;
                 } finally {
                     CPU_Regs.reg_eip = returnEip;
+                    CPU_Regs.reg_esp.dword += argCount * 4;
                 }
                 return 0;
             }
@@ -229,6 +232,7 @@ public class NativeModule extends Module {
             }
             heap = new KernelHeap(WinSystem.memory, page_directory, baseAddress, baseAddress + allocated, baseAddress + 0x1000000, false, false);
             heap.alloc(allocated, false);
+            logger.log(Level.TRACE, "Loaded " + name + " at " + Integer.toHexString(baseAddress) + " (preferred: " + Integer.toHexString((int)header.imageOptional.ImageBase) + ")");
             Memory.mem_memcpy(baseAddress, headerImage, 0, headerImage.length);
             logger.log(Level.DEBUG, "Loaded " + name + " at 0x" + Integer.toHexString(baseAddress) + " - 0x" + Integer.toHexString(baseAddress + headerImage.length));
             // Load code, data, import, etc sections
@@ -255,6 +259,7 @@ public class NativeModule extends Module {
                     int add = address - baseAddress + size - allocated;
                     add = (add + 0xFFF) & ~0xFFF;
                     allocated += add;
+                    logger.log(Level.TRACE, "NativeModule " + name + ": expanding heap to allocate up to " + Integer.toHexString(baseAddress + allocated));
                     heap.alloc(add, false);
                 }
                 Memory.mem_memcpy(address, buffer, 0, buffer.length);
@@ -262,13 +267,13 @@ public class NativeModule extends Module {
                     Memory.mem_zero(address + buffer.length, size - buffer.length);
             }
             if (oldbase != 0) {
-                LongRef relocAddress = new LongRef(0);
-                LongRef relocSize = new LongRef(0);
-                if (!RtlImageDirectoryEntryToData(HeaderImageOptional.IMAGE_DIRECTORY_ENTRY_BASERELOC, relocAddress, relocSize)) {
+                jdos.util.LongRef relocAddress = new jdos.util.LongRef(0);
+                jdos.util.LongRef relocSize = new jdos.util.LongRef(0);
+                if (!RtlImageDirectoryEntryToData(jdos.win.loader.winpe.HeaderImageOptional.IMAGE_DIRECTORY_ENTRY_BASERELOC, relocAddress, relocSize)) {
                     Win.panic("Dll needed to be relocated but could not find .reloc section");
                 }
                 int delta = baseAddress - oldbase;
-                LittleEndianFile is = new LittleEndianFile((int) relocAddress.value + baseAddress, (int) relocSize.value);
+                jdos.win.loader.winpe.LittleEndianFile is = new jdos.win.loader.winpe.LittleEndianFile((int) relocAddress.value + baseAddress, (int) relocSize.value);
                 while (is.available() > 0) {
                     int page = baseAddress + is.readInt();
                     int count = (is.readInt() - 8) / 2; // 8 is the size of the IMAGE_BASE_RELOCATION header and 2 is for the size of an USHORT
@@ -309,6 +314,8 @@ public class NativeModule extends Module {
                     }
                 }
             }
+            // Handle TLS (Thread Local Storage)
+            handleTLS(name);
             return true;
         } catch (Exception e) {
         } finally {
@@ -435,6 +442,7 @@ public class NativeModule extends Module {
                 address += 4;
                 int offset = Memory.mem_readd(address);
                 address += 4;
+                if (id > 0) logger.log(Level.TRACE, "Resource ID available: " + name + " looking for: " + id);
                 if (name == id) {
                     if (offset < 0)
                         return getResourceByCodePage(resourceStartAddress + (offset & 0x7FFFFFFF), size);
@@ -479,6 +487,83 @@ public class NativeModule extends Module {
         address.value = header.imageOptional.DataDirectory[dir].VirtualAddress;
         size.value = header.imageOptional.DataDirectory[dir].Size;
         return true;
+    }
+
+    private void handleTLS(String name) {
+        LongRef tlsAddress = new LongRef(0);
+        LongRef tlsSize = new LongRef(0);
+        if (!RtlImageDirectoryEntryToData(HeaderImageOptional.IMAGE_DIRECTORY_ENTRY_TLS, tlsAddress, tlsSize)) {
+            return; // No TLS directory
+        }
+        
+        logger.log(Level.TRACE, "NativeModule " + name + ": TLS directory at 0x" + Long.toHexString(tlsAddress.value) + " size=" + tlsSize.value);
+        
+        if (tlsSize.value < 24) {
+            logger.log(Level.TRACE, "NativeModule " + name + ": TLS directory too small, skipping");
+            return;
+        }
+        
+        // Read TLS directory fields
+        int startAddr = Memory.mem_readd((int)(baseAddress + tlsAddress.value));
+        int endAddr = Memory.mem_readd((int)(baseAddress + tlsAddress.value) + 4);
+        int indexAddr = Memory.mem_readd((int)(baseAddress + tlsAddress.value) + 8);
+        int callbacksAddr = Memory.mem_readd((int)(baseAddress + tlsAddress.value) + 12);
+        
+        logger.log(Level.TRACE, "NativeModule " + name + ": TLS start=0x" + Integer.toHexString(startAddr) +
+            " end=0x" + Integer.toHexString(endAddr) + " index=0x" + Integer.toHexString(indexAddr) + 
+            " callbacks=0x" + Integer.toHexString(callbacksAddr));
+        
+        // Call TLS callbacks if present - DISABLED for now as it causes crashes
+        /*
+        if (callbacksAddr != 0) {
+            logger.log(Level.TRACE, "NativeModule " + name + ": Calling TLS callbacks...");
+            int callback = Memory.mem_readd(callbacksAddr);
+            int callbackCount = 0;
+            while (callback != 0 && callbackCount < 16) {
+                logger.log(Level.TRACE, "NativeModule " + name + ": Calling TLS callback #" + callbackCount + " at 0x" + Integer.toHexString(callback));
+                try {
+                    CPU_Regs.reg_eax.dword = 0;
+                    CPU_Regs.reg_ecx.dword = baseAddress;
+                    CPU_Regs.reg_edx.dword = 1; // DLL_PROCESS_ATTACH
+                    CPU.CPU_Push32(0);
+                    CPU_Regs.reg_eip = callback;
+                } catch (Exception e) {
+                    logger.log(Level.TRACE, "NativeModule " + name + ": TLS callback failed: " + e.getMessage());
+                }
+                callbackCount++;
+                callback = Memory.mem_readd(callbacksAddr + callbackCount * 4);
+            }
+        }
+        */
+        // Actually call TLS callbacks - they're needed for proper initialization
+        if (callbacksAddr != 0 && callbacksAddr != 0xffffffff) {
+            logger.log(Level.TRACE, "NativeModule " + name + ": Calling TLS callbacks...");
+            int callback = Memory.mem_readd(callbacksAddr);
+            int callbackCount = 0;
+            while (callback != 0 && callback != 0xffffffff && callbackCount < 16) {
+                // Validate callback address - must be in valid code range (>0x1000 and not near end of address space)
+                if ((callback & 0xffffffffL) < 0x1000L || (callback & 0xffffffffL) > 0xfffeffffL) {
+                    logger.log(Level.TRACE, "NativeModule " + name + ": Invalid callback address 0x" + Integer.toHexString(callback) + ", stopping");
+                    break;
+                }
+                logger.log(Level.TRACE, "NativeModule " + name + ": Calling TLS callback #" + callbackCount + " at 0x" + Integer.toHexString(callback));
+                try {
+                    CPU_Regs.reg_eax.dword = 0;
+                    CPU_Regs.reg_ecx.dword = baseAddress;
+                    CPU_Regs.reg_edx.dword = 1; // DLL_PROCESS_ATTACH
+                    CPU.CPU_Push32(0);
+                    CPU_Regs.reg_eip = callback;
+                } catch (Exception e) {
+                    logger.log(Level.TRACE, "NativeModule " + name + ": TLS callback failed: " + e.getMessage());
+                    break;
+                }
+                callbackCount++;
+                callback = Memory.mem_readd(callbacksAddr + callbackCount * 4);
+            }
+            logger.log(Level.TRACE, "NativeModule " + name + ": TLS callbacks completed, count=" + callbackCount);
+        } else if (callbacksAddr == 0xffffffff) {
+            logger.log(Level.TRACE, "NativeModule " + name + ": TLS callbacks address is 0xffffffff, skipping");
+        }
     }
 
     @Override

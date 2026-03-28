@@ -67,7 +67,7 @@ public class Scheduler {
         else {
             SchedulerItem item = threadMap.get(thread);
             thread.waitTimeStart = currentTickCount();
-            item.sleepUntil = thread.waitTimeStart + 1;
+            item.sleepUntil = thread.waitTimeStart + thread.waitTime;
             tick();
         }
     }
@@ -122,6 +122,9 @@ public class Scheduler {
     // TODO run them in order of process to minimize page swapping
     static public void tick() {
         if (threadMap.isEmpty()) {
+            return;
+        }
+        if (WinSystem.nestedCallCount > 0) {
             return;
         }
         SchedulerItem next = currentThread.next;

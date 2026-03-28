@@ -199,6 +199,7 @@ public class Kernel32 extends BuiltinModule {
         add(OutputDebugStringW);
         add(OutputDebugStringA);
         add(QueryPerformanceCounter);
+        add(QueryPerformanceFrequency);
         add(RaiseException);
         add(ReadFile);
         add(ReleaseMutex);
@@ -208,6 +209,8 @@ public class Kernel32 extends BuiltinModule {
         add(RtlZeroMemory);
         add(KPath.class, "SearchPathA", new String[] {"(STRINg)lpPath", "(STRING)lpFileName", "(STRING)lpExtension", "nBufferLength", "(HEX)lpBuffer", "(HEX)lpFilePart"});
         add(SetConsoleCtrlHandler);
+        add(SetConsoleMode);
+        add(SetConsoleTextAttribute);
         add(KPath.class, "SetCurrentDirectoryA", new String[] {"(STRING)lpPathName"});
         add(Environ.class, "SetEnvironmentVariableA", new String[] {"(STRING)lpName", "(STRING)lpValue", "(BOOL)result"});
         add(SetErrorMode);
@@ -228,10 +231,12 @@ public class Kernel32 extends BuiltinModule {
         add(TlsSetValue);
         add(UnhandledExceptionFilter);
         add(UnmapViewOfFile);
+        add(IsProcessorFeaturePresent);
         add(VirtualAlloc);
         add(VirtualFree);
+        add(VirtualProtect);
         add(VirtualQuery);
-        add_wait(Sync.class, "WaitForSingleObject");
+        add_wait(Sync.class, "WaitForSingleObject", new String[] {"hHandle", "dwMilliseconds"});
         add_wait(Sync.class, "WaitForMultipleObjects");
         add(WideCharToMultiByte);
         add(WinProcess.class, "WinExec", new String[] {"(STRING)lpCmdLine", "(HEX)uCmdShow"});
@@ -316,6 +321,7 @@ public class Kernel32 extends BuiltinModule {
                 }
             }
             WinEvent event = WinEvent.create(name, bManualReset != 0, bInitialState != 0);
+            logger.log(Level.TRACE, "CreateEventA: name=" + name + " manual=" + bManualReset + " state=" + bInitialState + " returned handle=" + event.getHandle());
             CPU_Regs.reg_eax.dword = event.getHandle();
         }
     };
@@ -345,6 +351,8 @@ public class Kernel32 extends BuiltinModule {
         @Override
         public void onCall() {
             int lpFileName = CPU.CPU_Pop32();
+            String fileNameStr = StringUtil.getString(lpFileName);
+            logger.log(Level.TRACE, "CreateFileA: " + fileNameStr);
             int dwDesiredAccess = CPU.CPU_Pop32();
             int dwShareMode = CPU.CPU_Pop32();
             int lpSecurityAttributes = CPU.CPU_Pop32();
@@ -391,6 +399,7 @@ public class Kernel32 extends BuiltinModule {
                     break;
                 case 3: // OPEN_EXISTING
                     if (!file.exists()) {
+                        logger.log(Level.TRACE, "CreateFileA failed! file does not exist: " + file.getAbsolutePath());
                         thread.setLastError(Error.ERROR_FILE_NOT_FOUND);
                         CPU_Regs.reg_eax.dword = WinAPI.INVALID_HANDLE_VALUE;
                         return;
@@ -418,6 +427,7 @@ public class Kernel32 extends BuiltinModule {
             if (winFile != null)
                 CPU_Regs.reg_eax.dword = winFile.getHandle();
             else {
+                logger.log(Level.TRACE, "CreateFileA failed! WinFile.create returned null for " + file.getAbsolutePath());
                 CPU_Regs.reg_eax.dword = WinAPI.INVALID_HANDLE_VALUE;
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_ACCESS_DENIED);
             }
@@ -520,9 +530,9 @@ public class Kernel32 extends BuiltinModule {
 
         @Override
         public void onCall() {
-            int handle = CPU.CPU_Pop32();
-            WinThread thread = WinThread.get(handle);
+            WinThread thread = Scheduler.getCurrentThread();
             thread.exit(CPU_Regs.reg_eax.dword);
+            throw new jdos.cpu.CPUException();
         }
     };
 
@@ -552,15 +562,17 @@ public class Kernel32 extends BuiltinModule {
                 logger.log(Level.DEBUG, "***WARNING*** attributes are not supported for CreateThread");
             }
             WinThread thread = WinSystem.getCurrentProcess().createThread(start, stackSizeCommit, stackSizeReserved);
+            logger.log(Level.TRACE, "CreateThread: startAddress=" + Integer.toHexString(start) + " returned handle=" + thread.getHandle());
             if ((flags & 0x00000004) != 0) {
                 thread.suspend();
             }
             if (threadCleanup == 0) {
                 int cb = WinCallback.addCallback(CreateThreadCleanup);
                 threadCleanup = loader.registerFunction(cb);
+                logger.log(Level.TRACE, "CreateThreadCleanup allocated at " + Integer.toHexString((int)threadCleanup));
             }
-            thread.pushStack32(thread.handle);
-            thread.pushStack32(0);  // what's this?
+            // The thread proc returns into CreateThreadCleanup. It does not need the
+            // handle on the emulated stack because cleanup can use Scheduler.current().
             thread.pushStack32(params);
             thread.pushStack32((int) threadCleanup);
 
@@ -727,10 +739,13 @@ public class Kernel32 extends BuiltinModule {
             int exitCode = CPU.CPU_Pop32();
             logger.log(Level.DEBUG, "Win32 Process has exited (PID " + WinSystem.getCurrentProcess().getHandle() + "): code = " + exitCode);
             WinSystem.memory.printInfo();
+            int returnEip = WinSystem.getCurrentProcess().returnEip;
             WinSystem.getCurrentProcess().exit();
             System.out.print(" -> ");
             WinSystem.memory.printInfo();
             logger.log(Level.DEBUG, "");
+            jdos.cpu.CPU_Regs.reg_eip = returnEip;
+            throw new jdos.cpu.CPUException();
         }
     };
 
@@ -745,6 +760,7 @@ public class Kernel32 extends BuiltinModule {
         public void onCall() {
             int exitCode = CPU.CPU_Pop32();
             Scheduler.getCurrentThread().exit(exitCode);
+            throw new jdos.cpu.CPUException();
         }
     };
 
@@ -1392,6 +1408,7 @@ public class Kernel32 extends BuiltinModule {
                 CPU_Regs.reg_eax.dword = 0;
             } else {
                 String path = module.getFileName(true);
+                logger.log(Level.TRACE, "GetModuleFileName for handle " + handle + " -> " + path);
                 if (cb < path.length() + 1) {
                     StringUtil.strncpy(buffer, path, cb);
                     CPU_Regs.reg_eax.dword = cb;
@@ -1419,6 +1436,7 @@ public class Kernel32 extends BuiltinModule {
                 CPU_Regs.reg_eax.dword = 0;
             } else {
                 String path = module.getFileName(true);
+                logger.log(Level.TRACE, "GetModuleFileName for handle " + handle + " -> " + path);
                 if (cb < path.length() + 1) {
                     StringUtil.strncpyW(buffer, path, cb);
                     CPU_Regs.reg_eax.dword = cb;
@@ -1476,6 +1494,9 @@ public class Kernel32 extends BuiltinModule {
             String name = new LittleEndianFile(procName).readCString();
             logger.log(Level.DEBUG, "GetProcAddress " + name);
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().getProcAddress(handle, name);
+            if (name != null && name.startsWith("MaSound")) {
+                logger.log(Level.TRACE, "GetProcAddress " + name + " -> 0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
+            }
             traceUi("GetProcAddress h=0x" + Integer.toHexString(handle) + " " + name + " -> 0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
         }
     };
@@ -1555,9 +1576,9 @@ public class Kernel32 extends BuiltinModule {
             }
             Memory.mem_writed(add, 0);
             add += 4; // dwFillAttribute
-            Memory.mem_writed(add, 0);
+            Memory.mem_writed(add, 1);
             add += 4; // dwFlags
-            Memory.mem_writew(add, 0);
+            Memory.mem_writew(add, 1);
             add += 2; // wShowWindow
             Memory.mem_writew(add, 0);
             add += 2; // cbReserved2
@@ -2898,9 +2919,28 @@ public class Kernel32 extends BuiltinModule {
         @Override
         public void onCall() {
             int add = CPU.CPU_Pop32();
-            long time = System.nanoTime() * 21 / 17600; // 1GHz to 1.193182 MHz
+            long time = System.nanoTime() / 838; // ~ 1.193182 MHz
             int low = (int) time;
             int high = (int) (time >> 32);
+            Memory.mem_writed(add, low);
+            Memory.mem_writed(add + 4, high);
+            CPU_Regs.reg_eax.dword = WinAPI.TRUE;
+        }
+    };
+
+    // BOOL WINAPI QueryPerformanceFrequency(LARGE_INTEGER *lpFrequency)
+    private final Callback.Handler QueryPerformanceFrequency = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.QueryPerformanceFrequency";
+        }
+
+        @Override
+        public void onCall() {
+            int add = CPU.CPU_Pop32();
+            long freq = 1193182; // 1.193182 MHz
+            int low = (int) freq;
+            int high = (int) (freq >> 32);
             Memory.mem_writed(add, low);
             Memory.mem_writed(add + 4, high);
             CPU_Regs.reg_eax.dword = WinAPI.TRUE;
@@ -2946,6 +2986,7 @@ public class Kernel32 extends BuiltinModule {
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
             } else {
                 read = file.read(lpBuffer, nNumberOfBytesToRead);
+                logger.log(Level.TRACE, "ReadFile hFile=" + hFile + " bytesToRead=" + nNumberOfBytesToRead + " returned=" + read);
                 if (read == -1)
                     read = 0;
                 if (lpNumberOfBytesRead != 0)
@@ -3036,6 +3077,38 @@ public class Kernel32 extends BuiltinModule {
         }
     };
 
+    // BOOL WINAPI SetConsoleMode(HANDLE hConsoleHandle, DWORD dwMode)
+    private final Callback.Handler SetConsoleMode = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.SetConsoleMode";
+        }
+
+        @Override
+        public void onCall() {
+            int hConsoleHandle = CPU.CPU_Pop32();
+            int dwMode = CPU.CPU_Pop32();
+            logger.log(Level.DEBUG, getName() + " faked");
+            CPU_Regs.reg_eax.dword = WinAPI.TRUE;
+        }
+    };
+
+    // BOOL WINAPI SetConsoleTextAttribute(HANDLE hConsoleOutput, WORD wAttributes)
+    private final Callback.Handler SetConsoleTextAttribute = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.SetConsoleTextAttribute";
+        }
+
+        @Override
+        public void onCall() {
+            int hConsoleOutput = CPU.CPU_Pop32();
+            int wAttributes = CPU.CPU_Pop32();
+            logger.log(Level.DEBUG, getName() + " faked");
+            CPU_Regs.reg_eax.dword = WinAPI.TRUE;
+        }
+    };
+
     // UINT WINAPI SetErrorMode(UINT uMode)
     private final Callback.Handler SetErrorMode = new HandlerBase() {
         private int mode = 0;
@@ -3066,6 +3139,7 @@ public class Kernel32 extends BuiltinModule {
         public void onCall() {
             int hEvent = CPU.CPU_Pop32();
             WinEvent event = WinEvent.get(hEvent);
+            logger.log(Level.TRACE, "SetEvent: handle=" + hEvent);
             if (event == null) {
                 CPU_Regs.reg_eax.dword = WinAPI.FALSE;
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
@@ -3086,6 +3160,7 @@ public class Kernel32 extends BuiltinModule {
         public void onCall() {
             int hEvent = CPU.CPU_Pop32();
             WinEvent event = WinEvent.get(hEvent);
+            logger.log(Level.TRACE, "ResetEvent: handle=" + hEvent + " thread=" + Scheduler.getCurrentThread().handle);
             if (event == null) {
                 CPU_Regs.reg_eax.dword = WinAPI.FALSE;
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
@@ -3398,6 +3473,28 @@ public class Kernel32 extends BuiltinModule {
         }
     };
 
+    // BOOL WINAPI VirtualProtect(LPVOID lpAddress, SIZE_T dwSize, DWORD flNewProtect, PDWORD lpflOldProtect)
+    private final Callback.Handler VirtualProtect = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.VirtualProtect";
+        }
+
+        @Override
+        public void onCall() {
+            int lpAddress = CPU.CPU_Pop32();
+            int dwSize = CPU.CPU_Pop32();
+            int flNewProtect = CPU.CPU_Pop32();
+            int lpflOldProtect = CPU.CPU_Pop32();
+            // Write the old protection value (PAGE_EXECUTE_READWRITE = 0x40)
+            if (lpflOldProtect != 0) {
+                Memory.mem_writed(lpflOldProtect, 0x40);
+            }
+            logger.log(Level.DEBUG, getName() + " address=0x" + Integer.toHexString(lpAddress) + " size=" + dwSize + " protect=0x" + Integer.toHexString(flNewProtect));
+            CPU_Regs.reg_eax.dword = WinAPI.TRUE;
+        }
+    };
+
     // SIZE_T WINAPI VirtualQuery(LPCVOID lpAddress, PMEMORY_BASIC_INFORMATION lpBuffer, SIZE_T dwLength)
     private final Callback.Handler VirtualQuery = new HandlerBase() {
         @Override
@@ -3407,7 +3504,69 @@ public class Kernel32 extends BuiltinModule {
 
         @Override
         public void onCall() {
-            notImplemented();
+            int lpAddress = CPU.CPU_Pop32();
+            int lpBuffer = CPU.CPU_Pop32();
+            int dwLength = CPU.CPU_Pop32();
+
+            // MEMORY_BASIC_INFORMATION is 28 bytes
+            final int MBI_SIZE = 28;
+            if (dwLength < MBI_SIZE) {
+                CPU_Regs.reg_eax.dword = 0;
+                return;
+            }
+
+            long address = lpAddress & 0xFFFFFFFFL;
+            long baseAddress = address & ~0xFFFL;
+
+            VirtualMemory vm = WinSystem.getCurrentProcess().getVirtualMemory(address);
+            if (vm != null) {
+                // BaseAddress
+                Memory.mem_writed(lpBuffer, (int) vm.address);
+                // AllocationBase
+                Memory.mem_writed(lpBuffer + 4, (int) vm.address);
+                // AllocationProtect = PAGE_READWRITE
+                Memory.mem_writed(lpBuffer + 8, 0x04);
+                // RegionSize
+                Memory.mem_writed(lpBuffer + 12, vm.size);
+                // State = MEM_COMMIT
+                Memory.mem_writed(lpBuffer + 16, 0x1000);
+                // Protect = PAGE_READWRITE
+                Memory.mem_writed(lpBuffer + 20, 0x04);
+                // Type = MEM_PRIVATE
+                Memory.mem_writed(lpBuffer + 24, 0x20000);
+            } else {
+                // Not in any known region — report as committed image memory
+                // (this covers the PE image sections)
+                Memory.mem_writed(lpBuffer, (int) baseAddress);
+                Memory.mem_writed(lpBuffer + 4, (int) baseAddress);
+                // AllocationProtect = PAGE_EXECUTE_READWRITE
+                Memory.mem_writed(lpBuffer + 8, 0x40);
+                // RegionSize = page size
+                Memory.mem_writed(lpBuffer + 12, 0x1000);
+                // State = MEM_COMMIT
+                Memory.mem_writed(lpBuffer + 16, 0x1000);
+                // Protect = PAGE_EXECUTE_READWRITE
+                Memory.mem_writed(lpBuffer + 20, 0x40);
+                // Type = MEM_IMAGE
+                Memory.mem_writed(lpBuffer + 24, 0x1000000);
+            }
+
+            CPU_Regs.reg_eax.dword = MBI_SIZE;
+        }
+    };
+
+    // BOOL WINAPI IsProcessorFeaturePresent(DWORD ProcessorFeature)
+    private final Callback.Handler IsProcessorFeaturePresent = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.IsProcessorFeaturePresent";
+        }
+
+        @Override
+        public void onCall() {
+            int feature = CPU.CPU_Pop32();
+            logger.log(Level.DEBUG, getName() + " feature=" + feature + " returning TRUE");
+            CPU_Regs.reg_eax.dword = WinAPI.TRUE;
         }
     };
 

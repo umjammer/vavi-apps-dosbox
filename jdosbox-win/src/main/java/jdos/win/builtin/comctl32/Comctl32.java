@@ -55,5 +55,51 @@ public class Comctl32 extends BuiltinModule {
 
     // void InitCommonControls(void);
     public static void InitCommonControls() {
+        jdos.win.builtin.kernel32.WinProcess process = jdos.win.system.WinSystem.getCurrentProcess();
+        registerDummyClass(process, "SysListView32");
+        registerDummyClass(process, "msctls_statusbar32");
+        registerDummyClass(process, "msctls_trackbar32");
+        registerDummyClass(process, "SysTreeView32");
+        registerDummyClass(process, "SysTabControl32");
+        registerDummyClass(process, "ToolbarWindow32");
+        registerDummyClass(process, "ComboBoxEx32");
+        registerDummyClass(process, "SysDateTimePick32");
+        registerDummyClass(process, "SysMonthCal32");
+        registerDummyClass(process, "ReBarWindow32");
+        registerDummyClass(process, "SysPager");
+        registerDummyClass(process, "SysLink");
+        registerDummyClass(process, "msctls_updown32");
+        registerDummyClass(process, "msctls_progress32");
+        registerDummyClass(process, "msctls_hotkey32");
+        registerDummyClass(process, "SysAnimate32");
+        registerDummyClass(process, "tooltips_class32");
     }
+
+    private static void registerDummyClass(jdos.win.builtin.kernel32.WinProcess process, String name) {
+        if (process.classNames.containsKey(name.toLowerCase())) return;
+        jdos.win.builtin.user32.WinClass winClass = jdos.win.builtin.user32.WinClass.create();
+        winClass.className = name;
+        winClass.style = jdos.win.builtin.user32.WinWindow.CS_DBLCLKS | jdos.win.builtin.user32.WinWindow.CS_VREDRAW | jdos.win.builtin.user32.WinWindow.CS_HREDRAW;
+        winClass.hCursor = jdos.win.builtin.user32.WinCursor.LoadCursorA(0, jdos.win.builtin.user32.WinCursor.IDC_ARROW);
+        winClass.cbWndExtra = 0;
+        int cb = jdos.win.kernel.WinCallback.addCallback(dummy_proc);
+        winClass.eip = process.loader.registerFunction(cb);
+        process.classNames.put(winClass.className.toLowerCase(), winClass);
+    }
+
+    static private final jdos.cpu.Callback.Handler dummy_proc = new jdos.win.builtin.HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Comctl32.dummy_proc";
+        }
+
+        @Override
+        public void onCall() {
+            int hWnd = jdos.cpu.CPU.CPU_Pop32();
+            int Msg = jdos.cpu.CPU.CPU_Pop32();
+            int wParam = jdos.cpu.CPU.CPU_Pop32();
+            int lParam = jdos.cpu.CPU.CPU_Pop32();
+            jdos.cpu.CPU_Regs.reg_eax.dword = jdos.win.builtin.user32.DefWnd.DefWindowProcA(hWnd, Msg, wParam, lParam);
+        }
+    };
 }

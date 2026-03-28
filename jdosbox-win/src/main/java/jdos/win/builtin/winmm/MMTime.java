@@ -156,7 +156,7 @@ public class MMTime extends WinAPI {
         if (ptc == 0 || cbtc < 8)
             return TIMERR_NOCANDO;
         writed(ptc, MMSYSTIME_MININTERVAL);
-        writed(ptc, MMSYSTIME_MAXINTERVAL);
+        writed(ptc + 4, MMSYSTIME_MAXINTERVAL);
         return TIMERR_NOERROR;
     }
 

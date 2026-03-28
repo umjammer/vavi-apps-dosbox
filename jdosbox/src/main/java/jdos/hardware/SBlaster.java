@@ -1160,8 +1160,9 @@ public class SBlaster extends Module_base {
         switch (sb.dsp.cmd) {
             case DSP_NO_COMMAND:
                 sb.dsp.cmd = val;
-                if (sb.type == SBT_16) sb.dsp.cmd_len = DSP_cmd_len_sb16[val];
-                else sb.dsp.cmd_len = DSP_cmd_len_sb[val];
+                int cmdIndex = val & 0xFF;
+                if (sb.type == SBT_16) sb.dsp.cmd_len = DSP_cmd_len_sb16[cmdIndex];
+                else sb.dsp.cmd_len = DSP_cmd_len_sb[cmdIndex];
                 sb.dsp.in.pos = 0;
                 if (sb.dsp.cmd_len == 0) DSP_DoCommand();
                 break;

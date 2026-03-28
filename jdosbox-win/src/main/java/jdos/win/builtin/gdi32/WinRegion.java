@@ -35,6 +35,28 @@ public class WinRegion extends WinGDI {
         return ERROR;
     }
 
+    // BOOL WINAPI PtInRegion(HRGN hrgn, int x, int y)
+    static public int PtInRegion(int hrgn, int x, int y) {
+        WinRegion obj = WinRegion.get(hrgn);
+        if (obj == null) return FALSE;
+        for (WinRect rect : obj.rects) {
+            if (x >= rect.left && x < rect.right && y >= rect.top && y < rect.bottom) return TRUE;
+        }
+        return FALSE;
+    }
+
+    // BOOL WINAPI RectInRegion(HRGN hrgn, int lprc)
+    static public int RectInRegion(int hrgn, int lprc) {
+        WinRegion obj = WinRegion.get(hrgn);
+        if (obj == null) return FALSE;
+        WinRect rc = new WinRect(lprc);
+        WinRect intersection = new WinRect();
+        for (WinRect rect : obj.rects) {
+            if (intersection.intersect(rect, rc)) return TRUE;
+        }
+        return FALSE;
+    }
+
     // HRGN WINAPI CreateRectRgn(INT left, INT top, INT right, INT bottom)
     static public int CreateRectRgn(int left, int top, int right, int bottom) {
         WinRegion rgn = WinRegion.create();

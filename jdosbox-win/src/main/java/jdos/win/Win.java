@@ -62,7 +62,7 @@ public class Win extends WinAPI {
         throw new Dos_programs.RebootException();
     }
 
-    static public boolean run(Drive_fat drive, Drive_fat.fatFile fil, String path) {
+    static public boolean run(Drive_fat drive, Drive_fat.fatFile fil, String path, String args) {
         FilePath.disks.clear();
         FilePath.disks.put("C", drive);
         WinFile file = WinFile.createNoHandle(new FilePath(path), false, 0, 0);
@@ -81,10 +81,10 @@ public class Win extends WinAPI {
             name = path;
             path = "";
         }
-        return internalRun(path, winPath, name);
+        return internalRun(path, winPath, name, args);
     }
 
-    static public boolean run(String path) {
+    static public boolean run(String path, String args) {
         /*Bit8u*/
         char drive = (char) (Dos_files.DOS_GetDefaultDrive() + 'A');
         StringRef dir = new StringRef();
@@ -120,10 +120,10 @@ public class Win extends WinAPI {
             name = path;
             path = "";
         }
-        return internalRun(path, winPath, name);
+        return internalRun(path, winPath, name, args);
     }
 
-    static private boolean internalRun(String path, String winPath, String name) {
+    static private boolean internalRun(String path, String winPath, String name, String args) {
         List<Path> paths = new ArrayList<>();
         paths.add(new Path(path, winPath));
 
@@ -180,7 +180,11 @@ public class Win extends WinAPI {
 
         Main.GFX_SetCursor(WinCursor.loadSystemCursor(32650)); // IDC_APPSTARTING
         WinSystem.start();
-        if (WinProcess.create(name, "\"" + winPath + name + "\"", paths, winPath) != null) {
+        String commandLine = "\"" + winPath + name + "\"";
+        if (args != null && !args.isEmpty()) {
+            commandLine += " " + args;
+        }
+        if (WinProcess.create(name, commandLine, paths, winPath) != null) {
             return true;
         }
         return true;

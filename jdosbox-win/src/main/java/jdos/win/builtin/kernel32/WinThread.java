@@ -117,17 +117,18 @@ public class WinThread extends WaitObject {
         return guiInfo;
     }
 
-    private final Callback.Handler startUp = new HandlerBase() {
+    private final Callback.Handler startUp = new Callback.Handler() {
         @Override
         public String getName() {
             return "WinThread.start";
         }
 
         @Override
-        public void onCall() {
+        public int call() {
             process.loader.attachThread();
             CPU_Regs.reg_esp.dword = cpuState.esp;
             CPU_Regs.reg_eip = startAddress;
+            return 0; // CBRET_NONE
         }
     };
 
@@ -285,12 +286,15 @@ public class WinThread extends WaitObject {
         list.add(window.handle);
         for (int j = window.children.size() - 1; j >= 0; j--) {
             WinWindow child = window.children.get(j);
-            if ((child.dwStyle & WS_VISIBLE) == 0)
+            if ((child.dwStyle & WS_VISIBLE) == 0) {
+                WinAPI.traceUi("buildBackToFrontWindowList child " + child.handle + " skip !visible");
                 continue;
+            }
             WinRect intersection = new WinRect();
             WinRect childRect = child.rectWindow.copy();
-            childRect.offset(window.rectWindow.left, window.rectWindow.top);
-            if (intersection.intersect(window.invalidationRect, childRect))
+            boolean inter = intersection.intersect(window.invalidationRect, childRect);
+            WinAPI.traceUi("buildBackToFrontWindowList child " + child.handle + " childRect=" + childRect + " invRect=" + window.invalidationRect + " inter=" + inter);
+            if (inter)
                 buildBackToFrontWindowList(child, list);
         }
     }
@@ -336,8 +340,13 @@ public class WinThread extends WaitObject {
                 }
                 if (remove) {
                     buildBackToFrontWindowList(window, paintList);
+                    int h = paintList.removeFirst();
+                    WinWindow w = WinWindow.get(h);
+                    if (w != null) w.validate();
+                    setMessage(msgAddress, h, WinWindow.WM_PAINT, 0, 0, WinSystem.getTickCount(), StaticData.currentPos.x, StaticData.currentPos.y);
+                } else {
+                    setMessage(msgAddress, window.getHandle(), WinWindow.WM_PAINT, 0, 0, WinSystem.getTickCount(), StaticData.currentPos.x, StaticData.currentPos.y);
                 }
-                setMessage(msgAddress, window.getHandle(), WinWindow.WM_PAINT, 0, 0, WinSystem.getTickCount(), StaticData.currentPos.x, StaticData.currentPos.y);
                 return WinAPI.TRUE;
             }
         }
@@ -397,6 +406,13 @@ public class WinThread extends WaitObject {
         close();
         getProcess().freeAddress(stackAddress);
         Scheduler.removeThread(this);
+        boolean wasEmpty = getProcess().threads.isEmpty();
+        getProcess().threads.remove(this);
+        if (!wasEmpty && getProcess().threads.isEmpty()) {
+            int returnEip = getProcess().returnEip;
+            getProcess().exit();
+            jdos.cpu.CPU_Regs.reg_eip = returnEip;
+        }
     }
 
     public void loadCPU() {
@@ -414,6 +430,24 @@ public class WinThread extends WaitObject {
     public void setLastError(int error) {
         lastError = error;
     }
+
+    public static class CallbackState {
+        public int eip;
+        public int esp;
+        public int eax;
+        public int ecx;
+        public int edx;
+        public int eflags;
+        public CallbackState(int eip, int esp, int eax, int ecx, int edx, int eflags) {
+            this.eip = eip;
+            this.esp = esp;
+            this.eax = eax;
+            this.ecx = ecx;
+            this.edx = edx;
+            this.eflags = eflags;
+        }
+    }
+    public java.util.Stack<CallbackState> callbackStates = new java.util.Stack<>();
 
     public WinProcess getProcess() {
         return process;

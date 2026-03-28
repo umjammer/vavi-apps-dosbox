@@ -39,6 +39,9 @@ public class Message extends WinAPI {
         int result = Scheduler.getCurrentThread().getNextMessage(lpMsg, hWnd, wMsgFilterMin, wMsgFilterMax);
         if (result != WAIT_SWITCH && result != FALSE && lpMsg != 0) {
             int msg = readd(lpMsg + 4);
+            if (msg == WinWindow.WM_QUIT) {
+                return WinAPI.FALSE; // GetMessage returns 0 for WM_QUIT
+            }
             if (msg == WinWindow.WM_PAINT || msg == WinWindow.WM_CREATE || msg == WinWindow.WM_INITDIALOG || msg == WinWindow.WM_SHOWWINDOW || msg == WinWindow.WM_SIZE || msg == WinWindow.WM_MOVE || msg == WinWindow.WM_PARENTNOTIFY) {
                 traceUi("GetMessageA hwnd=" + readd(lpMsg) + " msg=0x" + Integer.toHexString(msg));
             }
@@ -73,6 +76,16 @@ public class Message extends WinAPI {
         if (hWnd == 0xFFFF)
             Win.panic("Broadcast PostMessage not implemented yet");
         Scheduler.getCurrentThread().postMessage(hWnd, Msg, wParam, lParam);
+        return TRUE;
+    }
+
+    // BOOL WINAPI PostThreadMessageA(DWORD idThread, UINT Msg, WPARAM wParam, LPARAM lParam)
+    static public int PostThreadMessageA(int idThread, int Msg, int wParam, int lParam) {
+        jdos.win.builtin.kernel32.WinThread thread = jdos.win.builtin.kernel32.WinThread.get(idThread);
+        traceUi("PostThreadMessageA idThread=" + idThread + " thread=" + (thread != null) + " Msg=" + Integer.toHexString(Msg));
+        if (thread == null)
+            return FALSE;
+        thread.postMessage(0, Msg, wParam, lParam);
         return TRUE;
     }
 

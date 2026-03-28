@@ -8,7 +8,7 @@ import jdos.hardware.Memory;
 
 public class WinCallback {
 
-    static private final Callback.Handler[] handlers = new Callback.Handler[2048];
+    static public final Callback.Handler[] handlers = new Callback.Handler[2048];
     static private int nextCB = 1;
     static private int idle_eip;
 

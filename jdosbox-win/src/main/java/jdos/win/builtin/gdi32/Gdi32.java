@@ -11,8 +11,9 @@ public class Gdi32 extends BuiltinModule {
 
         add(BitBlt.class, "BitBlt", LOG_GDI ? new String[] {"hdcDest", "nXDest", "nYDest", "nWidth", "nHeight", "hdcSrc", "nXSrc", "nYSrc", "dwRop", "(BOOL)result"} : null);
         add(WinBitmap.class, "CreateBitmap", LOG_GDI ? new String[] {"nWidth", "nHeight", "cPlanes", "cBitsPerPel", "(HEX)lpvBits"} : null);
-        add(WinBitmap.class, "CreateCompatibleBitmap", LOG_GDI ? new String[] {"hdc", "nWidth", "nHeight"} : null);
-        add(WinDC.class, "CreateCompatibleDC", LOG_GDI ? new String[] {"hdc"} : null);
+        add(WinBitmap.class, "CreateCompatibleBitmap", LOG_GDI ? new String[] {"hdc", "nWidth", "nHeight", "(GDI)result"} : null);
+        add(WinDC.class, "CreateCompatibleDC", LOG_GDI ? new String[] {"hdc", "(GDI)result"} : null);
+        add(WinBitmap.class, "CreateDIBSection", LOG_GDI ? new String[] {"hdc", "(HEX)pbmi", "usage", "(HEX)ppvBits", "hSection", "offset"} : null);
         add(WinFont.class, "CreateFontA", LOG_GDI ? new String[] {"nHeight", "nWidth", "nEscapement", "nOrientation", "fnWeight", "fdwItalic", "fdwUnderline", "fdwStrikeOut", "fdwCharSet", "fdwOutputPrecision", "fdwClipPrecision", "fdwQuality", "fdwPitchAndFamily", "(STRING)lpszFace"} : null);
         add(WinFont.class, "CreateFontW", LOG_GDI ? new String[] {"nHeight", "nWidth", "nEscapement", "nOrientation", "fnWeight", "fdwItalic", "fdwUnderline", "fdwStrikeOut", "fdwCharSet", "fdwOutputPrecision", "fdwClipPrecision", "fdwQuality", "fdwPitchAndFamily", "(STRINGW)lpszFace"} : null);
         add(WinFont.class, "CreateFontIndirectA", LOG_GDI ? new String[] {"(LOGFONT)lplf"} : null);
@@ -32,9 +33,14 @@ public class Gdi32 extends BuiltinModule {
         add(GdiObj.class, "GetObjectA", LOG_GDI ? new String[] {"(GDI)hgdiobj", "cbBuffer", "(HEX)lpvObject"} : null);
         add(WinPalette.class, "GetPaletteEntries", LOG_GDI ? new String[] {"(GDI)hpal", "iStartIndex", "nEntries", "(HEX)lppe"} : null);
         add(WinDC.class, "GetPixel", LOG_GDI ? new String[] {"hdc", "nXPos", "nYPos", "(HEX)result"} : null);
+        add(WinDC.class, "GetClipBox", LOG_GDI ? new String[] {"hdc", "(HEX)lprc", "result"} : null);
+        add(WinDC.class, "PtVisible", LOG_GDI ? new String[] {"hdc", "x", "y", "result"} : null);
+        add(WinDC.class, "RectVisible", LOG_GDI ? new String[] {"hdc", "(HEX)lprc", "result"} : null);
         add(GdiObj.class, "GetStockObject", LOG_GDI ? new String[] {"fnObject", "(GDI)result"} : null);
         add(WinDC.class, "GetSystemPaletteEntries", LOG_GDI ? new String[] {"hdc", "iStartIndex", "nEntries", "lppe"} : null);
         add(WinPalette.class, "GetSystemPaletteUse", LOG_GDI ? new String[] {"hdc"} : null);
+        add(WinDC.class, "GetBkColor", LOG_GDI ? new String[] {"hdc", "(HEX)result"} : null);
+        add(WinDC.class, "GetCurrentPositionEx", LOG_GDI ? new String[] {"hdc", "(HEX)lpPoint", "result"} : null);
         add(WinDC.class, "GetTextColor", LOG_GDI ? new String[] {"hdc", "(HEX)result"} : null);
         add(WinFont.class, "GetTextExtentExPointA", LOG_GDI ? new String[] {"hdc", "(STRINGN2)lpszStr", "cchString", "nMaxExtent", "(HEX)lpnFit", "(HEX)alpDx", "(HEX)lpSize", "(BOO)result", "06(SIZE)lpSize"} : null);
         add(WinFont.class, "GetTextExtentPoint32A", LOG_GDI ? new String[] {"hdc", "(STRINGN2)lpString", "cbString", "(HEX)lpSize", "result", "03(SIZE)lpSize"} : null);
@@ -47,6 +53,8 @@ public class Gdi32 extends BuiltinModule {
         add(PaintingGDI.class, "Polygon", LOG_GDI ? new String[] {"hdc", "(POINT)lpPoints", "nCount", "(BOOL)result"} : null);
         add(WinPalette.class, "ResizePalette", LOG_GDI ? new String[] {"hpal", "nEntries", "(BOOL)result"} : null);
         add(WinDC.class, "RealizePalette", LOG_GDI ? new String[] {"hdc"} : null);
+        add(WinDC.class, "SaveDC", LOG_GDI ? new String[] {"hdc", "result"} : null);
+        add(WinDC.class, "RestoreDC", LOG_GDI ? new String[] {"hdc", "nSavedDC", "result"} : null);
         add(WinDC.class, "SelectClipRgn", LOG_GDI ? new String[] {"hdc", "(GDI)hrgn", "result"} : null);
         add(WinDC.class, "SelectObject", LOG_GDI ? new String[] {"hdc", "(GDI)hgdiobj", "(GDI)result"} : null);
         add(WinDC.class, "SelectPalette", LOG_GDI ? new String[] {"hdc", "(GDI)hpal", "(BOOL)bForceBackground", "(GDI)result"} : null);
