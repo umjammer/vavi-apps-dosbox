@@ -1,6 +1,7 @@
 package jdos.gui;
 
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Container;
 import java.awt.Cursor;
 import java.awt.Dimension;
@@ -14,6 +15,7 @@ import java.awt.Image;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.Point;
+import java.awt.Rectangle;
 import java.awt.RenderingHints;
 import java.awt.Robot;
 import java.awt.Toolkit;
@@ -271,15 +273,18 @@ public class MainFrame implements GUI {
 
         panel = new JPanel() {
             @Override
-            public void paint(Graphics g) {
+            public void paintComponent(Graphics g) {
                 if (Main.buffer2[Main.front] != null) {
                     synchronized (Main.paintMutex) {
                         if (fullscreen) {
                             g.drawImage(Main.buffer2[Main.front], fullscreen_cx_offset, 0, fullscreen_cx + fullscreen_cx_offset, fullscreen_cy, 0, 0, Main.buffer_width, Main.buffer_height, null);
                         } else {
                             if (Render.render.aspect && (Main.screen_height % Main.buffer_height) != 0) {
-                                BufferedImage resized = resizeImage(Main.buffer2[Main.front], Main.screen_width, Main.screen_height, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
-                                g.drawImage(resized, 0, 0, Main.screen_width, Main.screen_height, 0, 0, Main.screen_width, Main.screen_height, null);
+//                                BufferedImage resized = resizeImage(Main.buffer2[Main.front], Main.screen_width, Main.screen_height, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+                                double scaleX = (double) Main.screen_width / Main.buffer2[Main.front].getWidth();
+                                double scaley = (double) Main.screen_height / Main.buffer2[Main.front].getHeight();
+                                double scale = Math.min(scaleX, scaley);
+                                g.drawImage(Main.buffer2[Main.front], 0, 0, (int) (Main.buffer2[Main.front].getWidth() * scale), (int) (Main.buffer2[Main.front].getHeight() * scale), null);
                             } else {
                                 g.drawImage(Main.buffer2[Main.front], 0, 0, Main.screen_width, Main.screen_height, 0, 0, Main.buffer_width, Main.buffer_height, null);
                             }
@@ -313,8 +318,10 @@ public class MainFrame implements GUI {
                 Main.screen_height = panel.getHeight();
             }
         });
+        panel.setBackground(Color.black);
         Container contentPane = frame.getContentPane();
         contentPane.setLayout(new BorderLayout());
+        frame.setBackground(Color.black);
         frame.getContentPane().add(panel, BorderLayout.CENTER);
         mainThread = new Thread(() -> {
             Main.guiMain(new MainFrame(), args);
