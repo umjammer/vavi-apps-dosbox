@@ -322,6 +322,10 @@ public class Drive_local extends Dos_Drive {
     public boolean FindFirst(String dir, Dos_DTA dta, boolean fcb_findfirst/*=false*/) {
         StringRef tempDir=new StringRef(basedir+dir);
 
+        if (!File.separator.equals("\\")) {
+            tempDir.value = StringHelper.replace(tempDir.value, "\\", File.separator);
+        }
+
         if (allocation.mediaid==0xF0 ) {
             EmptyCache(); //rescan floppie-content on each findfirst
         }
