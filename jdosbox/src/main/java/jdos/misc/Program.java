@@ -137,7 +137,7 @@ public abstract class Program {
     static byte last_written_character = 0;//For 0xA to OxD 0xA expansion
 
     public void writeOut(String format, Object... args) {
-        String buf = format.formatted(args);
+        String buf = args != null ? format.formatted(args) : format;
         /*Bit16u*/
         int size = buf.length();
         for (/*Bit16u*/int i = 0; i < size; i++) {
