@@ -611,7 +611,7 @@ public class Dos_files {
     public static boolean DOS_OpenFile(String name,/*Bit8u*/int flags,/*Bit16u*/IntRef entry) {
         /* First check for devices */
         if (flags > 2)
-            LOG_FILES.log(Level.ERROR, "Special file open command " + Integer.toString(flags, 16) + " file " + name);
+            LOG_FILES.log(Level.INFO, "Special file open command " + Integer.toString(flags, 16) + " file " + name);
         else LOG_FILES.log(Level.DEBUG, "file open command " + Integer.toString(flags, 16) + " file " + name);
 
         Dos_PSP psp = new Dos_PSP(Dos.dos.psp());

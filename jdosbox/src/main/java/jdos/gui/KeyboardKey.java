@@ -157,6 +157,28 @@ public class KeyboardKey {
         logger.log(Level.INFO, "jpn: " + "jpn".equals(System.getProperty("jdosbox.keyboard.layout")));
     }
 
+    static void interceptJIS2(KeyEvent e) {
+//logger.log(Level.INFO, "keyCode: %02x, keyChar: %04x, modifiers: %04x".formatted(e.getKeyCode(), (int) e.getKeyChar(), e.getModifiersEx()));
+        if (e.getKeyCode() == KeyEvent.VK_DELETE && (e.getModifiersEx() & KeyEvent.SHIFT_DOWN_MASK) == KeyEvent.SHIFT_DOWN_MASK) {
+            e.setKeyCode(KeyEvent.VK_INSERT);
+            return;
+        }
+        char c = e.getKeyChar();
+        int keyCode = switch (c) {
+            case '\\' -> KeyEvent.VK_BACK_SLASH;
+            case '|' -> KeyEvent.VK_BACK_SLASH;
+//            case '[' -> KeyEvent.VK_OPEN_BRACKET;
+//            case '{' -> KeyEvent.VK_OPEN_BRACKET;
+//            case ']' -> KeyEvent.VK_CLOSE_BRACKET;
+//            case '}' -> KeyEvent.VK_CLOSE_BRACKET;
+//            case '_' -> KeyEvent.VK_UNDERSCORE;
+            default -> KeyEvent.VK_UNDEFINED;
+        };
+        if (keyCode != KeyEvent.VK_UNDEFINED) {
+            e.setKeyCode(keyCode);
+        }
+    }
+
     static boolean interceptJIS(KeyEvent event) {
         if (!isJISEnabled()) {
             return false;
@@ -204,6 +226,7 @@ public class KeyboardKey {
 
     static public void checkEvent(Object e) {
         KeyEvent event = (KeyEvent) e;
+        interceptJIS2(event);
         if (interceptJIS(event)) {
             return;
         }

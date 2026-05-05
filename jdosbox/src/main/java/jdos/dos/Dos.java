@@ -1036,7 +1036,7 @@ public class Dos extends Module_base {
                 }
                 case 0x4b:                    /* EXEC Load and/or execute program */ {
                     String name1 = Memory.MEM_StrCopy(CPU_Regs.reg_dsPhys.dword + CPU_Regs.reg_edx.word(), 256);
-                    LOG_EXEC.log(Level.ERROR, "Execute " + name1 + " " + CPU_Regs.reg_eax.low());
+                    LOG_EXEC.log(Level.INFO, "Execute " + name1 + " " + CPU_Regs.reg_eax.low());
                     if (!Dos_execute.DOS_Execute(name1, CPU_Regs.reg_esPhys.dword + CPU_Regs.reg_ebx.word(), (short) CPU_Regs.reg_eax.low())) {
                         CPU_Regs.reg_eax.word(dos.errorcode);
                         Callback.CALLBACK_SCF(true);

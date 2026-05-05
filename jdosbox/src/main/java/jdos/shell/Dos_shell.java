@@ -134,7 +134,7 @@ public class Dos_shell extends Program {
 
     /* A load of subfunctions */
     void parseLine(String line) {
-        LOG_EXEC.log(Level.ERROR, "Parsing command line: " + line);
+        LOG_EXEC.log(Level.INFO, "Parsing command line: " + line);
         /* Check for a leading @ */
         if (line.startsWith("@")) line = line.substring(1);
         line = line.trim();
