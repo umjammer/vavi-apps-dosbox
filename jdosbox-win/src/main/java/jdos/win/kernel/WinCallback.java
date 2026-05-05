@@ -14,6 +14,16 @@ public class WinCallback {
 
     static public Callback.Handler[] dosCallbacks;
 
+    static public void stop() {
+        if (dosCallbacks != null) {
+            Callback.CallBack_Handlers = dosCallbacks;
+            dosCallbacks = null;
+        }
+        for(int i=0;i<handlers.length;i++) handlers[i] = null;
+        nextCB = 1;
+        idle_eip = 0;
+    }
+
     static public void start(KernelMemory memory) {
         dosCallbacks = Callback.CallBack_Handlers;
         Callback.CallBack_Handlers = handlers;

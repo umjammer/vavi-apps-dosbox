@@ -35,6 +35,7 @@ import jdos.win.utils.Path;
 public class Win extends WinAPI {
 
     private static final Logger logger = System.getLogger(Win.class.getName());
+    private static String returnToPromptCommand;
 
     static private void disable_umb_ems_xms() {
         Section dos_sec = Dosbox.control.GetSection("dos");
@@ -51,15 +52,9 @@ public class Win extends WinAPI {
     }
 
     public static void exit() {
-        Console.out("The Windows program has finished.  Rebooting in .. ");
-        for (int i = 5; i > 0; i--) {
-            logger.log(Level.DEBUG, i);
-            try {
-                Thread.sleep(1000);
-            } catch (Exception e) {
-            }
-        }
-        throw new Dos_programs.RebootException();
+        Main.defaultKeyboardHandler = null;
+        Main.defaultMouseHandler = null;
+        throw new Dos_programs.ReturnToPromptException(returnToPromptCommand);
     }
 
     static public boolean run(Drive_fat drive, Drive_fat.fatFile fil, String path, String args) {
@@ -124,6 +119,7 @@ public class Win extends WinAPI {
     }
 
     static private boolean internalRun(String path, String winPath, String name, String args) {
+        returnToPromptCommand = name + ((args != null && !args.isEmpty()) ? " " + args : "");
         List<Path> paths = new ArrayList<>();
         paths.add(new Path(path, winPath));
 
@@ -188,5 +184,13 @@ public class Win extends WinAPI {
             return true;
         }
         return true;
+    }
+
+    public static void returnToPrompt() {
+        String command = returnToPromptCommand;
+        returnToPromptCommand = null;
+        Main.defaultKeyboardHandler = null;
+        Main.defaultMouseHandler = null;
+        throw new Dos_programs.ReturnToPromptException(command);
     }
 }

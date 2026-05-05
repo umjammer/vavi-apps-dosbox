@@ -52,6 +52,34 @@ public class StaticData extends WinAPI {
     public static int currentPrimarySurface;
     public static int ddrawWindow;
 
+    static public void stop() {
+        objects.clear();
+        namedObjects.clear();
+        inputQueue.clear();
+        hooks = null;
+        registeredMessages = null;
+        currentHookChain = null;
+        user = null;
+        desktopWindow = 0;
+        showCursorCount = 0;
+        hCursor = 0;
+        mouseCapture = 0;
+        foregroundWindow = 0;
+        currentPos = new WinPoint(0, 0);
+        hbitmapCheckBoxes = 0;
+        top_popup = 0;
+        currentHookIndex = 0;
+        currentDirectDraw = 0;
+        currentPrimarySurface = 0;
+        ddrawWindow = 0;
+        // nextObjectId is probably fine to keep incrementing or could reset to 8200
+        nextObjectId = 8200;
+        if (screen != null) {
+            screen.close();
+            screen = null;
+        }
+    }
+
     static public void init() {
         stockObjects = new int[STOCK_LAST + 1];
         stockObjects[WHITE_BRUSH] = WinBrush.CreateSolidBrush(RGB(255, 255, 255));

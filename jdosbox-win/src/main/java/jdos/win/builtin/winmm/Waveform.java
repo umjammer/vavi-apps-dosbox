@@ -13,7 +13,9 @@ import javax.sound.sampled.SourceDataLine;
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
+import jdos.win.builtin.kernel32.WinProcess;
 import jdos.win.system.WinObject;
+import jdos.win.system.WinSystem;
 import jdos.win.utils.Ptr;
 
 
@@ -34,19 +36,29 @@ public class Waveform extends WinAPI {
     public static final int WOM_DONE  = 0x03BD;
 
     public static void pollCallbacks() {
+        WinProcess currentProcess = WinSystem.getCurrentProcess();
+        if (currentProcess == null) {
+            return;
+        }
+        int currentProcessHandle = currentProcess.getHandle();
         while (true) {
             CallbackMessage msg = null;
             synchronized (globalPendingMessages) {
-                if (!globalPendingMessages.isEmpty()) {
-                    msg = globalPendingMessages.remove(0);
+                for (int i = 0; i < globalPendingMessages.size(); ) {
+                    CallbackMessage candidate = globalPendingMessages.get(i);
+                    WinProcess owner = WinProcess.get(candidate.processHandle);
+                    if (owner == null || owner.exiting) {
+                        globalPendingMessages.remove(i);
+                        continue;
+                    }
+                    if (candidate.processHandle == currentProcessHandle) {
+                        msg = globalPendingMessages.remove(i);
+                        break;
+                    }
+                    i++;
                 }
             }
             if (msg == null) break;
-            if (msg.hdr != null) {
-                msg.hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
-                msg.hdr.dwFlags |= WAVEHDR.WHDR_DONE;
-                msg.hdr.writeFlags();
-            }
             int type = msg.flags & WinMM.CALLBACK_TYPEMASK;
             if (type == WinMM.CALLBACK_FUNCTION) {
                 try {
@@ -110,6 +122,7 @@ public class Waveform extends WinAPI {
     }
 
     static class CallbackMessage {
+        int processHandle;
         int hwo;
         int uMsg;
         int dwParam1;
@@ -119,6 +132,8 @@ public class Waveform extends WinAPI {
         int dwCallbackInstance;
         int flags;
     }
+
+    private static final java.util.Set<WaveObject> activeWaveObjects = java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<WaveObject, Boolean>());
 
     private static class WaveObject extends WinObject {
 
@@ -143,23 +158,28 @@ public class Waveform extends WinAPI {
             this.dwCallback = dwCallback;
             this.dwCallbackInstance = dwCallbackInstance;
             this.flags = fdwOpen;
+            this.processHandle = WinSystem.getCurrentProcess().getHandle();
 
             thread = new WaveOutThread(format, this);
             thread.start();
+            activeWaveObjects.add(this);
         }
 
         public final int dwCallback;
         public final int dwCallbackInstance;
         public final int flags;
+        public final int processHandle;
         public final WaveOutThread thread;
         public boolean bExit = false;
+        public volatile boolean shuttingDown = false;
 
-        public void notifyClient(int uMsg, int dwParam1, int dwParam2, WAVEHDR hdr) {
+        private void enqueueClientNotification(int uMsg, int dwParam1, int dwParam2, WAVEHDR hdr) {
             int type = flags & WinMM.CALLBACK_TYPEMASK;
             if (type == WinMM.CALLBACK_FUNCTION ||
                 type == WinMM.CALLBACK_EVENT ||
                 type == WinMM.CALLBACK_THREAD) {
                 CallbackMessage msg = new CallbackMessage();
+                msg.processHandle = processHandle;
                 msg.hwo = handle;
                 msg.uMsg = uMsg;
                 msg.dwParam1 = dwParam1;
@@ -173,10 +193,39 @@ public class Waveform extends WinAPI {
                 }
             }
         }
+
+        public void notifyClient(int uMsg, int dwParam1, int dwParam2, WAVEHDR hdr) {
+            if (shuttingDown) {
+                return;
+            }
+            enqueueClientNotification(uMsg, dwParam1, dwParam2, hdr);
+        }
+
+        public void shutdown(boolean notifyClose) {
+            if (shuttingDown) {
+                return;
+            }
+            if (notifyClose) {
+                enqueueClientNotification(WOM_CLOSE, 0, 0, null);
+            }
+            shuttingDown = true;
+            thread.exit = true;
+            synchronized (thread.buffers) {
+                thread.buffers.clear();
+                thread.buffers.notifyAll();
+            }
+            try {
+                thread.join();
+            } catch (InterruptedException _) {
+                Thread.currentThread().interrupt();
+            }
+            close();
+        }
         
         @Override
         public void close() {
             bExit = true;
+            activeWaveObjects.remove(this);
             super.close();
         }
     }
@@ -186,6 +235,9 @@ public class Waveform extends WinAPI {
         public WaveOutThread(WAVEFORMATEX format, WaveObject owner) {
             this.format = format;
             this.owner = owner;
+            // Daemon so the JVM can exit when the emulated process is gone, even if
+            // the guest never reaches waveOutClose (e.g. crash).
+            setDaemon(true);
             ready = open();
         }
 
@@ -200,9 +252,31 @@ public class Waveform extends WinAPI {
                 AudioFormat af = new AudioFormat(format.nSamplesPerSec, format.wBitsPerSample, format.nChannels, true, false);
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, af);
                 line = (SourceDataLine) AudioSystem.getLine(info);
-                line.open(af, 8192);
-                line.start();
+                // 2s line buffer + 1.5s primer. The UnderrunProbe showed that
+                // smw5's wave thread runs at ~40% realtime during the first
+                // ~1.8s (instrument-table loading, voice allocation, JIT
+                // warmup), then catches up to ~100%. A 750ms primer was not
+                // always enough: some runs still underran for ~270ms after
+                // playback began. 1.5s of pre-buffered audio survives the
+                // slowest observed warmup with margin.
+                long avgBps = format.nAvgBytesPerSec > 0 ? format.nAvgBytesPerSec : 192000L;
+                int align = Math.max(1, format.nBlockAlign);
+                int desired = (int) Math.min(Integer.MAX_VALUE, Math.max(32768L, avgBps * 2));
+                desired -= desired % align;
+                line.open(af, desired);
+                int actualBuf = line.getBufferSize();
+                logger.log(Level.DEBUG, "WaveOutThread line buffer requested=" + desired
+                        + " actual=" + actualBuf + " (=" + (actualBuf * 1000L / avgBps) + "ms)");
+                // primer = 75% of the actual line buffer, capped at 1.5s.
+                // Drivers may give us less than we asked for; the cap also
+                // bounds startup latency for short playback.
+                primeBytes = (int) Math.min(actualBuf * 3L / 4, avgBps * 3 / 2);
+                primeBytes -= primeBytes % align;
                 volume(line, Double.parseDouble(System.getProperty("jdosbox.volume", "0.02")));
+                if (Boolean.getBoolean("jdos.audio.probe")) {
+                    probe = UnderrunProbe.forLine(line, "wave-" + System.identityHashCode(line));
+                    probe.start();
+                }
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 return false;
@@ -218,8 +292,29 @@ public class Waveform extends WinAPI {
         final WAVEFORMATEX format;
         final WaveObject owner;
         boolean exit = false;
+        boolean started = false;
+        int primeBytes = 0;
+        int writtenBytes = 0;
+        long firstWriteWallNanos = 0;
+        /** Maximum wall time to wait for primeBytes before starting playback anyway. */
+        static final long PRIME_TIMEOUT_NANOS = 3_000_000_000L;
         final boolean ready;
         SourceDataLine line;
+        UnderrunProbe probe;
+
+        private void maybeStartPlayback(int justWroteBytes) {
+            if (started) return;
+            if (writtenBytes == 0 && justWroteBytes == 0) return;
+            if (firstWriteWallNanos == 0) firstWriteWallNanos = System.nanoTime();
+            writtenBytes += justWroteBytes;
+            boolean primed = writtenBytes >= primeBytes;
+            boolean timedOut = (System.nanoTime() - firstWriteWallNanos) >= PRIME_TIMEOUT_NANOS;
+            if (primed || timedOut) {
+                line.start();
+                if (probe != null) probe.firstBufferQueued();
+                started = true;
+            }
+        }
 
         @Override
         public void run() {
@@ -232,23 +327,21 @@ public class Waveform extends WinAPI {
                 }
                 if (hdr != null) {
                     if (line != null && hdr.data != null && hdr.data.length > 0) {
-                        int length = hdr.data.length;
-                        byte[] currentData = new byte[length];
-                        jdos.hardware.Memory.mem_memcpy(currentData, 0, hdr.lpData, length);
-                        
+                        byte[] currentData = hdr.data;
+                        int length = currentData.length;
+
                         int nonZero = 0;
                         for (byte b : currentData) if (b != 0) nonZero++;
                         logger.log(Level.TRACE, "WaveOutThread writing buffer of length " + length + " bytes (non-zero: " + nonZero + ")");
-                        
-                        // (removed test tone generation)
-                        
+
                         if (format.wBitsPerSample == 8) {
                             for (int i = 0; i < currentData.length; i++) {
                                 currentData[i] = (byte) ((currentData[i] & 0xFF) - 128);
                             }
                         }
-                        
+
                         line.write(currentData, 0, length);
+                        maybeStartPlayback(length);
                     }
                     hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
                     hdr.dwFlags |= WAVEHDR.WHDR_DONE;
@@ -258,13 +351,27 @@ public class Waveform extends WinAPI {
                     }
                 } else {
                     synchronized (buffers) {
-                        if (buffers.isEmpty() && !exit)
+                        if (buffers.isEmpty() && !exit) {
                             try {
-                                buffers.wait();
+                                // Bounded wait while we still haven't started
+                                // playback so the prime-timeout fallback can
+                                // fire even if the guest stopped writing
+                                // before reaching primeBytes.
+                                if (started) buffers.wait();
+                                else buffers.wait(50);
                             } catch (Exception _) {
                             }
+                        }
                     }
+                    if (!started) maybeStartPlayback(0);
                 }
+            }
+            if (probe != null) {
+                // Tell the probe that any underrun ongoing right now is the
+                // expected end-of-stream drain, not a mid-playback chop.
+                probe.expectDrain();
+                probe.stop();
+                probe = null;
             }
             if (line != null) {
                 line.drain();
@@ -280,16 +387,7 @@ public class Waveform extends WinAPI {
         WaveObject obj = WaveObject.get(hwo);
         if (obj == null)
             return WinMM.MMSYSERR_INVALHANDLE;
-        obj.thread.exit = true;
-        synchronized (obj.thread.buffers) {
-            obj.thread.buffers.notify();
-        }
-        try {
-            obj.thread.join();
-        } catch (Exception e) {
-        }
-        obj.notifyClient(WOM_CLOSE, 0, 0, null);
-        obj.close();
+        obj.shutdown(true);
         return WinMM.MMSYSERR_NOERROR;
     }
 
@@ -452,7 +550,10 @@ public class Waveform extends WinAPI {
         everNonZero.remove(hdr.lpData);
 
         hdr.data = new byte[hdr.dwBufferLength];
-        // Copying delayed to WaveOutThread to support async generation
+        // Snapshot the guest buffer at submission time. Re-reading it later from
+        // the audio thread races guest-side buffer reuse under heavy startup load
+        // and can corrupt the first audible chunk without causing line underruns.
+        Memory.mem_memcpy(hdr.data, 0, hdr.lpData, hdr.dwBufferLength);
         int nz = 0;
         for (byte b : hdr.data) if (b != 0) nz++;
         logger.log(Level.TRACE, "waveOutWrite pwh=0x" + Integer.toHexString(pwh)
@@ -471,9 +572,6 @@ public class Waveform extends WinAPI {
         hdr.reserved = pwh;
         hdr.writeFlags();
 
-        hdr.data = new byte[hdr.dwBufferLength];
-        Memory.mem_memcpy(hdr.data, 0, hdr.lpData, hdr.dwBufferLength);
-
         if (pwh == 0xb0004afc) {
             int ii = 0;
         }
@@ -482,5 +580,19 @@ public class Waveform extends WinAPI {
             obj.thread.buffers.notify();
         }
         return WinMM.MMSYSERR_NOERROR;
+    }
+
+    public static void processExiting(WinProcess process) {
+        if (process == null) {
+            return;
+        }
+        synchronized (globalPendingMessages) {
+            globalPendingMessages.removeIf(msg -> msg.processHandle == process.getHandle());
+        }
+        for (WaveObject obj : activeWaveObjects.toArray(new WaveObject[0])) {
+            if (obj.processHandle == process.getHandle()) {
+                obj.shutdown(false);
+            }
+        }
     }
 }

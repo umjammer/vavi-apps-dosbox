@@ -16,6 +16,7 @@ import jdos.win.builtin.user32.StaticWindow;
 import jdos.win.builtin.user32.WinClass;
 import jdos.win.builtin.user32.WinCursor;
 import jdos.win.builtin.user32.WinIcon;
+import jdos.win.builtin.winmm.Waveform;
 import jdos.win.kernel.KernelHeap;
 import jdos.win.kernel.KernelMemory;
 import jdos.win.loader.Loader;
@@ -214,6 +215,8 @@ public class WinProcess extends WaitObject {
     public int mmTimerThreadEIP;
     public int waveOutCallbackThreadEIP;
     public int returnEip;
+    public boolean pendingExit;
+    public boolean exiting;
     public final List<Runnable> playSound = new ArrayList<>();
 
     public WinProcess(int handle, KernelMemory memory, String workingDirectory) {
@@ -345,7 +348,23 @@ public class WinProcess extends WaitObject {
         nextTempIndex = 0;
     }
 
+    public void requestExit(int exitCode) {
+        pendingExit = true;
+    }
+
+    public void exitAndReturnToPrompt(int exitCode) {
+        requestExit(exitCode);
+        exit();
+        Win.returnToPrompt();
+    }
+
     public void exit() {
+        if (exiting) {
+            return;
+        }
+        exiting = true;
+        pendingExit = false;
+        Waveform.processExiting(this);
         for (int i = 1; i < temp.length; i += 2) {
             if (temp[i] != 0)
                 heap.free(temp[i]);

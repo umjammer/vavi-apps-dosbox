@@ -342,6 +342,16 @@ public class BuiltinModule extends Module {
                 if (LOG && params != null)
                     postLog(name, result, (params != null && params.length > args.length) ? params[args.length] : null, args, params);
                 return result;
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                // Let control-flow exceptions thrown by the underlying method
+                // (e.g. CPUException for unwinding the emulator after a process
+                // exit) propagate instead of getting swallowed and panicking.
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+                if (cause instanceof Error) throw (Error) cause;
+                logger.log(Level.ERROR, e.getMessage(), e);
+                Win.panic(getName() + " failed to execute: " + e.getMessage());
+                return 0;
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 Win.panic(getName() + " failed to execute: " + e.getMessage());
@@ -388,6 +398,15 @@ public class BuiltinModule extends Module {
                 method.invoke(null, (Object[]) args);
                 if (LOG && params != null)
                     postLog(name, null, null, args, params);
+            } catch (java.lang.reflect.InvocationTargetException e) {
+                // Let control-flow exceptions thrown by the underlying method
+                // (e.g. CPUException for unwinding the emulator after a process
+                // exit) propagate instead of getting swallowed and panicking.
+                Throwable cause = e.getCause();
+                if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+                if (cause instanceof Error) throw (Error) cause;
+                logger.log(Level.ERROR, e.getMessage(), e);
+                Win.panic(getName() + " failed to execute: " + e.getMessage());
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 Win.panic(getName() + " failed to execute: " + e.getMessage());

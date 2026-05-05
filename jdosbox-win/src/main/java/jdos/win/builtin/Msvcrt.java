@@ -5,6 +5,7 @@ import java.lang.System.Logger.Level;
 
 import jdos.hardware.Memory;
 import jdos.cpu.CPU_Regs;
+import jdos.win.Win;
 import jdos.win.Console;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
@@ -137,7 +138,7 @@ public class Msvcrt extends BuiltinModule {
 
     public static void _amsg_exit(int code) {
         traceUi("_amsg_exit code=" + code + " returnEip=0x" + Integer.toHexString(CPU_Regs.reg_eip));
-        WinSystem.getCurrentProcess().exit();
+        WinSystem.getCurrentProcess().exitAndReturnToPrompt(code);
     }
 
     public static void _cexit() {
@@ -231,7 +232,7 @@ public class Msvcrt extends BuiltinModule {
     }
 
     public static void exit(int code) {
-        WinSystem.getCurrentProcess().exit();
+        WinSystem.getCurrentProcess().exitAndReturnToPrompt(code);
     }
 
     public static int fprintf(int stream, int format) {

@@ -738,14 +738,7 @@ public class Kernel32 extends BuiltinModule {
         public void onCall() {
             int exitCode = CPU.CPU_Pop32();
             logger.log(Level.DEBUG, "Win32 Process has exited (PID " + WinSystem.getCurrentProcess().getHandle() + "): code = " + exitCode);
-            WinSystem.memory.printInfo();
-            int returnEip = WinSystem.getCurrentProcess().returnEip;
-            WinSystem.getCurrentProcess().exit();
-            System.out.print(" -> ");
-            WinSystem.memory.printInfo();
-            logger.log(Level.DEBUG, "");
-            jdos.cpu.CPU_Regs.reg_eip = returnEip;
-            throw new jdos.cpu.CPUException();
+            WinSystem.getCurrentProcess().exitAndReturnToPrompt(exitCode);
         }
     };
 

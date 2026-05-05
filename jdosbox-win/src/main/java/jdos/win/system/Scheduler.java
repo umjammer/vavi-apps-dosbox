@@ -25,6 +25,13 @@ public class Scheduler {
     // DirectX surface to force to the screen
     public static int monitor;
 
+    static public void stop() {
+        threadMap.clear();
+        currentThread = null;
+        first = null;
+        monitor = 0;
+    }
+
     static public void addThread(WinThread thread, boolean schedule) {
         SchedulerItem item;
         item = threadMap.get(thread);
@@ -85,7 +92,11 @@ public class Scheduler {
                     item.prev.next = item.next;
                 else
                     first = item.next;
-                while (first == null) {
+                // If other threads still exist but none are currently runnable
+                // (all sleeping/waiting), block until input wakes one. But if the
+                // process is shutting down (no threads at all in the scheduler),
+                // bail out — the caller is responsible for unwinding back to DOS.
+                while (first == null && !threadMap.isEmpty()) {
                     synchronized (StaticData.inputQueueMutex) {
                         Input.processInput();
                         if (first != null)
@@ -97,7 +108,11 @@ public class Scheduler {
                     }
                 }
                 if (item == currentThread) {
-                    tick();
+                    if (first != null) {
+                        tick();
+                    } else {
+                        currentThread = null;
+                    }
                 }
                 break;
             }

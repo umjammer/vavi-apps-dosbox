@@ -409,9 +409,7 @@ public class WinThread extends WaitObject {
         boolean wasEmpty = getProcess().threads.isEmpty();
         getProcess().threads.remove(this);
         if (!wasEmpty && getProcess().threads.isEmpty()) {
-            int returnEip = getProcess().returnEip;
-            getProcess().exit();
-            jdos.cpu.CPU_Regs.reg_eip = returnEip;
+            getProcess().exitAndReturnToPrompt(exitCode);
         }
     }
 

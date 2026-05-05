@@ -7,6 +7,7 @@ import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
 import jdos.gui.Main;
+import jdos.win.Win;
 import jdos.win.builtin.kernel32.WinProcess;
 import jdos.win.builtin.kernel32.WinThread;
 import jdos.win.kernel.DescriptorTables;
@@ -29,7 +30,19 @@ public class WinSystem {
 
     static public WinRegistry registry;
 
+    static public void stop() {
+        Scheduler.stop();
+        StaticData.stop();
+        registry = null;
+        memory = null;
+        interrupts = null;
+        descriptorTables = null;
+        timer = null;
+        WinSystem.nestedCallCount = 0;
+    }
+
     static public void start() {
+        stop();
         registry = new WinRegistry();
 
         memory = new KernelMemory();
@@ -101,12 +114,23 @@ public class WinSystem {
 
         @Override
         public int call() {
+            WinProcess process = WinSystem.getCurrentProcess();
+            if (process != null && process.pendingExit) {
+                process.exit();
+                Win.returnToPrompt();
+            }
             return 1; // return from DOSBOX_RunMachine
         }
     };
 
-    private static int returnEip = 0;
     public static int nestedCallCount = 0;
+
+    public static int ensureReturnEip(WinProcess process) {
+        if (process.returnEip == 0) {
+            process.returnEip = WinCallback.install(memory, false, returnCallback);
+        }
+        return process.returnEip;
+    }
 
     static public void call(int eip, int param1, int param2, int param3, int param4, int param5) {
         internalCall(eip, 5, param1, param2, param3, param4, param5);
@@ -126,13 +150,30 @@ public class WinSystem {
 
     static private void internalCall(int eip, int paramCount, int param1, int param2, int param3, int param4, int param5) {
         WinProcess process = WinSystem.getCurrentProcess();
-        if (process.returnEip == 0) {
-            int callback = WinCallback.addCallback(returnCallback);
-            process.returnEip = process.loader.registerFunction(callback);
-        }
+        int returnEip = ensureReturnEip(process);
 
         int saveEip = CPU_Regs.reg_eip;
         int oldEsp = CPU_Regs.reg_esp.dword;
+        int saveEax = CPU_Regs.reg_eax.dword;
+        int saveEbx = CPU_Regs.reg_ebx.dword;
+        int saveEcx = CPU_Regs.reg_ecx.dword;
+        int saveEdx = CPU_Regs.reg_edx.dword;
+        int saveEsi = CPU_Regs.reg_esi.dword;
+        int saveEdi = CPU_Regs.reg_edi.dword;
+        int saveEbp = CPU_Regs.reg_ebp.dword;
+        int saveFlags = CPU_Regs.flags;
+        int saveCsVal = CPU_Regs.reg_csVal.dword;
+        int saveCsPhys = CPU_Regs.reg_csPhys.dword;
+        int saveDsVal = CPU_Regs.reg_dsVal.dword;
+        int saveDsPhys = CPU_Regs.reg_dsPhys.dword;
+        int saveEsVal = CPU_Regs.reg_esVal.dword;
+        int saveEsPhys = CPU_Regs.reg_esPhys.dword;
+        int saveFsVal = CPU_Regs.reg_fsVal.dword;
+        int saveFsPhys = CPU_Regs.reg_fsPhys.dword;
+        int saveGsVal = CPU_Regs.reg_gsVal.dword;
+        int saveGsPhys = CPU_Regs.reg_gsPhys.dword;
+        int saveSsVal = CPU_Regs.reg_ssVal.dword;
+        int saveSsPhys = CPU_Regs.reg_ssPhys.dword;
 
         int currentEsp = oldEsp;
         if (paramCount >= 5) { currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, param5); }
@@ -140,7 +181,7 @@ public class WinSystem {
         if (paramCount >= 3) { currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, param3); }
         if (paramCount >= 2) { currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, param2); }
         if (paramCount >= 1) { currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, param1); }
-        currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, process.returnEip);
+        currentEsp -= 4; jdos.hardware.Memory.mem_writed(currentEsp, returnEip);
         CPU_Regs.reg_esp.dword = currentEsp;
 
         nestedCallCount++;
@@ -151,6 +192,26 @@ public class WinSystem {
             nestedCallCount--;
             CPU_Regs.reg_eip = saveEip;
             CPU_Regs.reg_esp.dword = oldEsp;
+            CPU_Regs.reg_eax.dword = saveEax;
+            CPU_Regs.reg_ebx.dword = saveEbx;
+            CPU_Regs.reg_ecx.dword = saveEcx;
+            CPU_Regs.reg_edx.dword = saveEdx;
+            CPU_Regs.reg_esi.dword = saveEsi;
+            CPU_Regs.reg_edi.dword = saveEdi;
+            CPU_Regs.reg_ebp.dword = saveEbp;
+            CPU_Regs.flags = saveFlags;
+            CPU_Regs.reg_csVal.dword = saveCsVal;
+            CPU_Regs.reg_csPhys.dword = saveCsPhys;
+            CPU_Regs.reg_dsVal.dword = saveDsVal;
+            CPU_Regs.reg_dsPhys.dword = saveDsPhys;
+            CPU_Regs.reg_esVal.dword = saveEsVal;
+            CPU_Regs.reg_esPhys.dword = saveEsPhys;
+            CPU_Regs.reg_fsVal.dword = saveFsVal;
+            CPU_Regs.reg_fsPhys.dword = saveFsPhys;
+            CPU_Regs.reg_gsVal.dword = saveGsVal;
+            CPU_Regs.reg_gsPhys.dword = saveGsPhys;
+            CPU_Regs.reg_ssVal.dword = saveSsVal;
+            CPU_Regs.reg_ssPhys.dword = saveSsPhys;
         }
     }
 

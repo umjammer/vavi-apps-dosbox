@@ -4,6 +4,7 @@ import java.io.File;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import jdos.Dosbox;
@@ -184,7 +185,6 @@ public class MainBase {
     }
 
     static void SetPriority(int level) {
-        if (true) return;
         switch (level) {
             case PRIORITY_LEVELS.PRIORITY_LEVEL_PAUSE:    // if DOSBox is paused, assume idle priority
             case PRIORITY_LEVELS.PRIORITY_LEVEL_LOWEST:
@@ -466,12 +466,28 @@ public class MainBase {
     protected static final List<Object> events = new ArrayList<>();
     protected static long startupTime;
 
+    private static String[] removeCompletedWinCommand(String[] args, String commandToSkip) {
+        if (commandToSkip == null || commandToSkip.isBlank()) {
+            return args;
+        }
+        List<String> rewritten = new ArrayList<>(Arrays.asList(args));
+        for (int i = 0; i + 1 < rewritten.size(); i++) {
+            if ("-c".equals(rewritten.get(i)) && commandToSkip.equalsIgnoreCase(rewritten.get(i + 1).trim())) {
+                rewritten.remove(i + 1);
+                rewritten.remove(i);
+                return rewritten.toArray(new String[0]);
+            }
+        }
+        return args;
+    }
+
     static void guiMain(GUI g, String[] args) {
         gui = g;
+        String[] launchArgs = args;
         while (true) {
             CPU.initialize();
             MainBase.GFX_SetTitle(-1, -1, false);
-            CommandLine com_line = new CommandLine(args);
+            CommandLine com_line = new CommandLine(launchArgs);
             String saveName;
 
             if (com_line.findExist("-applet", true)) {
@@ -575,6 +591,14 @@ public class MainBase {
             try {
                 startupTime = System.currentTimeMillis();
                 Dosbox.control.StartUp();
+            } catch (Dos_programs.ReturnToPromptException e) {
+                launchArgs = removeCompletedWinCommand(launchArgs, e.commandToSkip);
+                logger.log(Level.DEBUG, "Returning to DOS prompt");
+                try {
+                    myconf.Destroy();
+                } catch (Exception e1) {
+                }
+                continue;
             } catch (Dos_programs.RebootException e) {
                 logger.log(Level.DEBUG, "Rebooting");
                 try {

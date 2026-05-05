@@ -55,6 +55,7 @@ public class AudioLayer {
                 }
             });
             audioBuffer = new byte[512]; // this needs to be smaller than buffer size passed into open other line.write will block
+            audioThread.setPriority(Thread.MAX_PRIORITY);
             audioThread.start();
             return true;
         } catch (Exception e) {

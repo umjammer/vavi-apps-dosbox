@@ -475,6 +475,14 @@ public class Dos_programs {
 
     }
 
+    static public class ReturnToPromptException extends RuntimeException {
+        public final String commandToSkip;
+
+        public ReturnToPromptException(String commandToSkip) {
+            this.commandToSkip = commandToSkip;
+        }
+    }
+
     static private final Program.PROGRAMS_Main REBOOT_ProgramStart = () -> {
         throw new RebootException();
     };

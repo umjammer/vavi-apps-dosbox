@@ -1190,6 +1190,9 @@ public class JavaMapper {
     }
 
     public static void MAPPER_Init() {
+        events.clear();
+        buttons.clear();
+        handlergroup.clear();
         // InitializeJoysticks();
         createLayout();
         createBindGroups();
