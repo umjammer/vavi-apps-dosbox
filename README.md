@@ -1,4 +1,50 @@
-jDOSBox
+[![Release](https://jitpack.io/v/umjammer/vavi-apps-dosbox.svg)](https://jitpack.io/#umjammer/vavi-apps-dosbox)
+[![Java CI](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/gradle.yml/badge.svg)](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/gradle.yml)
+[![CodeQL](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/codeql.yml/badge.svg)](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/codeql.yml)
+![Java](https://img.shields.io/badge/Java-21-b07219)
+
+# vavi-apps-dosbox
+
+<img alt="logo" src="other/duke_at.png" width="160" />
+
+🕹️ Java x86 emulator based on [jDOSBox](https://github.com/Tennessene/jDOSBox), with a capability running .exe w/ win32 dll 
+
+## Install
+
+ * [gradle](https://jitpack.io/#umjammer/vavi-apps-dosbox)
+
+## Usage
+
+* `MMFTOOLC.EXE` uses `M5_EmuSmw5.dll` that uses win32 api
+
+```shell
+$ java -jar /Users/nsano/src/java/jDOSBox/launcher/build/libs/launcher-0.74.31.jar \
+  -c 'mount c /usr/local' \
+  -c 'c:' \
+  -c 'cd MMFTOOL' \
+  -c 'MMFTOOLC.EXE TEST.MMF'
+```
+
+## References
+
+ * [original](https://github.com/Tennessene/jDOSBox)
+ * https://github.com/umjammer/mmftool (sample above)
+ * https://github.com/farmboy0/JPC
+
+### Tech Know
+
+ * graalvm doesn't make choppy sound
+
+## TODO
+
+ * ~~pc98~~ ... use j98
+ * keep aspect ratio
+ * debug
+   * KAFFE.EXE crashes 
+
+---
+
+[Original](https://github.com/Tennessene/jDOSBox)
 ==========
 Java x86 emulator based on DOSBox
 --------------------------------------------------
@@ -111,3 +157,7 @@ The compilation from source is handled by Gradle using Java 8 or newer:
 gradle build
 ```
 The `launcher` submodule contains `fat` jar with all dependencies included.
+
+---
+
+<sub>image designed by @umjammer, drawn by nano banana</sub>

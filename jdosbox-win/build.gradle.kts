@@ -6,7 +6,7 @@ dependencies {
     // jdosbox-win-specific dependencies
     implementation(project(":jdosbox"))
     implementation("org.javassist:javassist:3.29.2-GA")
-    testImplementation("junit:junit:4.12")
+    testImplementation("junit:junit:4.13.1")
 }
 
 // Run tests only on Windows

@@ -5,5 +5,5 @@ plugins {
 dependencies {
     // jdosbox-pcap-specific dependencies
     implementation(project(":jdosbox"))
-    implementation("jnetpcap:jnetpcap:1.4.r1425-1g")
+    implementation("jnetpcap:jnetpcap:1.5.r1457-1i")
 }
