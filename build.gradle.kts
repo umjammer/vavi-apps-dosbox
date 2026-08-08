@@ -1,3 +1,6 @@
+import org.gradle.api.publish.PublishingExtension
+import org.gradle.api.publish.maven.MavenPublication
+
 plugins {
     id("java")
 }
@@ -31,9 +34,22 @@ allprojects {
 
 subprojects {
     apply(plugin = "java")
+    apply(plugin = "maven-publish")
 
     dependencies {
-        implementation("org.javassist:javassist:3.29.2-GA")
+        implementation("org.javassist:javassist:3.32.0-GA")
         testImplementation("junit:junit:4.13.1")
     }
+
+    configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("mavenJava") {
+                from(components["java"])
+            }
+        }
+    }
+
+    // how to install jars to maven local repository
+    //
+    // $ ./gradlew publishToMavenLocal
 }
