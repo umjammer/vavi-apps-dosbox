@@ -5,7 +5,7 @@ plugins {
     id("java")
 }
 
-// Apply a toolchain to allow any JDK version 8 or newer
+// Apply a toolchain to allow any JDK version 25 or newer
 java {
     toolchain {
         languageVersion.set(JavaLanguageVersion.of(25)) // Default to Java 25
@@ -13,7 +13,7 @@ java {
 }
 
 tasks.withType<JavaCompile>().configureEach {
-    // Allow any JDK version 8 or newer by specifying compatibility
+    // Allow any JDK version 25 or newer by specifying compatibility
     options.release.set(25) // Set the minimum compatibility level
 }
 

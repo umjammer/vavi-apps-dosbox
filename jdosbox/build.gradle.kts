@@ -6,9 +6,18 @@ dependencies {
     implementation("com.github.umjammer:jlayer:1.0.3")
 
     // jdosbox-specific dependencies
-    implementation("org.javassist:javassist:3.29.2-GA")
+    implementation("org.javassist:javassist:3.32.0-GA")
 
-    implementation("com.github.umjammer:vavi-commons:1.1.16")
+    implementation("com.github.umjammer:vavi-commons:1.1.19")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:6.0.3")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:6.0.3")
+    testImplementation("org.junit.platform:junit-platform-commons:6.0.3")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:6.0.3")
+
+    testImplementation(project(":jdosbox-pcap"))
+    testImplementation(project(":jdosbox-win"))
+}
 
 tasks.test {
     useJUnitPlatform()
