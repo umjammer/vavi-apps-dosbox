@@ -3604,7 +3604,7 @@ public class Kernel32 extends BuiltinModule {
             if (hFile == WinFile.STD_OUT || hFile == WinFile.STD_ERROR) {
                 byte[] buffer = new byte[nNumberOfBytesToWrite];
                 Memory.mem_memcpy(buffer, 0, lpBuffer, nNumberOfBytesToWrite);
-                Console.out(new java.lang.String(buffer));
+                Console.write(buffer, 0, nNumberOfBytesToWrite);
                 if (lpNumberOfBytesWritten != 0)
                     Memory.mem_writed(lpNumberOfBytesWritten, nNumberOfBytesToWrite);
                 CPU_Regs.reg_eax.dword = WinAPI.TRUE;
