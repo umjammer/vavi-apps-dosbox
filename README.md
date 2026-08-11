@@ -25,6 +25,31 @@ $ java -jar /Users/nsano/src/java/jDOSBox/launcher/build/libs/launcher-0.74.31.j
   -c 'MMFTOOLC.EXE TEST.MMF'
 ```
 
+### embedding
+
+`jdos.api.JDosBox` runs a machine from inside another program. Two of its outputs can be taken
+rather than left to the host: `waveOutSink` for what a win32 guest writes to its `waveOut` device
+(`AudioSink`, whose `write` blocking is also what paces a `turbo` machine), and `stdioSink` for
+what the guest writes to its own `stdout` and `stderr` (`StdioSink` - jdosbox's own diagnostics
+are not included).
+
+Each chunk of guest output is stamped with the audio the guest had produced when it wrote it, in
+frames of the `AudioSink` stream. That is what lets a host line up what a guest says with the
+sound it is saying it about: a machine used as an audio source runs seconds ahead of what is
+being heard, so the text is that far ahead of the sound without it.
+
+```java
+JDosBox dosbox = new JDosBox()
+        .mount('c', dir)
+        .command("c:")
+        .command("player.exe song.dat")
+        .waveOutSink(mySink)
+        .stdioSink((data, offset, length, frames) -> ...)
+        .turbo(true)
+        .exitWhenProgramFinishes(true);
+dosbox.start();
+```
+
 ## References
 
  * [original](https://github.com/Tennessene/jDOSBox)

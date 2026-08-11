@@ -261,6 +261,12 @@ public class Waveform extends WinAPI {
         }
 
         final List<WAVEHDR> buffers = new ArrayList<>();
+        /** frames handed to the sink so far, which is the numbering a sink counts in */
+        volatile long deliveredFrames = 0;
+        /** frames the guest has submitted and this thread has not taken yet; under {@link #buffers} */
+        volatile long pendingFrames = 0;
+        /** frames thrown away as the silence a program writes while it loads */
+        volatile long droppedFrames = 0;
         final WAVEFORMATEX format;
         final WaveObject owner;
         boolean exit = false;
@@ -276,6 +282,22 @@ public class Waveform extends WinAPI {
         SourceDataLine line;
         UnderrunProbe probe;
         AudioSink sink;
+
+        private long frames(int bytes) {
+            return bytes / Math.max(1, format.nBlockAlign);
+        }
+
+        /**
+         * How much audio this device has produced, counted the way its sink counts it.
+         * <p>
+         * That is what has been handed over plus what is queued to be, so it is the guest's own
+         * position rather than the listener's - the queue between them is deliberately deep. The
+         * silence a program writes while it loads is not in it, having been dropped below, which
+         * is a step down in the moment it stops being dropped and steady from then on.
+         */
+        long producedFrames() {
+            return deliveredFrames + pendingFrames;
+        }
 
         /** Hands a buffer back to the guest without playing it. */
         private void skipBuffer(WAVEHDR hdr) {
@@ -317,6 +339,7 @@ public class Waveform extends WinAPI {
                 synchronized (buffers) {
                     if (!buffers.isEmpty()) {
                         hdr = buffers.remove(0);
+                        pendingFrames -= frames(hdr.data == null ? 0 : hdr.data.length);
                     }
                 }
                 if (hdr != null) {
@@ -342,20 +365,26 @@ public class Waveform extends WinAPI {
                             // soon as it has something to sound.
                             int start = firstNonZero(currentData, length);
                             if (start < 0) {
+                                droppedFrames += frames(length);
                                 skipBuffer(hdr);
                                 continue;
                             }
                             offset = start - start % Math.max(1, format.nBlockAlign);
                             length -= offset;
+                            droppedFrames += frames(offset);
                             sounding = true;
+                            logger.log(Level.DEBUG, "waveOut sounds, after " + droppedFrames
+                                    + " frames of silence (" + (droppedFrames / (double) format.nSamplesPerSec) + "s)");
                         }
 
                         if (sink != null) {
                             // blocking here is the point: it is what holds the guest to the
                             // rate its samples are being taken at
                             sink.write(currentData, offset, length);
+                            deliveredFrames += frames(length);
                         } else {
                             line.write(currentData, offset, length);
+                            deliveredFrames += frames(length);
                             maybeStartPlayback(length);
                         }
                     }
@@ -408,6 +437,19 @@ public class Waveform extends WinAPI {
 
     /** for the probe only: what the last submitted buffer held */
     private static int lastHash;
+
+    /**
+     * How much audio the guest has produced on the device that has the {@link AudioSink}, in
+     * frames of that sink's stream, or -1 when there is no such device.
+     * <p>
+     * This is what stamps whatever the guest prints - see {@link jdos.api.StdioSink} - so that a
+     * host reading its output can tell which moment of the audio it was talking about, however
+     * far ahead of the listener the machine has run.
+     */
+    public static long producedFrames() {
+        WaveOutThread owner = sinkOwner;
+        return owner == null ? -1 : owner.producedFrames();
+    }
 
     /**
      * Takes the sink for this device, unless another one that is still going has it.
@@ -646,6 +688,7 @@ public class Waveform extends WinAPI {
 
         synchronized (obj.thread.buffers) {
             obj.thread.buffers.add(hdr);
+            obj.thread.pendingFrames += obj.thread.frames(hdr.data == null ? 0 : hdr.data.length);
             obj.thread.buffers.notify();
         }
         return WinMM.MMSYSERR_NOERROR;

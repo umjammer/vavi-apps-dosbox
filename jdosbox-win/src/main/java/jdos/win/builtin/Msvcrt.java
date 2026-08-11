@@ -237,7 +237,7 @@ public class Msvcrt extends BuiltinModule {
 
     public static int fprintf(int stream, int format) {
         String message = jdos.win.builtin.user32.Wsprintf.format(StringUtil.getString(format), false, 2);
-        Console.out(message);
+        Console.write(message);
         return message.length();
     }
 
@@ -265,8 +265,7 @@ public class Msvcrt extends BuiltinModule {
 
     public static int printf(int format) {
         String message = jdos.win.builtin.user32.Wsprintf.format(StringUtil.getString(format), false, 1);
-        Console.out(message);
-        System.out.print(message);
+        Console.write(message);
         return message.length();
     }
 
@@ -288,13 +287,13 @@ public class Msvcrt extends BuiltinModule {
 
     public static int puts(int str) {
         String message = StringUtil.getString(str);
-        Console.out(message);
+        Console.write(message + "\n");
         logger.log(Level.TRACE, message);
         return 0;
     }
 
     public static int fputc(int c, int stream) {
-        System.out.print((char)c);
+        Console.write(String.valueOf((char) c));
         return c;
     }
 
@@ -314,15 +313,13 @@ public class Msvcrt extends BuiltinModule {
 
     public static int vprintf(int format, int args) {
         String message = jdos.win.builtin.user32.Wsprintf.format(StringUtil.getString(format), false, 1);
-        Console.out(message);
-        System.out.print(message);
+        Console.write(message);
         return message.length();
     }
 
     public static int vfprintf(int stream, int format, int args) {
         String message = jdos.win.builtin.user32.Wsprintf.format(StringUtil.getString(format), false, 2);
-        Console.out(message);
-        System.out.print(message);
+        Console.write(message);
         return message.length();
     }
 }

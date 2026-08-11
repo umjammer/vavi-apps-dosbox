@@ -61,6 +61,9 @@ public class JDosBox {
     /** where the DOSBox mixer sends its samples, or null for the host's speakers */
     private static volatile AudioSink mixerSink;
 
+    /** where a guest program's console output goes, or null for the host's stdout */
+    private static volatile StdioSink stdioSink;
+
     private final List<String> args = new ArrayList<>();
 
     /** section name -> property -> value, applied over whatever the config files said */
@@ -117,6 +120,16 @@ public class JDosBox {
     }
 
     /**
+     * Where a guest program's own {@code stdout} and {@code stderr} go; null leaves them going to
+     * the host's console. Only the guest's output is taken - jdosbox's own diagnostics are not -
+     * so this is a channel out of the machine for a program that has something to say.
+     */
+    public JDosBox stdioSink(StdioSink sink) {
+        JDosBox.stdioSink = sink;
+        return this;
+    }
+
+    /**
      * Unhooks the machine from the host clock, so it runs as fast as it can and lets its
      * {@link AudioSink} - or its {@link #pacer} - decide how fast emulated time may go. This is
      * DOSBox's own speed-lock (alt-F12), held down for the whole run.
@@ -168,6 +181,11 @@ public class JDosBox {
     /** the samples the DOSBox mixer produces, for whoever emulates it */
     public static AudioSink getMixerSink() {
         return mixerSink;
+    }
+
+    /** where a guest program's console output goes, for whoever emulates writing to it */
+    public static StdioSink getStdioSink() {
+        return stdioSink;
     }
 
     /** boots the machine on its own thread and returns as soon as it is on its way */
@@ -255,6 +273,7 @@ public class JDosBox {
             // left to send a shutdown to
             waveOutSink = null;
             mixerSink = null;
+            stdioSink = null;
             return;
         }
 
@@ -284,6 +303,7 @@ public class JDosBox {
         // writing into a queue nobody is reading any more
         waveOutSink = null;
         mixerSink = null;
+        stdioSink = null;
     }
 
     /** waits for the machine to finish; false when it is still going */
