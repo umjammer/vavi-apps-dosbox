@@ -1565,6 +1565,9 @@ public class EMS extends Module_base {
 
         vcpi.enabled = false;
         GEMMIS_seg = 0;
+        // the dos private segment window this came out of is handed out again from the start
+        // for each machine, so a segment remembered from the last one is not ours any more
+        ems_baseseg = 0;
 
         Section_prop section = (Section_prop) configuration;
         ems_type = GetEMSType(section);

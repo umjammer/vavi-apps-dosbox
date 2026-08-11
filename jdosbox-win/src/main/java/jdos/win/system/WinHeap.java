@@ -98,7 +98,12 @@ public class WinHeap {
         }
 
         public int free(int add) {
-            Integer size = allocs.get(add);
+            // removed, not just read: this map is the only thing standing between a guest that
+            // frees an address twice - which is what a realloc followed by a free of the old
+            // pointer looks like - and the kernel heap being handed an address it has already
+            // released, which it treats as corruption. Leaving the entry made the second free
+            // look valid here and fatal one level down.
+            Integer size = allocs.remove(add);
             if (size == null) {
                 logger.log(Level.DEBUG, "VirtualFree could not find address: 0x" + Integer.toString(add, 16));
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_PARAMETER);

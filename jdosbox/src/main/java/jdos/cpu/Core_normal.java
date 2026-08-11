@@ -78,7 +78,7 @@ public class Core_normal extends Prefix_66_0f {
     public static final CPU.CPU_Decoder CPU_Core_Normal_Run = () -> {
         //logger.log(Level.DEBUG,"CPU_Core_Normal_Run");
         while (CPU.CPU_Cycles-- > 0) {
-            traceInstructionPointer();
+            if (!traceEips.isEmpty()) traceInstructionPointer();
             // inlined
             //LOADIP();
             cseip = CPU_Regs.reg_csPhys.dword + CPU_Regs.reg_eip;

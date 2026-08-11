@@ -215,7 +215,7 @@ public class MainFrame implements GUI {
         return tmpImage;
     }
 
-    static void main(String[] args) {
+    public static void main(String[] args) {
         if (args.length == 1 && args[0].equalsIgnoreCase("-noconsole")) {
             PrintStream dummyStream = new PrintStream(new OutputStream() {
                 @Override

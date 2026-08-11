@@ -31,13 +31,28 @@ public class WinCallback {
     }
 
     static public int addCallback(Callback.Handler handler) {
-        int result = nextCB;
-        handlers[nextCB++] = handler;
+        int result = claim();
+        handlers[result] = handler;
         return result;
     }
 
+    /**
+     * Callbacks are handed out per imported function as a module loads, a few hundred per
+     * program, and the table is only good for {@link #handlers}.length of them. It is emptied
+     * with the rest of the win32 statics between machines - see {@link WinSystem#stop} - so
+     * running out means one machine really did ask for this many, not that the last one's are
+     * still here.
+     */
+    static private int claim() {
+        if (nextCB >= handlers.length) {
+            throw new IllegalStateException("out of win32 callbacks: " + handlers.length
+                    + " have been handed out to imported functions");
+        }
+        return nextCB++;
+    }
+
     static public int install(KernelMemory memory, boolean popErrorCode, Callback.Handler handler) {
-        int callback = nextCB++;
+        int callback = claim();
         handlers[callback] = handler;
         int physAddress = memory.kmalloc(popErrorCode ? 11 : 5);
         Memory.phys_writeb(physAddress, 0xFE);        //GRP 4

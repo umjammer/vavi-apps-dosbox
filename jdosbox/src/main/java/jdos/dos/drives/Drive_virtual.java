@@ -27,6 +27,14 @@ public class Drive_virtual extends Dos_Drive {
         first_file = new_file;
     }
 
+    /**
+     * Empties the list, which is otherwise added to for ever: the built-in programs register
+     * their .com files here again on every machine, and nothing was removing the last machine's.
+     */
+    static public void VFILE_Reset() {
+        first_file = null;
+    }
+
     static public void VFILE_Remove(String name) {
         VFILE_Block chan = first_file;
         VFILE_Block where = first_file;

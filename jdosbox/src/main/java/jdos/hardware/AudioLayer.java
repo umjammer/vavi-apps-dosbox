@@ -10,6 +10,8 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
+import jdos.api.AudioSink;
+import jdos.api.JDosBox;
 import jdos.misc.Program;
 
 
@@ -23,6 +25,9 @@ public class AudioLayer {
 
     static private Thread audioThread;
 
+    /** where the mixer's samples go when an embedding program has asked for them */
+    static private AudioSink sink;
+
     public static void volume(DataLine line, double gain) {
         FloatControl gainControl = (FloatControl) line.getControl(FloatControl.Type.MASTER_GAIN);
         float dB = (float) (Math.log10(gain) * 20.0);
@@ -32,11 +37,16 @@ public class AudioLayer {
     public static boolean open(int bufferSize, int freq) {
         AudioFormat format = new AudioFormat(freq, 16, 2, true, false);
         try {
-            DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
-            line = (SourceDataLine) AudioSystem.getLine(info);
-            line.open(format, bufferSize);
-            line.start();
-            volume(line, Double.parseDouble(System.getProperty("jdosbox.volume", "0.02")));
+            sink = JDosBox.getMixerSink();
+            if (sink != null) {
+                sink.open(freq, 16, 2);
+            } else {
+                DataLine.Info info = new DataLine.Info(SourceDataLine.class, format);
+                line = (SourceDataLine) AudioSystem.getLine(info);
+                line.open(format, bufferSize);
+                line.start();
+                volume(line, Double.parseDouble(System.getProperty("jdosbox.volume", "0.02")));
+            }
             audioThreadExit = false;
             audioThread = new Thread(() -> {
                 while (!audioThreadExit) {
@@ -45,7 +55,7 @@ public class AudioLayer {
                         result = Mixer.MIXER_CallBack(0, audioBuffer, audioBuffer.length);
                     }
                     if (result)
-                        line.write(audioBuffer, 0, audioBuffer.length);
+                        write(audioBuffer, audioBuffer.length);
                     else {
                         try {
                             Thread.sleep(20);
@@ -64,14 +74,26 @@ public class AudioLayer {
         }
     }
 
+    static private void write(byte[] buffer, int length) {
+        if (sink != null)
+            sink.write(buffer, 0, length);
+        else
+            line.write(buffer, 0, length);
+    }
+
     public static void stop() {
         audioThreadExit = true;
         try {
             audioThread.join(2000);
         } catch (Exception e) {
         }
-        line.drain();
-        line.stop();
+        if (sink != null) {
+            sink.close();
+            sink = null;
+        } else if (line != null) {
+            line.drain();
+            line.stop();
+        }
     }
 
     public static void listMidi(Program program) {

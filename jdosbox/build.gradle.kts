@@ -9,4 +9,17 @@ dependencies {
     implementation("org.javassist:javassist:3.29.2-GA")
 
     implementation("com.github.umjammer:vavi-commons:1.1.16")
+
+tasks.test {
+    useJUnitPlatform()
+    workingDir = rootProject.projectDir
+    systemProperty("java.util.logging.config.file", "jdosbox/src/test/resources/logging.properties")
+    // hand the -D's on the gradle command line to the test jvm
+    for (key in listOf("vavi.test", "cycles", "timeout", "mmftool.path", "jdosbox.volume", "freeDrain", "turbo", "repeats", "mmf", "rate", "mmfs")) {
+        System.getProperty(key)?.let { systemProperty(key, it) }
+    }
+    // -Dtest.jdk=<java home> runs the tests on another jdk, to compare how they carry the emulation
+    System.getProperty("test.jdk")?.let { executable = "$it/bin/java" }
+    System.getProperty("test.jvmargs")?.let { jvmArgs(it.split(" ")) }
+    testLogging { showStandardStreams = true }
 }

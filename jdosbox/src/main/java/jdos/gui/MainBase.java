@@ -5,7 +5,9 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.function.Consumer;
 
 import jdos.Dosbox;
 import jdos.cpu.CPU;
@@ -125,6 +127,11 @@ public class MainBase {
         if (!paused) {
             events.add(o);
         }
+    }
+
+    /** Throws away anything left over for a machine that is no longer there to receive it. */
+    static public void clearEvents() {
+        events.clear();
     }
 
     static public boolean mouse_locked = false;
@@ -463,8 +470,39 @@ public class MainBase {
         System.exit(0);
     }
 
-    protected static final List<Object> events = new ArrayList<>();
+    /**
+     * Events on their way to the machine - a shutdown, a key, the mouse. Added to from whatever
+     * thread the front end runs on and read from the emulator's, so it has to be synchronized:
+     * unsynchronized, a shutdown asked for from another thread may simply never become visible
+     * to the loop that would act on it, and the machine runs on.
+     */
+    protected static final List<Object> events = Collections.synchronizedList(new ArrayList<>());
     protected static long startupTime;
+
+    /**
+     * Given the config once the machine has declared its sections and read whatever config files
+     * it was going to, so an embedding program can have the last word on any of it.
+     *
+     * @see jdos.api.JDosBox#set
+     */
+    static public Consumer<Config> configurator;
+
+    /**
+     * Run once the machine is configured and about to boot - the point at which settings that
+     * the section initializers would have overwritten (the speed lock, say) can be applied.
+     *
+     * @see jdos.api.JDosBox#turbo
+     */
+    static public Runnable started;
+
+    /**
+     * Whether the run ends when the Win32 program named on the command line finishes. Otherwise
+     * the machine reboots and runs the startup lines it has not done yet, which is what a user
+     * sitting in front of a window wants and what an embedding program almost never does.
+     *
+     * @see jdos.api.JDosBox#exitWhenProgramFinishes
+     */
+    static public boolean exitWhenProgramFinishes = false;
 
     private static String[] removeCompletedWinCommand(String[] args, String commandToSkip) {
         if (commandToSkip == null || commandToSkip.isBlank()) {
@@ -481,7 +519,7 @@ public class MainBase {
         return args;
     }
 
-    static void guiMain(GUI g, String[] args) {
+    static public void guiMain(GUI g, String[] args) {
         gui = g;
         String[] launchArgs = args;
         while (true) {
@@ -577,6 +615,10 @@ public class MainBase {
                 }
             }
 
+            if (configurator != null) {
+                configurator.accept(Dosbox.control);
+            }
+
             Dosbox.control.ParseEnv();
             Dosbox.control.Init();
             Section_prop sdl_sec = (Section_prop) Dosbox.control.GetSection("sdl");
@@ -590,6 +632,9 @@ public class MainBase {
             /* Start up main machine */
             try {
                 startupTime = System.currentTimeMillis();
+                if (started != null) {
+                    started.run();
+                }
                 Dosbox.control.StartUp();
             } catch (Dos_programs.ReturnToPromptException e) {
                 launchArgs = removeCompletedWinCommand(launchArgs, e.commandToSkip);
@@ -597,6 +642,9 @@ public class MainBase {
                 try {
                     myconf.Destroy();
                 } catch (Exception e1) {
+                }
+                if (exitWhenProgramFinishes) {
+                    break;
                 }
                 continue;
             } catch (Dos_programs.RebootException e) {

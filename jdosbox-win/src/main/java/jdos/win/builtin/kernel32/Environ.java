@@ -11,9 +11,6 @@ public class Environ extends WinAPI {
     static public int GetEnvironmentVariableA(int lpName, int lpBuffer, int nSize) {
         String name = StringUtil.getString(lpName);
         String value = WinSystem.getCurrentProcess().env.get(name);
-        if ("MMFTOOL_MASTER_VOLUME".equals(name)) {
-            value = "127";
-        }
         if (value == null) {
             return 0;
         }

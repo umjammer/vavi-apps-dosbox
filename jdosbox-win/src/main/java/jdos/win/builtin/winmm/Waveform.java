@@ -10,6 +10,8 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
+import jdos.api.AudioSink;
+import jdos.api.JDosBox;
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
@@ -80,46 +82,6 @@ public class Waveform extends WinAPI {
     }
 
     private static final java.util.List<CallbackMessage> globalPendingMessages = new java.util.ArrayList<CallbackMessage>();
-
-    private static final java.util.Map<Integer, Integer> watchedBuffers = new java.util.concurrent.ConcurrentHashMap<>();
-    private static final java.util.Set<Integer> everNonZero = java.util.concurrent.ConcurrentHashMap.newKeySet();
-    private static Thread bufferScanner = null;
-
-    private static synchronized void startBufferScanner() {
-        if (bufferScanner != null) return;
-        bufferScanner = new Thread(() -> {
-            while (true) {
-                try {
-                    Thread.sleep(25);
-                } catch (InterruptedException e) {
-                    return;
-                }
-                for (java.util.Map.Entry<Integer, Integer> e : watchedBuffers.entrySet()) {
-                    int addr = e.getKey();
-                    int len = e.getValue();
-                    if (everNonZero.contains(addr)) continue;
-                    try {
-                        byte[] buf = new byte[len];
-                        jdos.hardware.Memory.mem_memcpy(buf, 0, addr, buf.length);
-                        int nz = 0;
-                        int firstNz = -1;
-                        for (int i = 0; i < buf.length; i++) {
-                            if (buf[i] != 0) {
-                                nz++;
-                                if (firstNz < 0) firstNz = i;
-                            }
-                        }
-                        if (nz > 0) {
-                            everNonZero.add(addr);
-                            logger.log(Level.TRACE, "[buffer-scan] lpData=0x" + Integer.toHexString(addr) + " became non-zero! nz=" + nz + "/" + len + " firstNz=" + firstNz);
-                        }
-                    } catch (Throwable ignore) {}
-                }
-            }
-        }, "Waveform-BufferScanner");
-        bufferScanner.setDaemon(true);
-        bufferScanner.start();
-    }
 
     static class CallbackMessage {
         int processHandle;
@@ -248,6 +210,16 @@ public class Waveform extends WinAPI {
         }
 
         public boolean open() {
+            // an embedding program may have asked for the samples instead; the first device to
+            // open claims the sink, anything else opened at the same time keeps the speakers
+            AudioSink candidate = JDosBox.getWaveOutSink();
+            if (candidate != null && claimSink(this, candidate)) {
+                sink = candidate;
+                sink.open(format.nSamplesPerSec, format.wBitsPerSample, format.nChannels);
+                logger.log(Level.DEBUG, "WaveOutThread to sink " + format.nSamplesPerSec + "Hz "
+                        + format.wBitsPerSample + "bit " + format.nChannels + "ch");
+                return true;
+            }
             try {
                 AudioFormat af = new AudioFormat(format.nSamplesPerSec, format.wBitsPerSample, format.nChannels, true, false);
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, af);
@@ -295,12 +267,34 @@ public class Waveform extends WinAPI {
         boolean started = false;
         int primeBytes = 0;
         int writtenBytes = 0;
+        /** set once the guest has produced a sample that is not silence */
+        boolean sounding = false;
         long firstWriteWallNanos = 0;
         /** Maximum wall time to wait for primeBytes before starting playback anyway. */
         static final long PRIME_TIMEOUT_NANOS = 3_000_000_000L;
         final boolean ready;
         SourceDataLine line;
         UnderrunProbe probe;
+        AudioSink sink;
+
+        /** Hands a buffer back to the guest without playing it. */
+        private void skipBuffer(WAVEHDR hdr) {
+            hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
+            hdr.dwFlags |= WAVEHDR.WHDR_DONE;
+            hdr.writeFlags();
+            if (owner != null) {
+                owner.notifyClient(WOM_DONE, hdr.reserved, 0, hdr);
+            }
+        }
+
+        private static int firstNonZero(byte[] b, int length) {
+            for (int i = 0; i < length; i++) {
+                if (b[i] != 0) {
+                    return i;
+                }
+            }
+            return -1;
+        }
 
         private void maybeStartPlayback(int justWroteBytes) {
             if (started) return;
@@ -326,13 +320,10 @@ public class Waveform extends WinAPI {
                     }
                 }
                 if (hdr != null) {
-                    if (line != null && hdr.data != null && hdr.data.length > 0) {
+                    if ((line != null || sink != null) && hdr.data != null && hdr.data.length > 0) {
                         byte[] currentData = hdr.data;
                         int length = currentData.length;
-
-                        int nonZero = 0;
-                        for (byte b : currentData) if (b != 0) nonZero++;
-                        logger.log(Level.TRACE, "WaveOutThread writing buffer of length " + length + " bytes (non-zero: " + nonZero + ")");
+                        int offset = 0;
 
                         if (format.wBitsPerSample == 8) {
                             for (int i = 0; i < currentData.length; i++) {
@@ -340,8 +331,33 @@ public class Waveform extends WinAPI {
                             }
                         }
 
-                        line.write(currentData, 0, length);
-                        maybeStartPlayback(length);
+                        if (!sounding) {
+                            // A program that spends its first seconds loading writes silence
+                            // while it does. Playing that silence is what makes the sound that
+                            // follows it choppy: the buffer that was meant to carry the start of
+                            // the audio over the emulator's slowest moments - it is still
+                            // compiling the code the program is about to run - gets filled with
+                            // the silence and is spent before there is anything to hear. So the
+                            // silence is dropped, which also has the program start sounding as
+                            // soon as it has something to sound.
+                            int start = firstNonZero(currentData, length);
+                            if (start < 0) {
+                                skipBuffer(hdr);
+                                continue;
+                            }
+                            offset = start - start % Math.max(1, format.nBlockAlign);
+                            length -= offset;
+                            sounding = true;
+                        }
+
+                        if (sink != null) {
+                            // blocking here is the point: it is what holds the guest to the
+                            // rate its samples are being taken at
+                            sink.write(currentData, offset, length);
+                        } else {
+                            line.write(currentData, offset, length);
+                            maybeStartPlayback(length);
+                        }
                     }
                     hdr.dwFlags &= ~WAVEHDR.WHDR_INQUEUE;
                     hdr.dwFlags |= WAVEHDR.WHDR_DONE;
@@ -357,13 +373,13 @@ public class Waveform extends WinAPI {
                                 // playback so the prime-timeout fallback can
                                 // fire even if the guest stopped writing
                                 // before reaching primeBytes.
-                                if (started) buffers.wait();
+                                if (started || sink != null) buffers.wait();
                                 else buffers.wait(50);
                             } catch (Exception _) {
                             }
                         }
                     }
-                    if (!started) maybeStartPlayback(0);
+                    if (sink == null && !started) maybeStartPlayback(0);
                 }
             }
             if (probe != null) {
@@ -373,12 +389,72 @@ public class Waveform extends WinAPI {
                 probe.stop();
                 probe = null;
             }
+            if (sink != null) {
+                sink.close();
+                releaseSink(this);
+                sink = null;
+            }
             if (line != null) {
                 line.drain();
                 line.stop();
                 line.close();
                 line = null;
             }
+        }
+    }
+
+    /** the device that has the sink, so a second one opened alongside it does not share it */
+    private static WaveOutThread sinkOwner;
+
+    /** for the probe only: what the last submitted buffer held */
+    private static int lastHash;
+
+    /**
+     * Takes the sink for this device, unless another one that is still going has it.
+     * <p>
+     * The owner is remembered rather than the sink itself: a machine that was shut down part way
+     * through leaves its devices behind without closing them, and a claim left over from one of
+     * those must not keep the next machine's devices off the sink.
+     */
+    private static synchronized boolean claimSink(WaveOutThread thread, AudioSink candidate) {
+        if (sinkOwner != null && sinkOwner.sink == candidate && sinkOwner.isAlive()) {
+            return false;
+        }
+        sinkOwner = thread;
+        return true;
+    }
+
+    private static synchronized void releaseSink(WaveOutThread thread) {
+        if (sinkOwner == thread) {
+            sinkOwner = null;
+        }
+    }
+
+    /**
+     * Throws away every emulated device, ready for a new machine.
+     * <p>
+     * These live in statics, so a machine that was shut down part way through leaves its devices
+     * running - their threads still waiting for buffers that will never come, still holding the
+     * sink. The next machine's own devices then find the place taken.
+     */
+    public static void reset() {
+        WaveObject[] objects;
+        synchronized (Waveform.class) {
+            objects = activeWaveObjects.toArray(new WaveObject[0]);
+            activeWaveObjects.clear();
+            sinkOwner = null;
+        }
+        // outside the lock: shutting a device down waits for its thread, and that thread gives
+        // the sink back on its way out - which wants this same lock
+        for (WaveObject obj : objects) {
+            try {
+                obj.shutdown(false);
+            } catch (Throwable t) {
+                logger.log(Level.DEBUG, "leaving a wave device behind: " + t);
+            }
+        }
+        synchronized (globalPendingMessages) {
+            globalPendingMessages.clear();
         }
     }
 
@@ -461,7 +537,6 @@ public class Waveform extends WinAPI {
             return WinMM.MMSYSERR_NODRIVER;
         }
         writed(lphWaveOut, object.handle);
-        startBufferScanner();
         object.notifyClient(WOM_OPEN, 0, 0, null);
 
         return res;
@@ -546,24 +621,11 @@ public class Waveform extends WinAPI {
         if (hdr.lpData == 0 || (hdr.dwFlags & WAVEHDR.WHDR_PREPARED) == 0)
             return WinMM.WAVERR_UNPREPARED;
 
-        watchedBuffers.put(hdr.lpData, hdr.dwBufferLength);
-        everNonZero.remove(hdr.lpData);
-
         hdr.data = new byte[hdr.dwBufferLength];
         // Snapshot the guest buffer at submission time. Re-reading it later from
         // the audio thread races guest-side buffer reuse under heavy startup load
         // and can corrupt the first audible chunk without causing line underruns.
         Memory.mem_memcpy(hdr.data, 0, hdr.lpData, hdr.dwBufferLength);
-        int nz = 0;
-        for (byte b : hdr.data) if (b != 0) nz++;
-        logger.log(Level.TRACE, "waveOutWrite pwh=0x" + Integer.toHexString(pwh)
-                + " lpData=0x" + Integer.toHexString(hdr.lpData)
-                + " len=" + hdr.dwBufferLength
-                + " nonZero=" + nz + " preview: ");
-        for (int i = 0; i < 16 && i < hdr.dwBufferLength; i++) {
-            logger.log(Level.TRACE, Integer.toHexString(hdr.data[i] & 0xFF) + " ");
-        }
-
         if ((hdr.dwFlags & WAVEHDR.WHDR_INQUEUE) != 0)
             return WinMM.WAVERR_STILLPLAYING;
 
@@ -572,9 +634,16 @@ public class Waveform extends WinAPI {
         hdr.reserved = pwh;
         hdr.writeFlags();
 
-        if (pwh == 0xb0004afc) {
-            int ii = 0;
+        if (Boolean.getBoolean("jdos.audio.probe")) {
+            // a buffer identical to the one before it is the guest re-sending one it has not
+            // refilled, which is how a song ends up longer than it is
+            int hash = java.util.Arrays.hashCode(hdr.data);
+            logger.log(Level.DEBUG, "waveOutWrite pwh=0x" + Integer.toHexString(pwh)
+                    + " len=" + hdr.dwBufferLength + " hash=" + Integer.toHexString(hash)
+                    + (hash == lastHash ? " SAME-AS-PREVIOUS" : ""));
+            lastHash = hash;
         }
+
         synchronized (obj.thread.buffers) {
             obj.thread.buffers.add(hdr);
             obj.thread.buffers.notify();

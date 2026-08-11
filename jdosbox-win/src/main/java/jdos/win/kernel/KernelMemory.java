@@ -299,8 +299,7 @@ public class KernelMemory {
             alloc_frame(get_page((int) i, true, kernel_directory), false, false);
         }
         if (placement_address > oldPlacement + 0x1000) {
-            logger.log(Level.DEBUG, "Kernel Heap padding was not large enough");
-            System.exit(0);
+            throw new IllegalStateException("kernel heap padding was not large enough");
         }
         // Now, enable paging!
         switch_page_directory(kernel_directory);

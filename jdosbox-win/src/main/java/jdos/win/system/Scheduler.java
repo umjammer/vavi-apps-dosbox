@@ -3,6 +3,8 @@ package jdos.win.system;
 import java.util.HashMap;
 import java.util.Map;
 
+import jdos.gui.Main;
+import jdos.win.Win;
 import jdos.win.builtin.kernel32.WinThread;
 import jdos.win.builtin.user32.Input;
 
@@ -154,6 +156,13 @@ public class Scheduler {
                 break;
             }
             if (next == start) {
+                // every guest thread is waiting, so this is where the emulator spends an idle
+                // guest's time. The machine's own event queue has to be looked at from here as
+                // well, or a shutdown asked for while the guest is idle is never seen - the
+                // normal loop that would have seen it is several frames down the stack, waiting
+                // on this.
+                Win.checkExitRequest();
+                Main.GFX_Events();
                 try {
                     Thread.sleep(10);
                 } catch (Exception e) {

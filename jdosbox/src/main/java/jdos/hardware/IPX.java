@@ -1358,7 +1358,9 @@ public class IPX extends Module_base {
         /*Bit16u*/
         int call_ipxesr1 = callback_esr.Get_callback();
 
-        if (dospage == 0) dospage = Dos_tables.DOS_GetMemory(2); // can not be freed yet
+        // not carried over from the last machine: the dos private segment window is handed out
+        // from the start again for each one, so a page remembered from the last is not ours
+        dospage = Dos_tables.DOS_GetMemory(2); // can not be freed within a machine
 
         /*PhysPt*/
         int phyDospage = Memory.PhysMake(dospage, 0);

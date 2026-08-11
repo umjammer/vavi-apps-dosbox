@@ -229,8 +229,9 @@ public class Heap {
             return;
         HeapItem item = usedMemory.remove(p);
         if (item == null) {
-            logger.log(Level.DEBUG, "Heap is corrupt, tried to free 0x" + Long.toHexString(p));
-            System.exit(0);
+            // this used to take the host jvm down with it. The machine is embedded now, so a
+            // broken heap has to fail the machine and leave the process standing
+            throw new IllegalStateException("win32 heap is corrupt, tried to free 0x" + Long.toHexString(p));
         }
         int index = findIndexByAddress(p);
         if (index >= 0) {
