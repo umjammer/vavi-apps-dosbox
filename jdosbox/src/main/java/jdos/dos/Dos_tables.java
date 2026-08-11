@@ -63,6 +63,12 @@ public class Dos_tables {
     };
 
     static public void DOS_SetupTables() {
+        // this is a bump allocator over a fixed 0xc800-0xd000 window and dos is being set up from
+        // scratch, so the previous machine's tables are not there to be preserved - without this
+        // the window is eaten a machine at a time and a later song's machine cannot boot at all.
+        // Everything else that allocates out of it (xms, ems, ipx) initialises after dos does,
+        // and clears whatever it remembered, so they take their share of the fresh window.
+        dos_memseg = DOS_PRIVATE_SEGMENT;
         /*Bit16u*/
         int seg;/*Bitu*/
         int i;

@@ -51,6 +51,29 @@ public class Win extends WinAPI {
         Win.exit();
     }
 
+    /** set when the host has asked the running program to stop, see {@link #exitRequested} */
+    private static volatile boolean exitRequested;
+
+    /**
+     * Asks the Win32 program to finish, from another thread.
+     * <p>
+     * Ending the machine by throwing its shutdown through the emulator instead leaves this layer
+     * - which keeps a whole Win32 system in statics - half torn down, and the next machine's
+     * program never gets its sound out. Finishing the program is the path that is known to clean
+     * up after itself, because it is the one a program that ends on its own takes.
+     */
+    public static void requestExit() {
+        exitRequested = true;
+    }
+
+    /** Called from wherever the emulator idles: finishes the program if the host has asked. */
+    public static void checkExitRequest() {
+        if (exitRequested) {
+            exitRequested = false;
+            exit();
+        }
+    }
+
     public static void exit() {
         Main.defaultKeyboardHandler = null;
         Main.defaultMouseHandler = null;
@@ -119,6 +142,10 @@ public class Win extends WinAPI {
     }
 
     static private boolean internalRun(String path, String winPath, String name, String args) {
+        // a request to finish belongs to the program it was made about; left set it would end
+        // the next program the moment it started
+        exitRequested = false;
+
         returnToPromptCommand = name + ((args != null && !args.isEmpty()) ? " " + args : "");
         List<Path> paths = new ArrayList<>();
         paths.add(new Path(path, winPath));

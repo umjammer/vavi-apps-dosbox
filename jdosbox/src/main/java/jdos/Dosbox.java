@@ -95,6 +95,14 @@ public class Dosbox {
     public static /*Bit32u*/ long ticksScheduled;
     public static boolean ticksLocked;
 
+    /**
+     * Called once per batch of emulated ticks while {@link #ticksLocked}, to let whoever is
+     * consuming the machine's output hold emulated time back to the rate they are taking it at.
+     *
+     * @see jdos.api.JDosBox#pacer
+     */
+    public static Runnable pacer;
+
     static public boolean IS_TANDY_ARCH() {
         return ((machine == MachineType.MCH_TANDY) || (machine == MachineType.MCH_PCJR));
     }
@@ -151,6 +159,14 @@ public class Dosbox {
             }
 //increaseticks:
             if (ticksLocked) {
+                if (pacer != null) {
+                    // nothing else is holding this machine back, so whoever is taking its output
+                    // decides how fast emulated time may run. Without this the machine's clock
+                    // runs at the host's speed while its audio comes out at the speed it is being
+                    // consumed, and anything the guest times against that clock - the end of a
+                    // song, say - happens far too early.
+                    pacer.run();
+                }
                 ticksRemain = 5;
                 /* Reset any auto cycle guessing for this frame */
                 ticksLast = Main.GetTicks();

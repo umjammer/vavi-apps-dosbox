@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import jdos.cpu.CPU_Regs;
+import jdos.dos.Dos;
+import jdos.dos.Dos_PSP;
 import jdos.hardware.Memory;
 import jdos.win.Console;
 import jdos.win.Win;
@@ -288,10 +290,46 @@ public class WinProcess extends WaitObject {
         env.put("TMP", WinAPI.TEMP_PATH);
         env.put("windir", WinAPI.WIN32_PATH);
         env.put("PATH", "C:\\;" + WinAPI.WIN32_PATH);
+        // what the DOS side was told with SET, so a program started from autoexec.bat can be
+        // configured the way its documentation says it can
+        env.putAll(readDosEnvironment());
 
         if (loader.loadModule(exe) == null)
             return false;
         return true;
+    }
+
+    /**
+     * The environment of the DOS program that started this one - a block of {@code NAME=VALUE}
+     * strings ending in an empty one, hanging off the current PSP.
+     */
+    private static Map<String, String> readDosEnvironment() {
+        Map<String, String> env = new HashMap<>();
+        try {
+            int segment = new Dos_PSP(Dos.dos.psp()).getEnvironment();
+            if (segment == 0) {
+                return env;
+            }
+            StringBuilder entry = new StringBuilder();
+            for (int offset = 0; offset < 32768; offset++) {
+                int c = Memory.real_readb(segment, offset);
+                if (c != 0) {
+                    entry.append((char) c);
+                    continue;
+                }
+                if (entry.isEmpty()) {
+                    break; // the empty string that ends the block
+                }
+                int equals = entry.indexOf("=");
+                if (equals > 0) {
+                    env.put(entry.substring(0, equals), entry.substring(equals + 1));
+                }
+                entry.setLength(0);
+            }
+        } catch (Exception e) {
+            // no DOS environment to be had; the defaults above are all this process gets
+        }
+        return env;
     }
 
     public WinThread createThread(long startAddress, int stackSizeCommit, int stackSizeReserve) {

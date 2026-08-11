@@ -407,6 +407,15 @@ public abstract class Program {
     public static final Section.SectionFunction PROGRAMS_Init = new Section.SectionFunction() {
         @Override
         public void call(Section section) {
+            // every machine registers its built-in programs again - mount, mem, command.com and
+            // the rest, thirteen of them - and the index of one is stored in a single byte of
+            // the .com stub, so the list is only good for 256. Left to accumulate it took about
+            // a dozen songs to fill, and the machine after that could not finish setting dos up.
+            // This runs before every other section that registers one, so it is the place to
+            // start the list again; Drive_virtual is emptied for the same reason.
+            internal_progs.clear();
+            Drive_virtual.VFILE_Reset();
+
             call_program = Callback.CALLBACK_Allocate();
             Callback.CALLBACK_Setup(call_program, PROGRAMS_Handler, Callback.CB_RETF, "internal program");
             PROGRAMS_MakeFile("CONFIG.COM", CONFIG_ProgramStart);

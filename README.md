@@ -1,7 +1,7 @@
 [![Release](https://jitpack.io/v/umjammer/vavi-apps-dosbox.svg)](https://jitpack.io/#umjammer/vavi-apps-dosbox)
 [![Java CI](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/gradle.yml/badge.svg)](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/gradle.yml)
 [![CodeQL](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/codeql.yml/badge.svg)](https://github.com/umjammer/vavi-apps-dosbox/actions/workflows/codeql.yml)
-![Java](https://img.shields.io/badge/Java-21-b07219)
+![Java](https://img.shields.io/badge/Java-25-b07219)
 
 # vavi-apps-dosbox
 
@@ -33,14 +33,16 @@ $ java -jar /Users/nsano/src/java/jDOSBox/launcher/build/libs/launcher-0.74.31.j
 
 ### Tech Know
 
- * graalvm doesn't make choppy sound
+ * ~~graalvm doesn't make choppy sound~~ ... because of heavy debug logging
+   * graalvm is faster than openjdk is real
 
 ## TODO
 
  * ~~pc98~~ ... use j98
  * keep aspect ratio
  * debug
-   * KAFFE.EXE crashes 
+   * KAFFE.EXE crashes
+ * junit -> jupiter
 
 ---
 

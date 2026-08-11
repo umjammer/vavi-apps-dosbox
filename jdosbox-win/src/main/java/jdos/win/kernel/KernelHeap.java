@@ -54,8 +54,8 @@ public class KernelHeap {
         this.end = start;
         this.max = max;
         if ((start & 0xFFF) != 0 || (end & 0xFFF) != 0) {
-            logger.log(Level.DEBUG, "Heap requires addresses to be 4k aligned");
-            System.exit(0);
+            throw new IllegalStateException("kernel heap requires 4k aligned addresses, got 0x"
+                    + Long.toHexString(start) + "..0x" + Long.toHexString(end));
         }
         expand((int) (end - start), true);
     }
@@ -239,8 +239,7 @@ public class KernelHeap {
             return;
         HeapItem item = usedMemory.remove(p);
         if (item == null) {
-            logger.log(Level.DEBUG, "Heap is corrupt, tried to free 0x" + Long.toString(p, 16));
-            System.exit(0);
+            throw new IllegalStateException("kernel heap is corrupt, tried to free 0x" + Long.toString(p, 16));
         }
         int index = findIndexByAddress(p);
         if (index >= 0) {

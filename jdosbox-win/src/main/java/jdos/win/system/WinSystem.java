@@ -33,6 +33,10 @@ public class WinSystem {
     static public void stop() {
         Scheduler.stop();
         StaticData.stop();
+        // the callback table is win32 state like any other: left alone it fills up over a few
+        // machines - a program spends a few hundred entries on its imports - and the next
+        // program to load one dies inside the loader
+        WinCallback.stop();
         registry = null;
         memory = null;
         interrupts = null;
