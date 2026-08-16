@@ -1,5 +1,7 @@
 package jdos.win.system;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -7,9 +9,13 @@ import jdos.gui.Main;
 import jdos.win.Win;
 import jdos.win.builtin.kernel32.WinThread;
 import jdos.win.builtin.user32.Input;
+import jdos.cpu.CPU_Regs;
 
 
 public class Scheduler {
+
+    private static final Logger logger = System.getLogger(Scheduler.class.getName());
+
 
     private static class SchedulerItem {
 
@@ -65,7 +71,9 @@ public class Scheduler {
     static public void sleep(WinThread thread, int ms) {
         SchedulerItem item = threadMap.get(thread);
         if (item != null) {
-            item.sleepUntil = currentTickCount() + ms + 1;
+            // no rounding up: a program that asks for 10ms and is given 11 runs 10 per cent slow,
+            // and a music driver ticking on this timer plays the song 10 per cent long
+            item.sleepUntil = currentTickCount() + Math.max(0, ms);
             tick();
         }
     }
@@ -163,16 +171,36 @@ public class Scheduler {
                 // on this.
                 Win.checkExitRequest();
                 Main.GFX_Events();
-                try {
-                    Thread.sleep(10);
-                } catch (Exception e) {
+                // wait only until the first thread is due. Sleeping a fixed ten milliseconds
+                // rounds every wake-up up to the next ten, which is what made a timer asked for
+                // every 10ms fire every 16.
+                int wait = 10;
+                for (SchedulerItem item = first; item != null; item = item.next) {
+                    wait = Math.min(wait, item.sleepUntil - tickCount);
+                }
+                // a thread that is due now is not waited for at all: sleeping "at least a
+                // millisecond" on something already due adds that millisecond to every period,
+                // which is ten per cent of a ten millisecond timer
+                if (wait > 0) {
+                    try {
+                        Thread.sleep(wait);
+                    } catch (Exception e) {
+                    }
                 }
                 tickCount = currentTickCount();
             }
             next = next.next;
         }
         if (next.thread != currentThread.thread) {
-            //logger.log(Level.DEBUG,"Switching threads: "+currentThread.thread.getHandle()+"("+ Ptr.toString(CPU_Regs.reg_eip)+") -> "+next.thread.getHandle()+"("+Ptr.toString(next.thread.cpuState.eip)+")");
+            logger.log(Level.TRACE, "switching threads: " + currentThread.thread.getHandle()
+                    + " (eip=0x" + Integer.toHexString(CPU_Regs.reg_eip)
+                    + " esp=0x" + Integer.toHexString(CPU_Regs.reg_esp.dword)
+                    + " esi=0x" + Integer.toHexString(CPU_Regs.reg_esi.dword)
+                    + " edi=0x" + Integer.toHexString(CPU_Regs.reg_edi.dword) + ") -> " + next.thread.getHandle()
+                    + " (eip=0x" + Integer.toHexString(next.thread.cpuState.eip)
+                    + " esp=0x" + Integer.toHexString(next.thread.cpuState.esp)
+                    + " esi=0x" + Integer.toHexString(next.thread.cpuState.esi)
+                    + " edi=0x" + Integer.toHexString(next.thread.cpuState.edi) + ")");
             currentThread.thread.saveCPU();
             if (currentThread.thread.getProcess() != next.thread.getProcess()) {
                 next.thread.getProcess().switchPageDirectory();

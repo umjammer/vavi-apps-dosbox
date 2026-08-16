@@ -118,6 +118,11 @@ public class Pixel {
     }
 
     static public BufferedImage createImage(int src, int srcBpp, int[] srcPalette, int width, int height, boolean flip) {
+        if (srcPalette == null && srcBpp <= 8) {
+            // a bitmap with no colours of its own - a mask, most of the time - is read as the
+            // shades a grey ramp of its depth would give, which for one bit is black and white
+            srcPalette = greyPalette(srcBpp);
+        }
         if (srcPalette != null && srcBpp <= 8) {
             byte[] r = new byte[srcPalette.length];
             byte[] g = new byte[srcPalette.length];
@@ -229,10 +234,19 @@ public class Pixel {
                     logger.log(Level.ERROR, e.getMessage(), e);
                 }
             } else {
-                Win.panic("Currently only 24-bit, 16-bit, 8-bit and 4-bit bitmaps are supported");
+                Win.panic("Currently only 32-bit, 24-bit, 16-bit, 8-bit and 4-bit bitmaps are supported. Got bpp: " + srcBpp + " palette: " + (srcPalette == null ? "none" : srcPalette.length + " entries"));
             }
         }
         return null;
+    }
+
+    static private int[] greyPalette(int bpp) {
+        int[] palette = new int[1 << bpp];
+        for (int i = 0; i < palette.length; i++) {
+            int shade = palette.length == 1 ? 0 : i * 255 / (palette.length - 1);
+            palette[i] = shade | (shade << 8) | (shade << 16);
+        }
+        return palette;
     }
 
     static public void writeImage(int dst, BufferedImage biDest, int dstBpp, int width, int height) {

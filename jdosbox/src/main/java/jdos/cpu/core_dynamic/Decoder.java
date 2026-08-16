@@ -12,6 +12,7 @@ import jdos.cpu.PageFaultException;
 import jdos.cpu.Paging;
 import jdos.cpu.core_share.Constants;
 import jdos.cpu.core_share.ModifiedDecode;
+import jdos.hardware.Memory;
 import jdos.hardware.RAM;
 import jdos.misc.setup.Config;
 
@@ -24,6 +25,15 @@ public class Decoder extends Inst1 {
 
     static {
         Decode not_handled = prev -> {
+            // an instruction this core has no decoding for. It becomes an invalid opcode fault
+            // the same way the cpu would raise one, which a program running without an operating
+            // system to handle it will spin on, so the address and the bytes are worth saying.
+            int address = decode.op_start;
+            StringBuilder bytes = new StringBuilder();
+            for (int i = 0; i < 8; i++) {
+                bytes.append(' ').append(Integer.toHexString(Memory.mem_readb(address + i) & 0xFF));
+            }
+            logger.log(Level.DEBUG, "unhandled opcode at 0x" + Integer.toHexString(address) + ":" + bytes);
             prev.next = new Op() {
                 @Override
                 public int call() {
@@ -300,6 +310,7 @@ public class Decoder extends Inst1 {
         Prefix_0f.init(ops);
         Prefix_66.init(ops);
         Prefix_66_0f.init(ops);
+        Prefix_sse.init(ops);
     }
 
     public static final boolean removeRedundantSegs = false;

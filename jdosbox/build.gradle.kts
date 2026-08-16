@@ -24,7 +24,10 @@ tasks.test {
     workingDir = rootProject.projectDir
     systemProperty("java.util.logging.config.file", "jdosbox/src/test/resources/logging.properties")
     // hand the -D's on the gradle command line to the test jvm
-    for (key in listOf("vavi.test", "cycles", "timeout", "mmftool.path", "jdosbox.volume", "freeDrain", "turbo", "repeats", "mmf", "rate", "mmfs")) {
+    // -Djdos.novideo=true runs a win32 guest without drawing anything, which for a program wanted
+    // only for its sound gives most of the machine's time back
+    for (key in listOf("vavi.test", "cycles", "timeout", "mmftool.path", "jdosbox.volume", "freeDrain", "turbo", "repeats", "mmf", "rate", "mmfs",
+            "jdos.novideo", "jdos.compile.sse", "jdos.registry")) {
         System.getProperty(key)?.let { systemProperty(key, it) }
     }
     // -Dtest.jdk=<java home> runs the tests on another jdk, to compare how they carry the emulation

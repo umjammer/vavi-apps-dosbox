@@ -34,6 +34,10 @@ public class Comctl32 extends BuiltinModule {
         add(Comctl32.class, "ImageList_Destroy", new String[] {"himl", "(BOOL)result"});
         add(Comctl32.class, "ImageList_LoadImageA", new String[] {"hinst", "(STRING)lpbmp", "cx", "cGrow", "(HEX)crMask", "(HEX)uType", "(HEX)uFlags"});
         add(Comctl32.class, "InitCommonControls", new String[0], 17);
+        add(Comctl32.class, "CreatePropertySheetPageA", new String[] {"(HEX)lppsp"});
+        add(Comctl32.class, "PropertySheetA", new String[] {"(HEX)lppsph"});
+        add_named("CreatePropertySheetPageW", Comctl32.class, "CreatePropertySheetPageA", false);
+        add_named("PropertySheetW", Comctl32.class, "PropertySheetA", false);
     }
 
     // BOOL ImageList_Destroy(HIMAGELIST himl);
@@ -51,6 +55,17 @@ public class Comctl32 extends BuiltinModule {
         String resource = lpbmp == 0 ? "0" : (WinAPI.IS_INTRESOURCE(lpbmp) ? Integer.toString(lpbmp) : StringUtil.getString(lpbmp));
         WinAPI.traceUi("ImageList_LoadImageA resource=" + resource + " cx=" + cx + " flags=0x" + Integer.toHexString(uFlags));
         return ImageList.create().getHandle();
+    }
+
+    // HPROPSHEETPAGE CreatePropertySheetPage(LPCPROPSHEETPAGE lppsp)
+    public static int CreatePropertySheetPageA(int lppsp) {
+        // property sheets are pages of settings, and none of them is ever put on screen here
+        return NULL;
+    }
+
+    // INT_PTR PropertySheet(LPCPROPSHEETHEADER lppsph)
+    public static int PropertySheetA(int lppsph) {
+        return -1;
     }
 
     // void InitCommonControls(void);

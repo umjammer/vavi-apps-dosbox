@@ -86,6 +86,8 @@ public class WinDC extends WinObject {
 
     // BOOL ExtTextOut(HDC hdc, int X, int Y, UINT fuOptions, const RECT *lprc, LPCTSTR lpString, UINT cbCount, const INT *lpDx)
     static public int ExtTextOutA(int hdc, int X, int Y, int fuOptions, int lprc, int lpString, int cbCount, int lpDx) {
+        if (NO_VIDEO)
+            return TRUE;
         String text = StringUtil.getString(lpString, cbCount);
         return ExtTextOut(hdc, X, Y, fuOptions, lprc, text, lpDx);
     }
@@ -370,6 +372,27 @@ public class WinDC extends WinObject {
         return old;
     }
 
+    /** what a gdi call that takes a value returns when it fails */
+    static private final int GDI_ERROR_RESULT = -1;
+
+    // UINT SetTextAlign(HDC hdc, UINT fMode)
+    static public int SetTextAlign(int hdc, int fMode) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null)
+            return GDI_ERROR_RESULT;
+        int old = dc.textAlign;
+        dc.textAlign = fMode;
+        return old;
+    }
+
+    // UINT GetTextAlign(HDC hdc)
+    static public int GetTextAlign(int hdc) {
+        WinDC dc = WinDC.get(hdc);
+        if (dc == null)
+            return GDI_ERROR_RESULT;
+        return dc.textAlign;
+    }
+
     // COLORREF SetPixel(HDC hdc, int X, int Y, COLORREF crColor)
     static public int SetPixel(int hdc, int X, int Y, int crColor) {
         WinDC dc = WinDC.get(hdc);
@@ -402,6 +425,8 @@ public class WinDC extends WinObject {
 
     // BOOL WINAPI TextOutA( HDC hdc, INT x, INT y, LPCSTR str, INT count )
     static public int TextOutA(int hdc, int x, int y, int str, int count) {
+        if (NO_VIDEO)
+            return TRUE;
         return ExtTextOutA(hdc, x, y, 0, NULL, str, count, NULL);
     }
 
@@ -421,6 +446,8 @@ public class WinDC extends WinObject {
     boolean owner = false;
     int hPalette = 0;
     int bkMode = OPAQUE;
+    /** where text is put relative to the point it is drawn at - TA_LEFT | TA_TOP to start with */
+    int textAlign = 0;
     JavaBitmap image;
     int hBitmap;
     int hClipRgn;

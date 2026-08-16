@@ -795,4 +795,10 @@ public class WinPos extends WinAPI {
 //        }
 //        return FALSE;
     }
+
+    // BOOL WINAPI SetLayeredWindowAttributes(HWND hwnd, COLORREF crKey, BYTE bAlpha, DWORD dwFlags)
+    static public int SetLayeredWindowAttributes(int hwnd, int crKey, int bAlpha, int dwFlags) {
+        // no window here is composited, so transparency is accepted and ignored
+        return TRUE;
+    }
 }

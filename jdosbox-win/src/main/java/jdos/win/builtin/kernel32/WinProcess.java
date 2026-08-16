@@ -374,14 +374,24 @@ public class WinProcess extends WaitObject {
         return temp[index] + 12;
     }
 
+    /** where a temp buffer is checked without being given up, to find what is writing over one */
+    public String checkTemps() {
+        for (int i = 0; i < nextTempIndex; i++) {
+            int size = readd(temp[i] + 8);
+            if (readd(temp[i]) != MAGIC || size < 16 || readd(temp[i] + size - 4) != MAGIC) {
+                return "temp buffer " + i + " of " + nextTempIndex + " at 0x" + Integer.toHexString(temp[i]);
+            }
+        }
+        return null;
+    }
+
     public void checkAndResetTemps() {
         for (int i = 0; i < nextTempIndex; i++) {
-            if (readd(temp[i]) != MAGIC) {
-                Win.panic("TempBuffers were currupted, this is a bug with jdosbox");
-            }
             int size = readd(temp[i] + 8);
-            if (readd(temp[i] + size - 4) != MAGIC)
-                Win.panic("TempBuffers were currupted, this is a bug with jdosbox");
+            if (readd(temp[i]) != MAGIC || readd(temp[i] + size - 4) != MAGIC) {
+                Win.panic("temp buffer " + i + " of " + nextTempIndex + " was written past its "
+                        + (size - 16) + " bytes at 0x" + Integer.toHexString(temp[i] + 12));
+            }
         }
         nextTempIndex = 0;
     }
@@ -463,7 +473,10 @@ public class WinProcess extends WaitObject {
 
     public Module getModuleByHandle(int handle) {
         if (handle == 0) return mainModule;
-        return loader.getModuleByHandle(handle);
+        Module module = loader.getModuleByHandle(handle);
+        if (module == null)
+            module = loader.getModuleByAddress(handle);
+        return module;
     }
 
     public int getModuleByName(String name) {

@@ -166,6 +166,66 @@ public class User32 extends BuiltinModule {
         add(WinPos.class, "WindowFromPoint", new String[] {"x", "y"});
         add_cdecl(Wsprintf.class, "wsprintfA", new String[] {"(HEX)lpOut", "(STRING)lpFmt", "result", "00(STRING)lpOut"});
 
+        // the ansi calls above are the whole of user32 as far as a program built for ansi is
+        // concerned; a unicode program calls these instead, and most of them are the same
+        // implementation reading an ansi copy of whatever strings were passed in
+        add(WinDialog.class, "CheckDlgButton", new String[] {"hDlg", "nIDButton", "uCheck"});
+        add(WinDialog.class, "GetDlgItemInt", new String[] {"hDlg", "nIDDlgItem", "(HEX)lpTranslated", "(BOOL)bSigned"});
+        add(WinDialog.class, "GetDlgItemTextA", new String[] {"hDlg", "nIDDlgItem", "(HEX)lpString", "nMaxCount"});
+        add(WinDialog.class, "IsDlgButtonChecked", new String[] {"hDlg", "nIDButton"});
+        add(WinDialog.class, "SetDlgItemInt", new String[] {"hDlg", "nIDDlgItem", "uValue", "(BOOL)bSigned"});
+        add(Input.class, "AttachThreadInput", new String[] {"idAttach", "idAttachTo", "(BOOL)fAttach"});
+        add(Input.class, "ClipCursor", new String[] {"(RECT)lpRect"});
+        add(Monitor.class, "MonitorFromPoint", new String[] {"x", "y", "(HEX)dwFlags"});
+        add(Monitor.class, "MonitorFromRect", new String[] {"(RECT)lprc", "(HEX)dwFlags"});
+        add(Monitor.class, "MonitorFromWindow", new String[] {"hwnd", "(HEX)dwFlags"});
+        add(Monitor.class, "GetMonitorInfoA", new String[] {"hMonitor", "(HEX)lpmi"});
+        add(Monitor.class, "GetMonitorInfoW", new String[] {"hMonitor", "(HEX)lpmi"});
+        add(WinMenu.class, "TrackPopupMenu", new String[] {"hMenu", "(HEX)uFlags", "x", "y", "nReserved", "hWnd", "(RECT)prcRect"});
+        add(WinPos.class, "SetLayeredWindowAttributes", new String[] {"hwnd", "(HEX)crKey", "bAlpha", "(HEX)dwFlags"});
+        add(Wide.class, "GetWindowTextW", new String[] {"hWnd", "(HEX)lpString", "nMaxCount"});
+        add(Wide.class, "GetDlgItemTextW", new String[] {"hDlg", "nIDDlgItem", "(HEX)lpString", "nMaxCount"});
+        add(Wide.class, "RegisterClassW", new String[] {"(HEX)lpWndClass"});
+        add(Wide.class, "RegisterClassExW", new String[] {"(HEX)lpwcx"});
+        add(Wide.class, "CreateDialogParamW", new String[] {"hInstance", "(HEX)lpTemplateName", "hWndParent", "(HEX)lpDialogFunc", "lParamInit"});
+        add(Wide.class, "DialogBoxParamW", new String[] {"hInstance", "(HEX)lpTemplateName", "hWndParent", "(HEX)lpDialogFunc", "lParamInit"});
+        add_cdecl(Wide.class, "wsprintfW", new String[] {"(HEX)lpOut", "(STRINGW)lpFmt"});
+
+        add_named("DefWindowProcW", DefWnd.class, "DefWindowProcA", false);
+        add_named("DefDlgProcW", DefDlg.class, "DefDlgProcA", false);
+        add_named("CallWindowProcW", Winproc.class, "CallWindowProcA", false);
+        add_named("DispatchMessageW", Message.class, "DispatchMessageA", false);
+        add_named("PeekMessageW", Message.class, "PeekMessageA", false);
+        add_named("PostMessageW", Message.class, "PostMessageA", false);
+        add_named("PostThreadMessageW", Message.class, "PostThreadMessageA", false);
+        add_named("SendMessageW", Message.class, "SendMessageA", false);
+        add_named("SendDlgItemMessageW", WinDialog.class, "SendDlgItemMessageA", false);
+        add_named("IsDialogMessageW", WinDialog.class, "IsDialogMessageA", false);
+        add_named("GetWindowLongW", WinWindow.class, "GetWindowLongA", false);
+        add_named("SetWindowLongW", WinWindow.class, "SetWindowLongA", false);
+        add_named("GetClassLongW", WinClass.class, "GetClassLongA", false);
+        add_named("SetClassLongW", WinClass.class, "SetClassLongA", false);
+        add_named("GetWindowTextLengthW", WinWindow.class, "GetWindowTextLengthA", false);
+        add_named("TranslateAcceleratorW", WinMenu.class, "TranslateAcceleratorA", false);
+        add_wait_named("GetMessageW", Message.class, "GetMessageA");
+
+        add_wide("CreateWindowExW", WinWindow.class, "CreateWindowExA", 1, 2);
+        add_wide("FindWindowW", WinWindow.class, "FindWindowA", 0, 1);
+        add_wide("FindWindowExW", WinWindow.class, "FindWindowExA", 2, 3);
+        add_wide("SetWindowTextW", WinWindow.class, "SetWindowTextA", 1);
+        add_wide("SetDlgItemTextW", WinDialog.class, "SetDlgItemTextA", 2);
+        add_wide("MessageBoxW", MsgBox.class, "MessageBoxA", 1, 2);
+        add_wide("RegisterWindowMessageW", Message.class, "RegisterWindowMessageA", 0);
+        add_wide("LoadIconW", WinIcon.class, "LoadIconA", 1);
+        add_wide("LoadCursorW", WinCursor.class, "LoadCursorA", 1);
+        add_wide("LoadMenuW", WinMenu.class, "LoadMenuA", 1);
+        add_wide("LoadImageW", Resource.class, "LoadImageA", 1);
+        add_wide("LoadAcceleratorsW", Resource.class, "LoadAcceleratorsA", 1);
+        add_wide("GetClassInfoW", WinClass.class, "GetClassInfoA", 1);
+        add_wide("UnregisterClassW", WinClass.class, "UnregisterClassA", 0);
+        add_wide("SystemParametersInfoW", SysParams.class, "SystemParametersInfoA");
+        add_wide("CreateDialogIndirectParamW", WinDialog.class, "CreateDialogIndirectParamA");
+
         WinDialog.registerClass(this, WinSystem.getCurrentProcess());
     }
 }

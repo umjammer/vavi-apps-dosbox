@@ -189,8 +189,31 @@ public class Kernel32 extends BuiltinModule {
         add(WinLocale.class, "lstrcmpiA", new String[] {"(STRING)lpString1", "(STRING)lpString2"});
         add(lstrcpyA);
         add(lstrlenA);
-        add(lstrlenW);
+        add(WinString.class, "lstrlenW", new String[] {"(STRINGW)lpString"});
         add(WinString.class, "lstrcpynA", new String[] {"(HEX)lpString1", "(STRING)lpString2", "iMaxLength", "(STRING)result"});
+
+        // the unicode entry points a program built for unicode calls instead of the ansi ones
+        add(WinString.class, "lstrcatW", new String[] {"(STRINGW)lpString1", "(STRINGW)lpString2"});
+        add(WinString.class, "lstrcmpW", new String[] {"(STRINGW)lpString1", "(STRINGW)lpString2"});
+        add(WinString.class, "lstrcmpiW", new String[] {"(STRINGW)lpString1", "(STRINGW)lpString2"});
+        add(WinString.class, "lstrcpyW", new String[] {"(HEX)lpString1", "(STRINGW)lpString2"});
+        add(WinString.class, "lstrcpynW", new String[] {"(HEX)lpString1", "(STRINGW)lpString2", "iMaxLength"});
+        add(KProcess.class, "GetExitCodeThread", new String[] {"hThread", "(HEX)lpExitCode"});
+        add(KProcess.class, "OpenProcess", new String[] {"(HEX)dwDesiredAccess", "(BOOL)bInheritHandle", "dwProcessId"});
+        add(KProcess.class, "ReadProcessMemory", new String[] {"hProcess", "(HEX)lpBaseAddress", "(HEX)lpBuffer", "nSize", "(HEX)lpNumberOfBytesRead"});
+        add(KProcess.class, "WriteProcessMemory", new String[] {"hProcess", "(HEX)lpBaseAddress", "(HEX)lpBuffer", "nSize", "(HEX)lpNumberOfBytesWritten"});
+        add(InterlockedCompareExchange);
+        add(FindFirstFileW);
+        add(FindNextFileW);
+        add_wide("CreateFileW", CreateFileA, 0);
+        add_wide("CreateMutexW", CreateMutexA, 2);
+        add_wide("DeleteFileW", DeleteFileA, 0);
+        add_wide("CreateDirectoryW", WinPath.class, "CreateDirectoryA", 0);
+        add_wide("GetFileAttributesW", GetFileAttributesA, 0);
+        add_wide("MoveFileW", WinPath.class, "MoveFileA", 0, 1);
+        add_wide("FindResourceW", KResource.class, "FindResourceA", 1, 2);
+        add_wide("SetCurrentDirectoryW", KPath.class, "SetCurrentDirectoryA", 0);
+        add_wide("OutputDebugStringW", OutputDebugStringA, 0);
         add(MapViewOfFile);
         add(WinPath.class, "MoveFileA", new String[] {"(STRING)lpExistingFileName", "(STRING)lpNewFileName", "(BOOL)result"});
         add(MulDiv);
@@ -469,6 +492,7 @@ public class Kernel32 extends BuiltinModule {
             CPU_Regs.reg_eax.dword = mapping.handle;
         }
     };
+    // the unicode form differs only in the name of the mapping, which is an ansi one here
     private final Callback.Handler CreateFileMappingW = new HandlerBase() {
         @Override
         public java.lang.String getName() {
@@ -483,7 +507,8 @@ public class Kernel32 extends BuiltinModule {
             int sizeHigh = CPU.CPU_Pop32();
             int sizeLow = CPU.CPU_Pop32();
             int name = CPU.CPU_Pop32();
-            notImplemented();
+            delegate((HandlerBase) CreateFileMappingA, hFile, addAtributes, flags, sizeHigh, sizeLow,
+                    name == 0 ? 0 : StringUtil.allocateTempA(StringUtil.getStringW(name)));
         }
     };
 
@@ -861,7 +886,9 @@ public class Kernel32 extends BuiltinModule {
                 String fileName = new LittleEndianFile(lpFileName).readCString();
                 boolean ok = true;
                 if (fileName.contains("*") || fileName.contains("?")) {
-                    int pos = fileName.indexOf("\\");
+                    // the directory is everything up to the last separator; the pattern is what
+                    // is left, which is the only part a wildcard is allowed in
+                    int pos = Math.max(fileName.lastIndexOf("\\"), fileName.lastIndexOf("/"));
                     FilePath dir;
                     String search;
                     if (pos < 0) {
@@ -1397,11 +1424,12 @@ public class Kernel32 extends BuiltinModule {
             int cb = CPU.CPU_Pop32();
             Module module = WinSystem.getCurrentProcess().getModuleByHandle(handle);
             if (module == null) {
+                logger.log(Level.DEBUG, getName() + " has no module for handle 0x" + Integer.toHexString(handle));
                 Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_HANDLE);
                 CPU_Regs.reg_eax.dword = 0;
             } else {
                 String path = module.getFileName(true);
-                logger.log(Level.TRACE, "GetModuleFileName for handle " + handle + " -> " + path);
+                logger.log(Level.DEBUG, getName() + " for handle 0x" + Integer.toHexString(handle) + " -> " + path);
                 if (cb < path.length() + 1) {
                     StringUtil.strncpy(buffer, path, cb);
                     CPU_Regs.reg_eax.dword = cb;
@@ -1585,7 +1613,8 @@ public class Kernel32 extends BuiltinModule {
             add += 4; // hStdError
         }
     };
-    static private final Callback.Handler GetStartupInfoW = new HandlerBase() {
+    // the unicode form differs only in the two strings it can hand back, and we hand back neither
+    private final Callback.Handler GetStartupInfoW = new HandlerBase() {
         @Override
         public java.lang.String getName() {
             return "Kernel32.GetStartupInfoW";
@@ -1593,7 +1622,7 @@ public class Kernel32 extends BuiltinModule {
 
         @Override
         public void onCall() {
-            notImplemented();
+            ((HandlerBase) GetStartupInfoA).onCall();
         }
     };
 
@@ -1979,7 +2008,27 @@ public class Kernel32 extends BuiltinModule {
 
         @Override
         public void onCall() {
-            notImplemented();
+            int add = CPU.CPU_Pop32();
+            int size = Memory.mem_readd(add);
+            if (size == 276 || size == 284) { // OSVERSIONINFOW / OSVERSIONINFOEXW
+                Memory.mem_writed(add + 4, 5);
+                Memory.mem_writed(add + 8, 1);
+                Memory.mem_writed(add + 12, 2600);
+                Memory.mem_writed(add + 16, 2); // VER_PLATFORM_WIN32_NT
+                StringUtil.strcpyW(add + 20, "Service Pack 2");
+                if (size == 284) {
+                    int ex = add + 20 + 128 * 2;
+                    Memory.mem_writew(ex, 2); // wServicePackMajor
+                    Memory.mem_writew(ex + 2, 0); // wServicePackMinor
+                    Memory.mem_writew(ex + 4, 0); // wSuiteMask
+                    Memory.mem_writeb(ex + 6, 1); // wProductType - VER_NT_WORKSTATION
+                    Memory.mem_writeb(ex + 7, 0); // wReserved
+                }
+                CPU_Regs.reg_eax.dword = WinAPI.TRUE;
+            } else {
+                Console.out(getName() + " was passed an unexpected size of " + size);
+                Win.exit();
+            }
         }
     };
 
@@ -2746,6 +2795,7 @@ public class Kernel32 extends BuiltinModule {
         public void onCall() {
             String name = new LittleEndianFile(CPU.CPU_Pop32()).readCStringW();
             CPU_Regs.reg_eax.dword = WinSystem.getCurrentProcess().loadModule(name);
+            logger.log(Level.DEBUG, getName() + " " + name + " -> 0x" + Integer.toHexString(CPU_Regs.reg_eax.dword));
         }
     };
 
@@ -2778,15 +2828,88 @@ public class Kernel32 extends BuiltinModule {
             CPU_Regs.reg_eax.dword = StringUtil.strlenA(lpString);
         }
     };
-    static private final Callback.Handler lstrlenW = new HandlerBase() {
+
+    // LONG InterlockedCompareExchange(LONG volatile *Destination, LONG Exchange, LONG Comparand)
+    static private final Callback.Handler InterlockedCompareExchange = new ReturnHandlerBase() {
         @Override
         public java.lang.String getName() {
-            return "Kernel32.lstrlenW";
+            return "Kernel32.InterlockedCompareExchange";
+        }
+
+        @Override
+        public int processReturn() {
+            int Destination = CPU.CPU_Pop32();
+            int Exchange = CPU.CPU_Pop32();
+            int Comparand = CPU.CPU_Pop32();
+            int result = readd(Destination);
+            if (result == Comparand)
+                writed(Destination, Exchange);
+            return result;
+        }
+    };
+
+    /**
+     * The find data a unicode program is handed is the ansi one with its two names widened: the
+     * fixed part in front of them - the attributes, the times, the size - is the same in both.
+     */
+    private static final int FIND_DATA_NAME = 44;
+    private static final int FIND_DATA_ALTERNATE_A = FIND_DATA_NAME + 260;
+    private static final int FIND_DATA_ALTERNATE_W = FIND_DATA_NAME + 260 * 2;
+    private static final int FIND_DATA_SIZE_A = FIND_DATA_ALTERNATE_A + 14;
+
+    private static void widenFindData(int ansi, int wide) {
+        for (int i = 0; i < FIND_DATA_NAME; i += 4) {
+            writed(wide + i, readd(ansi + i));
+        }
+        widenString(ansi + FIND_DATA_NAME, wide + FIND_DATA_NAME);
+        widenString(ansi + FIND_DATA_ALTERNATE_A, wide + FIND_DATA_ALTERNATE_W);
+    }
+
+    /** a name a byte at a time into a name two bytes at a time, with no java string in between */
+    private static void widenString(int ansi, int wide) {
+        while (true) {
+            int c = Memory.mem_readb(ansi++) & 0xFF;
+            Memory.mem_writew(wide, c);
+            wide += 2;
+            if (c == 0)
+                return;
+        }
+    }
+
+    // HANDLE WINAPI FindFirstFileW(LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData)
+    private final Callback.Handler FindFirstFileW = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.FindFirstFileW";
         }
 
         @Override
         public void onCall() {
-            notImplemented();
+            int lpFileName = CPU.CPU_Pop32();
+            int lpFindFileData = CPU.CPU_Pop32();
+            int ansi = getTempBuffer(FIND_DATA_SIZE_A);
+            delegate((HandlerBase) FindFirstFileA, StringUtil.allocateTempA(StringUtil.getStringW(lpFileName)), ansi);
+            int handle = CPU_Regs.reg_eax.dword;
+            if (handle != WinAPI.INVALID_HANDLE_VALUE && handle != 0 && lpFindFileData != 0)
+                widenFindData(ansi, lpFindFileData);
+        }
+    };
+
+    // BOOL WINAPI FindNextFileW(HANDLE hFindFile, LPWIN32_FIND_DATAW lpFindFileData)
+    private final Callback.Handler FindNextFileW = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "Kernel32.FindNextFileW";
+        }
+
+        @Override
+        public void onCall() {
+            int hFindFile = CPU.CPU_Pop32();
+            int lpFindFileData = CPU.CPU_Pop32();
+            int ansi = getTempBuffer(FIND_DATA_SIZE_A);
+            delegate((HandlerBase) FindNextFileA, hFindFile, ansi);
+            if (CPU_Regs.reg_eax.dword != WinAPI.FALSE && lpFindFileData != 0)
+                widenFindData(ansi, lpFindFileData);
         }
     };
 
@@ -3359,6 +3482,8 @@ public class Kernel32 extends BuiltinModule {
 
     // LONG WINAPI UnhandledExceptionFilter(struct _EXCEPTION_POINTERS *ExceptionInfo)
     private final Callback.Handler UnhandledExceptionFilter = new HandlerBase() {
+        static final int EXCEPTION_EXECUTE_HANDLER = 1;
+
         @Override
         public java.lang.String getName() {
             return "Kernel32.UnhandledExceptionFilter";
@@ -3366,7 +3491,11 @@ public class Kernel32 extends BuiltinModule {
 
         @Override
         public void onCall() {
-            notImplemented();
+            int exceptionInfo = CPU.CPU_Pop32();
+            // this is the last thing a program asks before it gives up; there is no debugger to
+            // hand it to, so it is told to run its own handler, which ends it
+            logger.log(Level.DEBUG, getName() + ": the program has an exception it cannot handle");
+            CPU_Regs.reg_eax.dword = EXCEPTION_EXECUTE_HANDLER;
         }
     };
 

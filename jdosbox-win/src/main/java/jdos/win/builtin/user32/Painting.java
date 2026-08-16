@@ -128,6 +128,8 @@ public class Painting extends WinAPI {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return FALSE; // TODO invalidate all windows
+        if (NO_VIDEO)
+            return TRUE; // nothing is drawn, so nothing needs painting again
         traceUi("InvalidateRect hwnd=" + hWnd + " erase=" + bErase + " rectPtr=0x" + Integer.toHexString(lpRect));
         WinRect rect = null;
         if (lpRect != 0) {
@@ -234,6 +236,8 @@ public class Painting extends WinAPI {
         WinWindow window = WinWindow.get(hWnd);
         if (window == null)
             return FALSE;
+        if (NO_VIDEO)
+            return TRUE;
         updateWindow(window);
         return TRUE;
     }

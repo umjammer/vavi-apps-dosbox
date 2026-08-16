@@ -513,6 +513,80 @@ public class BuiltinModule extends Module {
         }
     }
 
+    /**
+     * Serves a unicode entry point out of the ansi one behind it: every string argument named is
+     * replaced, on the stack, by an ansi copy of what it points at, and the ansi handler then
+     * runs against a call it can read. What comes back is whatever that handler returns - a
+     * function that hands a string back to its caller needs its own handler instead of this.
+     */
+    public static class WideHandler extends HandlerBase {
+
+        private final String name;
+        private final HandlerBase ansi;
+        private final int[] stringArgs;
+
+        public WideHandler(String name, HandlerBase ansi, int[] stringArgs) {
+            this.name = name;
+            this.ansi = ansi;
+            this.stringArgs = stringArgs;
+        }
+
+        @Override
+        public void onCall() {
+            for (int index : stringArgs) {
+                int address = CPU.CPU_Peek32(index);
+                // a resource can be named by its id rather than by a string, and then there is
+                // nothing to convert - the low word is the id itself
+                if (address != 0 && !IS_INTRESOURCE(address))
+                    CPU.CPU_Poke32(index, StringUtil.allocateTempA(StringUtil.getStringW(address)));
+            }
+            ansi.onCall();
+        }
+
+        @Override
+        public String getName() {
+            return name;
+        }
+    }
+
+    /** registers {@code wideName} as the unicode form of an ansi handler this module already has */
+    protected void add_wide(String wideName, Callback.Handler ansi, int... stringArgs) {
+        functions.put(wideName, new WideHandler(wideName, (HandlerBase) ansi, stringArgs));
+    }
+
+    /** registers {@code wideName} as the unicode form of a method, which is also registered as ansi */
+    protected void add_wide(String wideName, Class<?> c, String methodName, int... stringArgs) {
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
+        }
+        HandlerBase ansi = method.getReturnType() == Integer.TYPE
+                ? new ReturnHandler(methodName, method, true, null)
+                : new NoReturnHandler(methodName, method, true, null);
+        add_wide(wideName, ansi, stringArgs);
+    }
+
+    /**
+     * Registers a method under an export name that is not a legal java identifier, which is what
+     * a c++ runtime needs: its exports are decorated names like {@code ??2@YAPAXI@Z}.
+     *
+     * @param callerCleans true for cdecl, false for stdcall and thiscall - a thiscall method
+     *                     reads its {@code this} out of ecx itself
+     */
+    protected void add_named(String exportName, Class<?> c, String methodName, boolean callerCleans) {
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
+        }
+        if (method.getReturnType() == Integer.TYPE) {
+            functions.put(exportName, new ReturnHandler(exportName, method, !callerCleans, null));
+        } else {
+            functions.put(exportName, new NoReturnHandler(exportName, method, !callerCleans, null));
+        }
+    }
+
     protected void add_wait(Class<?> c, String methodName) {
         add_wait(c, methodName, null);
     }
@@ -529,6 +603,16 @@ public class BuiltinModule extends Module {
             Win.panic("WaitNoReturnHandler not implemented");
             //add(new WaitNoReturnHandler(methodName, method, true));
         }
+    }
+
+    /** the waiting form of {@link #add_named}, for a unicode entry point that has to block */
+    protected void add_wait_named(String exportName, Class<?> c, String methodName) {
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
+        }
+        functions.put(exportName, new WaitReturnHandler(exportName, method, true, null));
     }
 
     protected void add_cdecl(Class<?> c, String methodName) {

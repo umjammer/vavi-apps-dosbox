@@ -18,6 +18,8 @@ import jdos.win.builtin.Comdlg32;
 import jdos.win.builtin.Crtdll;
 import jdos.win.builtin.Imm32;
 import jdos.win.builtin.Lz32;
+import jdos.win.builtin.Msvcp90;
+import jdos.win.builtin.Msvcr90;
 import jdos.win.builtin.Msvcrt;
 import jdos.win.builtin.Msacm32.Msacm32;
 import jdos.win.builtin.Msvfw32;
@@ -106,12 +108,16 @@ public class Loader {
     }
 
     private Module load_native_module(String name) {
+        return load_native_module(name, name);
+    }
+
+    private Module load_native_module(String name, String fileName) {
         try {
             NativeModule module = new NativeModule(this, getNextModuleHandle());
 
             for (Path o : paths) {
                 Path path = o;
-                if (module.load(process, page_directory, name, path)) {
+                if (module.load(process, page_directory, name, fileName, path)) {
                     if (main == null) {
                         main = module;
                         // we need to create the main thread as soon as possible so that DllMain can run
@@ -160,6 +166,10 @@ public class Loader {
             module = new Crtdll(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("msvcrt.dll")) {
             module = new Msvcrt(this, getNextModuleHandle());
+        } else if (name.equalsIgnoreCase("msvcr90.dll")) {
+            module = new Msvcr90(this, getNextModuleHandle());
+        } else if (name.equalsIgnoreCase("msvcp90.dll")) {
+            module = new Msvcp90(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("ddraw.dll")) {
             module = new DDraw(this, getNextModuleHandle());
         } else if (name.equalsIgnoreCase("winmm.dll")) {
@@ -202,24 +212,40 @@ public class Loader {
         return modulesByHandle.get(handle);
     }
 
-    private Module internalLoadModule(String name) {
+    /**
+     * On windows a module handle is the address the module was loaded at, and a program built by
+     * a recent compiler takes its own handle from the linker rather than asking for it - so a
+     * handle that is not one of ours is looked up as an address before it is called wrong.
+     */
+    public Module getModuleByAddress(int address) {
+        for (Module module : modulesByHandle.values()) {
+            if (module instanceof NativeModule native_ && native_.getBaseAddress() == address)
+                return module;
+        }
+        return null;
+    }
+
+    private Module internalLoadModule(String name, String fileName) {
         Module result = modulesByName.get(name.toLowerCase());
         if (result == null)
-            result = load_native_module(name);
+            result = load_native_module(name, fileName);
         if (result == null)
             result = load_builtin_module(name);
         return result;
     }
 
+    /**
+     * A module is known by its file name, so asking for it twice by two different paths gets the
+     * same one back, but it is read from wherever the program said it was - a plugin a program
+     * keeps in a folder of its own is only there.
+     */
     public Module loadModule(String name) {
-        String path = null;
-        int pos = name.lastIndexOf("\\");
+        String fileName = name;
+        int pos = Math.max(name.lastIndexOf("\\"), name.lastIndexOf("/"));
         if (pos >= 0) {
-            path = name.substring(0, pos + 1);
             name = name.substring(pos + 1);
         }
-        // TODO currently we only support modules in the path
-        return internalLoadModule(name);
+        return internalLoadModule(name, fileName);
     }
 
     private boolean resolveImports(Module module) throws IOException {

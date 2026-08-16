@@ -1,5 +1,9 @@
 package jdos.win;
 
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.Reader;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -141,6 +145,30 @@ public class Win extends WinAPI {
         return internalRun(path, winPath, name, args);
     }
 
+    /**
+     * Gives the program its settings before it starts: a {@code jdosbox.reg} beside it, or
+     * whatever {@code -Djdos.registry} names. The registry a machine starts with is empty, so a
+     * program with nowhere to have saved its settings runs on its built-in ones - which for a
+     * player means whatever sample rate and buffering it was written to prefer.
+     *
+     * @param path the host directory the program was started from
+     */
+    static private void loadRegistry(String path) {
+        String named = System.getProperty("jdos.registry");
+        File file = named != null ? new File(named) : new File(path, "jdosbox.reg");
+        if (!file.exists()) {
+            if (named != null)
+                logger.log(Level.WARNING, "there is no registry file at " + file);
+            return;
+        }
+        try (Reader reader = new FileReader(file)) {
+            WinSystem.registry.load(reader);
+            logger.log(Level.INFO, "read the guest's settings from " + file);
+        } catch (IOException e) {
+            logger.log(Level.ERROR, "could not read " + file, e);
+        }
+    }
+
     static private boolean internalRun(String path, String winPath, String name, String args) {
         // a request to finish belongs to the program it was made about; left set it would end
         // the next program the moment it started
@@ -203,6 +231,7 @@ public class Win extends WinAPI {
 
         Main.GFX_SetCursor(WinCursor.loadSystemCursor(32650)); // IDC_APPSTARTING
         WinSystem.start();
+        loadRegistry(paths.getFirst().nativePath);
         String commandLine = "\"" + winPath + name + "\"";
         if (args != null && !args.isEmpty()) {
             commandLine += " " + args;

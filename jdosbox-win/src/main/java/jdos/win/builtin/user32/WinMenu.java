@@ -134,4 +134,10 @@ public class WinMenu extends WinObject {
     static public int MENU_IsMenuActive() {
         return StaticData.top_popup;
     }
+
+    // BOOL WINAPI TrackPopupMenu(HMENU hMenu, UINT uFlags, int x, int y, int nReserved, HWND hWnd, const RECT *prcRect)
+    static public int TrackPopupMenu(int hMenu, int uFlags, int x, int y, int nReserved, int hWnd, int prcRect) {
+        // popup menus are never put up, so nothing is ever chosen from one
+        return FALSE;
+    }
 }

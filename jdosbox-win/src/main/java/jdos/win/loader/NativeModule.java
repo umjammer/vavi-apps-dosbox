@@ -50,6 +50,11 @@ public class NativeModule extends Module {
         this.loader = loader;
     }
 
+    /** where the module was loaded, which is what windows hands out as its HMODULE */
+    public int getBaseAddress() {
+        return baseAddress;
+    }
+
     @Override
     public String getFileName(boolean fullPath) {
         if (fullPath)
@@ -205,11 +210,20 @@ public class NativeModule extends Module {
     private HeaderImageExportDirectory exports = null;
 
     public boolean load(WinProcess process, int page_directory, String name, Path path) {
+        return load(process, page_directory, name, name, path);
+    }
+
+    /**
+     * @param name     what the module is known by, which is its file name without any directory
+     * @param fileName where to read it from, which is what the program asked for and may be a
+     *                 path of its own - a plugin in a folder beside the program, say
+     */
+    public boolean load(WinProcess process, int page_directory, String name, String fileName, Path path) {
         WinFile fis = null;
         this.path = path;
         this.name = name;
         try {
-            fis = WinFile.createNoHandle(process.getFile(name), false, 0, 0);
+            fis = WinFile.createNoHandle(process.getFile(fileName), false, 0, 0);
             ByteArrayOutputStream os = new ByteArrayOutputStream();
             if (!header.load(os, fis))
                 return false;

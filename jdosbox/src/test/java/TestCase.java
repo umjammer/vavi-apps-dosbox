@@ -16,6 +16,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import jdos.api.AudioSink;
 import jdos.api.JDosBox;
 import jdos.gui.MainFrame;
+import jdos.win.Win;
+import jdos.win.builtin.directx.dsound.IDirectSoundBuffer;
 import vavi.util.Debug;
 import vavi.util.properties.annotation.Property;
 import vavi.util.properties.annotation.PropsEntity;
@@ -24,6 +26,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
@@ -42,8 +45,14 @@ class TestCase {
         return Files.exists(Paths.get("local.properties"));
     }
 
+    @Property(name = "vavi.test.volume")
+    double volume = 0.2;
+
     @Property
     String mmf = "test.mmf";
+
+    @Property
+    String fmp7;
 
     static final String MMFTOOL = System.getProperty("mmftool.path", "/usr/local/src/mmftool");
 
@@ -52,6 +61,10 @@ class TestCase {
         if (localPropertiesExists()) {
             PropsEntity.Util.bind(this);
         }
+
+        if (System.getProperty("jdosbox.volume") == null)
+            System.setProperty("jdosbox.volume", "%4.2f".formatted(volume));
+Debug.println("jdosbox.volume: " + System.getProperty("jdosbox.volume"));
     }
 
     @Test
@@ -155,6 +168,86 @@ Debug.print(mmf);
         });
         CountDownLatch cdl = new CountDownLatch(1);
         cdl.await();
+    }
+
+    /** FMP7 is wanted for its sound, so it is run with nothing drawn unless asked otherwise */
+    static void noVideoUnlessAsked() {
+        if (System.getProperty("jdos.novideo") == null)
+            System.setProperty("jdos.novideo", "true");
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "vavi.test", matches = "ide")
+    void test2() throws Exception {
+        noVideoUnlessAsked();
+        Debug.print(System.getProperty("user.dir"));
+        Debug.print(mmf);
+        Files.copy(
+                Path.of(fmp7),
+                Path.of(System.getProperty("user.home"), "src/java/JPC/tmp/nsano/FMP7/test.owi"),
+                StandardCopyOption.REPLACE_EXISTING);
+
+        Thread.sleep(100);
+
+        MainFrame.main(new String[] {
+                "-m", "64",
+                "-c", "mount c ../JPC/tmp/nsano",
+                "-c", "c:",
+                "-c", "cd FMP7",
+                "-c", "FMP7.exe test.owi",
+                "-c", "exit"
+        });
+        CountDownLatch cdl = new CountDownLatch(1);
+        cdl.await();
+    }
+
+    /**
+     * Plays a song and asks the sound path afterwards how it went, so that "it sounds choppy" is
+     * a number rather than an opinion. Two things are counted while it plays:
+     * <ul>
+     * <li>breaks - the sound card was left with nothing to play at all</li>
+     * <li>repeats - what went to the sound card was exactly what went before it, which is the
+     *     machine failing to render in time and the same sound coming out twice</li>
+     * </ul>
+     * and one thing is measured: how much of real time the machine spends filling the buffer,
+     * which is the headroom it has. Below 1.0 it keeps up; the closer to 1.0, the less it takes
+     * to break the sound up.
+     * <p>
+     * {@code -Dtimeout=<seconds>} says how long to listen for.
+     */
+    @Test
+    @EnabledIfSystemProperty(named = "vavi.test", matches = "ai")
+    void testChoppiness() throws Exception {
+        assumeTrue(fmp7 != null && Files.exists(Path.of(fmp7)), "the fmp7 property is not set");
+        Path player = Path.of(System.getProperty("user.home"), "src/java/JPC/tmp/nsano/FMP7");
+        assumeTrue(Files.exists(player), player + " is missing");
+        Files.copy(Path.of(fmp7), player.resolve("test.owi"), StandardCopyOption.REPLACE_EXISTING);
+
+        noVideoUnlessAsked();
+        int seconds = Integer.parseInt(System.getProperty("timeout", "30"));
+        IDirectSoundBuffer.resetUnderruns();
+
+        MainFrame.main(new String[] {
+                "-m", "64",
+                "-c", "mount c ../JPC/tmp/nsano",
+                "-c", "c:",
+                "-c", "cd FMP7",
+                "-c", "FMP7.exe test.owi",
+                "-c", "exit"
+        });
+
+        // the first seconds are the program starting up and are not what anyone listens to
+        Thread.sleep(5_000);
+        IDirectSoundBuffer.resetUnderruns();
+        Thread.sleep(seconds * 1000L);
+
+        int breaks = IDirectSoundBuffer.getUnderruns();
+        int repeats = IDirectSoundBuffer.getRepeats();
+        Win.requestExit();
+        System.err.printf("%d seconds of playing: %d breaks, %d repeats%n", seconds, breaks, repeats);
+
+        assertEquals(0, breaks, "the sound card ran out of sound to play");
+        assertEquals(0, repeats, "the same sound was played twice, which is what choppiness is");
     }
 
     /**

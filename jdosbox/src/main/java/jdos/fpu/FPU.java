@@ -120,7 +120,7 @@ public class FPU {
     static private void FPU_FNOP() {
     }
 
-    static private void FPU_PUSH(double in) {
+    static public void FPU_PUSH(double in) {
         top = (top - 1) & 7;
         //actually check if empty
         tags[top] = TAG_Valid;

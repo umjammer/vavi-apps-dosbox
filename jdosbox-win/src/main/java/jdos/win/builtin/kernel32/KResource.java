@@ -1,6 +1,5 @@
 package jdos.win.builtin.kernel32;
 
-import jdos.win.Win;
 import jdos.win.builtin.WinAPI;
 import jdos.win.loader.Module;
 import jdos.win.loader.NativeModule;
@@ -16,14 +15,14 @@ public class KResource extends WinAPI {
 
     // HRSRC WINAPI FindResource(HMODULE hModule, LPCTSTR lpName, LPCTSTR lpType)
     static public int FindResourceA(int hModule, int lpName, int lpType) {
-        if (hModule == 0)
-            hModule = WinSystem.getCurrentProcess().mainModule.getHandle();
-        Module m = WinSystem.getCurrentProcess().loader.getModuleByHandle(hModule);
+        Module m = hModule == 0
+                ? WinSystem.getCurrentProcess().mainModule
+                : WinSystem.getCurrentProcess().getModuleByHandle(hModule);
         if (m instanceof NativeModule module) {
             return module.getAddressOfResource(lpType, lpName);
-        } else {
-            Win.panic("FindResourceA currently does not support loading a resource from a builtin module");
         }
+        // a module of ours carries no resources, and neither does a handle that is not a module
+        SetLastError(jdos.win.utils.Error.ERROR_RESOURCE_DATA_NOT_FOUND);
         return 0;
     }
 

@@ -12,6 +12,7 @@ import jdos.win.builtin.gdi32.WinBitmap;
 import jdos.win.loader.Module;
 import jdos.win.loader.NativeModule;
 import jdos.win.system.WinSystem;
+import jdos.win.utils.FilePath;
 import jdos.win.utils.Ptr;
 import jdos.win.utils.StreamHelper;
 import jdos.win.utils.StringUtil;
@@ -29,8 +30,8 @@ public class Resource extends WinAPI {
 
     // HANDLE WINAPI LoadImage(HINSTANCE hinst, LPCTSTR lpszName, UINT uType, int cxDesired, int cyDesired, UINT fuLoad)
     static public int LoadImageA(int hinst, int lpszName, int uType, int cxDesired, int cyDesired, int fuLoad) {
-        if (fuLoad != 0 && fuLoad != 0x2000) {
-            Win.panic("LoadImage fuLoad flags are not currently supported: fuLoad = 0x" + Ptr.toString(fuLoad));
+        if ((fuLoad & LR_LOADFROMFILE) != 0) {
+            return loadBitmapFile(StringUtil.getString(lpszName));
         }
         if (uType == 0) { // IMAGE_BITMAP
             Module m = WinSystem.getCurrentProcess().loader.getModuleByHandle(hinst);
@@ -65,6 +66,32 @@ public class Resource extends WinAPI {
             Console.out("LoadImage type=" + uType + " faked");
         }
         return 0;
+    }
+
+    static private final int LR_LOADFROMFILE = 0x0010;
+
+    /**
+     * A bitmap read from a file rather than out of a resource, which is how a program that can be
+     * skinned loads its own artwork. What is on disk is the file with its 14 byte header in
+     * front; what a bitmap here is made of is everything after it.
+     */
+    static private int loadBitmapFile(String name) {
+        FilePath file = WinSystem.getCurrentProcess().getFile(name);
+        if (!file.exists()) {
+            logger.log(Level.DEBUG, "LoadImage could not find " + name);
+            return 0;
+        }
+        try {
+            byte[] data = StreamHelper.readStream(file.getInputStream());
+            if (data.length <= 14)
+                return 0;
+            int address = WinSystem.getCurrentProcess().heap.alloc(data.length - 14, false);
+            Memory.mem_memcpy(address, data, 14, data.length - 14);
+            return WinBitmap.create(address, true).handle;
+        } catch (Exception e) {
+            logger.log(Level.ERROR, e.getMessage(), e);
+            return 0;
+        }
     }
 
     // int WINAPI LoadString(HINSTANCE hInstance, UINT uID, LPTSTR lpBuffer, int nBufferMax)

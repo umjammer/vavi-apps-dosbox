@@ -3,6 +3,13 @@ package jdos.win.system;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.Reader;
+
 import jdos.hardware.Memory;
 import jdos.win.Win;
 import jdos.win.loader.winpe.LittleEndianFile;
@@ -11,6 +18,9 @@ import jdos.win.utils.StringUtil;
 
 
 public class WinRegistry {
+
+    private static final Logger logger = System.getLogger(WinRegistry.class.getName());
+
 
     static public final int REG_NONE = 0;   // No value type
     static public final int REG_SZ = 1;   // Unicode nul terminated string
@@ -84,6 +94,90 @@ public class WinRegistry {
     private final HKey localMachine = new HKey("HKEY_LOCAL_MACHINE");
     private int nextKey = 0x1000;
 
+    /**
+     * Reads a registry file - the .reg format windows itself writes - into this registry, which
+     * otherwise starts empty every time a machine does. A program keeps its settings in the
+     * registry, so without this the only settings it can ever have are its built-in ones, and a
+     * dialog it puts up to change them is no help to a guest with no one at the keyboard.
+     *
+     * <pre>
+     *   [HKEY_CURRENT_USER\SOFTWARE\Guu\FMP7\WaveOut]
+     *   "Frequency"=dword:00000000
+     *   "Device"="Primary Sound Driver"
+     * </pre>
+     *
+     * A key on its own creates the key with no values in it, which is how a program is made to
+     * ask for each of its settings by name rather than fall back on its defaults.
+     */
+    public void load(Reader reader) throws IOException {
+        Directory directory = null;
+        try (BufferedReader lines = new BufferedReader(reader)) {
+            String line;
+            while ((line = lines.readLine()) != null) {
+                line = line.trim();
+                if (line.isEmpty() || line.startsWith(";") || line.startsWith("#") || line.startsWith("Windows Registry") || line.startsWith("REGEDIT"))
+                    continue;
+                if (line.startsWith("[")) {
+                    directory = makeDirectory(line.substring(1, line.lastIndexOf(']')));
+                    continue;
+                }
+                int equals = line.indexOf('=');
+                if (directory == null || equals < 0)
+                    continue;
+                String name = line.substring(0, equals).trim();
+                String data = line.substring(equals + 1).trim();
+                name = name.equals("@") ? null : unquote(name);
+                Value value = parseValue(data);
+                if (value == null)
+                    continue;
+                if (name == null)
+                    directory.defaultValue = value;
+                else
+                    directory.values.put(name, value);
+            }
+        }
+    }
+
+    private Directory makeDirectory(String path) {
+        Directory current = root;
+        for (String part : StringUtil.split(path, "\\")) {
+            Directory child = current.children.get(part);
+            if (child == null) {
+                child = new Directory(part);
+                current.children.put(part, child);
+            }
+            current = child;
+        }
+        return current;
+    }
+
+    private static String unquote(String s) {
+        return s.length() >= 2 && s.startsWith("\"") && s.endsWith("\"") ? s.substring(1, s.length() - 1) : s;
+    }
+
+    /** the three forms that matter: a number, a string, and a run of bytes */
+    private static Value parseValue(String data) {
+        if (data.startsWith("dword:")) {
+            long number = Long.parseLong(data.substring(6).trim(), 16);
+            return new Value(REG_DWORD, new byte[] {(byte) number, (byte) (number >> 8), (byte) (number >> 16), (byte) (number >> 24)});
+        }
+        if (data.startsWith("hex:")) {
+            String[] bytes = StringUtil.split(data.substring(4).trim(), ",");
+            byte[] result = new byte[bytes.length];
+            for (int i = 0; i < bytes.length; i++) {
+                result[i] = (byte) Integer.parseInt(bytes[i].trim(), 16);
+            }
+            return new Value(REG_BINARY, result);
+        }
+        if (data.startsWith("\"")) {
+            byte[] text = unquote(data).getBytes(java.nio.charset.StandardCharsets.ISO_8859_1);
+            byte[] result = new byte[text.length + 1];
+            System.arraycopy(text, 0, result, 0, text.length);
+            return new Value(REG_SZ, result);
+        }
+        return null;
+    }
+
     private HKey getHKey(int hKey) {
         if (hKey < 0) {
             return switch (hKey) {
@@ -97,6 +191,10 @@ public class WinRegistry {
         } else {
             return hKeys.get(hKey);
         }
+    }
+
+    private static String path(HKey key) {
+        return String.join("\\", key.parts);
     }
 
     private int nextKey() {
@@ -141,9 +239,14 @@ public class WinRegistry {
 
     public int openKey(int hKey, int lpSubKey, int phkResult) {
         HKey key = new HKey(getHKey(hKey), new LittleEndianFile(lpSubKey).readCString());
+        logger.log(Level.DEBUG, "registry: open " + path(key) + (getDirectory(key) == null ? " -> not there" : ""));
         if (getDirectory(key) != null) {
             int result = nextKey();
             hKeys.put(result, key);
+            // without this the caller is told the key opened and left holding whatever its
+            // variable happened to contain, which it then reads its settings through
+            if (phkResult != 0)
+                Memory.mem_writed(phkResult, result);
             return Error.ERROR_SUCCESS;
         } else {
             return Error.ERROR_BAD_PATHNAME;
@@ -178,7 +281,7 @@ public class WinRegistry {
 
     public int getValue(int hKey, int lpValue, int lpType, int lpData, int lpcbData) {
         if (hKey == 0 || getHKey(hKey) == null)
-            return 0;
+            return Error.ERROR_INVALID_HANDLE;
         Directory directory = getDirectory(getHKey(hKey));
         if (directory == null) {
             return Error.ERROR_BAD_PATHNAME;
@@ -196,8 +299,13 @@ public class WinRegistry {
 
         }
         if (value == null) {
+            logger.log(Level.DEBUG, "registry: " + path(getHKey(hKey)) + "\\"
+                    + (lpValue == 0 ? "(default)" : new LittleEndianFile(lpValue).readCString()) + " is not set");
             return Error.ERROR_FILE_NOT_FOUND;
         }
+        logger.log(Level.DEBUG, "registry: read " + path(getHKey(hKey)) + "\\"
+                + (lpValue == 0 ? "(default)" : new LittleEndianFile(lpValue).readCString())
+                + " type=" + value.type + " size=" + value.getData().length);
         if (lpType != 0)
             Memory.mem_writed(lpType, value.type);
         if (lpcbData != 0) {

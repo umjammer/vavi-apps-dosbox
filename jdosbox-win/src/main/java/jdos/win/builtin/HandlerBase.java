@@ -20,6 +20,9 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
     boolean resetError = true;
     public boolean wait = false;
 
+    /** -Djdos.check.temps=true looks for what writes past a temp buffer, one call at a time */
+    static private final boolean CHECK_TEMPS = Boolean.getBoolean("jdos.check.temps");
+
     static public HandlerBase currentHandler;
     static public int level = 0;
     static public boolean tick = false;
@@ -47,8 +50,17 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
             int preEsp = CPU_Regs.reg_esp.dword;
             CPU_Regs.reg_eip = CPU.CPU_Pop32();
             onCall();
+            if (CHECK_TEMPS) {
+                String corrupted = WinSystem.getCurrentProcess().checkTemps();
+                if (corrupted != null)
+                    logger.log(Level.ERROR, getName() + " left " + corrupted + " corrupted");
+            }
             int postEsp = CPU_Regs.reg_esp.dword;
-            logger.log(Level.TRACE, "*** "+ Integer.toHexString(CPU_Regs.reg_eip)+" "+getName() + " esp: " + Integer.toHexString(preEsp) + " -> " + Integer.toHexString(postEsp));
+            // this line is on the path of every call a program makes into the api: built
+            // unconditionally it costs three hex conversions and a string per call, which is
+            // paid whether or not anyone is listening
+            if (logger.isLoggable(Level.TRACE))
+                logger.log(Level.TRACE, "*** " + Integer.toHexString(CPU_Regs.reg_eip) + " " + getName() + " esp: " + Integer.toHexString(preEsp) + " -> " + Integer.toHexString(postEsp));
         }
         level--;
         
@@ -71,6 +83,18 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
         logger.log(Level.DEBUG, getName() + " not implemented yet.");
         Console.out(getName() + " not implemented yet.");
         Win.exit();
+    }
+
+    /**
+     * Runs another handler as if the program had called it with these arguments, which is how a
+     * unicode entry point whose result needs converting gets the ansi work done. What that
+     * handler leaves in eax is left there.
+     */
+    static protected void delegate(HandlerBase handler, int... args) {
+        for (int i = args.length - 1; i >= 0; i--) {
+            CPU.CPU_Push32(args[i]);
+        }
+        handler.onCall();
     }
 
     static public void dumpRegs() {

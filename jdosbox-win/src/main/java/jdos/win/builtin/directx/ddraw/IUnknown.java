@@ -118,10 +118,18 @@ public class IUnknown extends WinAPI {
             int This = CPU.CPU_Pop32();
             int riid = CPU.CPU_Pop32();
             int ppvObject = CPU.CPU_Pop32();
-            if (ppvObject == 0)
+            if (ppvObject == 0) {
                 CPU_Regs.reg_eax.dword = Error.E_POINTER;
-            else
-                CPU_Regs.reg_eax.dword = Error.E_NOINTERFACE;
+                return;
+            }
+            // Every object here implements one interface and the later versions of it - what a
+            // program asks for with IID_IDirectSoundBuffer8 is the buffer it already has, with
+            // the newer calls on the end of the same table. Refusing instead would hand the
+            // program an interface pointer it never wrote to, which it then calls through.
+            logger.log(Level.TRACE, getName() + " for 0x" + Integer.toHexString(This) + " asked with the guid at 0x" + Integer.toHexString(riid));
+            Memory.mem_writed(ppvObject, This);
+            AddRef(This);
+            CPU_Regs.reg_eax.dword = Error.S_OK;
         }
     };
 

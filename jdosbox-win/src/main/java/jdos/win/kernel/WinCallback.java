@@ -51,10 +51,16 @@ public class WinCallback {
         return nextCB++;
     }
 
+    /**
+     * Writes a stub that hands control back to a java handler and returns where it starts, which
+     * is what a caller needs to jump or return to. The trailing IRET is only what the stub falls
+     * into if its handler ever lets the emulator carry on - the handlers here stop it instead.
+     */
     static public int install(KernelMemory memory, boolean popErrorCode, Callback.Handler handler) {
         int callback = claim();
         handlers[callback] = handler;
-        int physAddress = memory.kmalloc(popErrorCode ? 11 : 5);
+        int entry = memory.kmalloc(popErrorCode ? 11 : 5);
+        int physAddress = entry;
         Memory.phys_writeb(physAddress, 0xFE);        //GRP 4
         Memory.phys_writeb(physAddress + 0x01, 0x38);    //Extra Callback instruction
         Memory.phys_writew(physAddress + 0x02, callback);        //The immediate word
@@ -66,7 +72,7 @@ public class WinCallback {
             physAddress += 6;
         }
         Memory.phys_writeb(physAddress, 0xCF); //IRET
-        return physAddress;
+        return entry;
     }
 
     static private final Callback.Handler idle = new Callback.Handler() {

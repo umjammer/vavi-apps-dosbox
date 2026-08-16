@@ -30,7 +30,8 @@ public class IDirectSoundBuffer extends IUnknown {
 
     private static final Logger logger = System.getLogger(IDirectSoundBuffer.class.getName());
 
-    static final int VTABLE_SIZE = 18;
+    /** the 18 calls of a sound buffer, and the three that the version 8 interface adds */
+    static final int VTABLE_SIZE = 21;
 
     final static int DSBSIZE_MIN = 4;
     final static int DSBSIZE_MAX = 0xFFFFFFF;
@@ -110,6 +111,13 @@ public class IDirectSoundBuffer extends IUnknown {
         public int endPos;
         public int parent;
         public int freq;
+        /**
+         * The rate the sound card behind this buffer runs at. It is the rate the program asked
+         * for, so that what it writes is played as it wrote it: resampling here would cost time
+         * per sample and lose quality doing it, and a sound card that can only be asked for one
+         * rate is not something a modern host has.
+         */
+        public int deviceRate = DSMixer.DEVICE_SAMPLE_RATE;
         public int nAvgBytesPerSec;
         public int buflen;
         public int freqAdjust;
@@ -195,8 +203,66 @@ public class IDirectSoundBuffer extends IUnknown {
         address = add(address, Stop);
         address = add(address, Unlock);
         address = add(address, Restore);
+        address = add(address, SetFX);
+        address = add(address, AcquireResources);
+        address = add(address, GetObjectInPath);
         return address;
     }
+
+    /**
+     * The three calls a version 8 buffer has over a plain one, all of them about effects the
+     * hardware might apply. There is no hardware here, so a program asking for one is told so.
+     */
+    static private final Callback.Handler SetFX = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.SetFX";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int dwEffectsCount = CPU.CPU_Pop32();
+            int pDSFXDesc = CPU.CPU_Pop32();
+            int pdwResultCodes = CPU.CPU_Pop32();
+            CPU_Regs.reg_eax.dword = DError.DSERR_CONTROLUNAVAIL;
+        }
+    };
+
+    static private final Callback.Handler AcquireResources = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.AcquireResources";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int dwFlags = CPU.CPU_Pop32();
+            int dwEffectsCount = CPU.CPU_Pop32();
+            int pdwResultCodes = CPU.CPU_Pop32();
+            CPU_Regs.reg_eax.dword = Error.S_OK;
+        }
+    };
+
+    static private final Callback.Handler GetObjectInPath = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.GetObjectInPath";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int rguidObject = CPU.CPU_Pop32();
+            int dwIndex = CPU.CPU_Pop32();
+            int rguidInterface = CPU.CPU_Pop32();
+            int ppObject = CPU.CPU_Pop32();
+            if (ppObject != 0)
+                jdos.hardware.Memory.mem_writed(ppObject, 0);
+            CPU_Regs.reg_eax.dword = DError.DSERR_CONTROLUNAVAIL;
+        }
+    };
 
     static private final Callback.Handler CleanUp = new DirectCallback() {
         @Override
@@ -256,10 +322,14 @@ public class IDirectSoundBuffer extends IUnknown {
         d.buffer = WinSystem.getCurrentProcess().heap.alloc(desc.dwBufferBytes + MEMORY_HEADER_SIZE, false);
         d.buflen = desc.dwBufferBytes;
         d.freq = desc.lpwfxFormat.nSamplesPerSec;
-        d.freqAdjust = (int) (((long) d.freq << DSOUND_FREQSHIFT) / DSMixer.DEVICE_SAMPLE_RATE);
+        d.deviceRate = usableRate(d.freq);
+        d.freqAdjust = (int) (((long) d.freq << DSOUND_FREQSHIFT) / d.deviceRate);
         d.nAvgBytesPerSec = d.freq * desc.lpwfxFormat.nBlockAlign;
 
         DSMixer.DSOUND_RecalcFormat(d);
+        logger.log(Level.INFO, "sound buffer: " + d.freq + "Hz " + desc.lpwfxFormat.wBitsPerSample
+                + " bit " + desc.lpwfxFormat.nChannels + " channel, " + desc.dwBufferBytes + " bytes ("
+                + (d.nAvgBytesPerSec == 0 ? "?" : (desc.dwBufferBytes * 1000L / d.nAvgBytesPerSec) + "ms") + ")");
         setData(address, OFFSET_HANDLE, d.handle);
         incrementMemoryRef(address);
         return Error.S_OK;
@@ -469,6 +539,10 @@ public class IDirectSoundBuffer extends IUnknown {
                 dwOffset = 0;
             int memory = data.buffer;
             int size = data.buflen;
+            if ((dwFlags & DSBLOCK_ENTIREBUFFER) != 0)
+                dwBytes = size;
+            lockedBytes = dwBytes;
+            lockedAt = System.currentTimeMillis();
 
             Memory.mem_writed(ppvAudioPtr1, memory + dwOffset);
             int length = size - dwOffset;
@@ -650,7 +724,7 @@ public class IDirectSoundBuffer extends IUnknown {
             if (freq != oldFreq) {
                 synchronized (data) {
                     data.freq = freq;
-                    data.freqAdjust = (int) (((long) freq << DSOUND_FREQSHIFT) / DSMixer.DEVICE_SAMPLE_RATE);
+                    data.freqAdjust = (int) (((long) freq << DSOUND_FREQSHIFT) / data.deviceRate);
                     data.nAvgBytesPerSec = freq * wfx.nBlockAlign;
                     DSMixer.DSOUND_RecalcFormat(data);
                     DSMixer.DSOUND_MixToTemporary(data, 0, data.buflen);
@@ -677,6 +751,109 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Unlock(this, LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioPtr2)
+    /**
+     * How long the program took to fill what it locked, against how long that much sound lasts.
+     * Below 1.0 the machine is making sound faster than it is played, which is what it has to do
+     * to sound continuous; above it, the buffer runs dry and what comes out is broken up.
+     */
+    private static long lockedAt;
+    private static int lockedBytes;
+    private static long realtimeReportedAt;
+    private static long filledMs;
+    private static long cpuAtStart;
+    private static long filledAtStart;
+
+    /**
+     * What the thread running the machine has burned so far, in nanoseconds. It is this thread
+     * and not the whole process on purpose: the audio thread and the jit are not the machine, and
+     * a guest that polls while it waits for the buffer to drain would otherwise look like work.
+     */
+    private static long cpuTime() {
+        java.lang.management.ThreadMXBean threads = java.lang.management.ManagementFactory.getThreadMXBean();
+        if (threads.isCurrentThreadCpuTimeSupported())
+            return threads.getCurrentThreadCpuTime();
+        return System.nanoTime();
+    }
+
+    /** how many times the sound played on with nothing new to play - see the play loop */
+    private static volatile int underruns;
+
+    /** silence repeats itself exactly and is not choppiness, so it is not counted as one */
+    private static boolean isSilent(byte[] buffer, int offset, int length) {
+        for (int i = 0; i < length; i++) {
+            if (buffer[offset + i] != 0)
+                return false;
+        }
+        return true;
+    }
+
+    /** how many times what went to the sound card was exactly what went before it */
+    private static volatile int repeats;
+    private static byte[] previousChunk = new byte[0];
+
+    /**
+     * Music does not repeat itself to the byte, so a chunk that is identical to the one before it
+     * is the same sound being played twice - which is what a machine that could not keep up
+     * sounds like. This catches what a starved sound card does not: the buffer here can be full
+     * the whole time and still hold what was in it a moment ago.
+     */
+    private static void countRepeat(byte[] buffer, int offset, int length) {
+        if (length <= 0 || isSilent(buffer, offset, length))
+            return;
+        if (previousChunk.length == length) {
+            int i = 0;
+            while (i < length && previousChunk[i] == buffer[offset + i]) i++;
+            if (i == length) {
+                repeats++;
+                return;
+            }
+        }
+        if (previousChunk.length != length)
+            previousChunk = new byte[length];
+        System.arraycopy(buffer, offset, previousChunk, 0, length);
+    }
+
+    /** how many breaks in the sound there have been, which is choppiness as a number */
+    public static int getUnderruns() {
+        return underruns;
+    }
+
+    /** how much of what was played was a repeat of what came before - choppiness, as a number */
+    public static int getRepeats() {
+        return repeats;
+    }
+
+    public static void resetUnderruns() {
+        underruns = 0;
+        repeats = 0;
+        filledMs = 0;
+        cpuAtStart = 0;
+    }
+
+    static private void reportRealtime(Data data) {
+        if (lockedAt == 0 || lockedBytes == 0 || data.nAvgBytesPerSec == 0)
+            return;
+        long now = System.currentTimeMillis();
+        filledMs += lockedBytes * 1000L / data.nAvgBytesPerSec;
+        lockedAt = 0;
+        if (filledMs > 0 && now - realtimeReportedAt >= 1000) {
+            realtimeReportedAt = now;
+            // how much processor a second of sound costs. Wall time between locking and
+            // unlocking would count the program waiting for the buffer to drain, which is what
+            // it is supposed to do; this counts only work, and can pass 1.0 on more than one core
+            long cpu = cpuTime();
+            if (cpuAtStart == 0) {
+                cpuAtStart = cpu;
+                filledAtStart = filledMs;
+                return;
+            }
+            long audio = filledMs - filledAtStart;
+            logger.log(Level.INFO, "sound: " + audio + "ms of audio cost " + ((cpu - cpuAtStart) / 1000000L)
+                    + "ms of machine (x" + String.format("%.2f", (cpu - cpuAtStart) / 1e6 / audio) + "), "
+                    + underruns + " breaks, " + repeats + " repeats");
+        }
+    }
+
     static private final Callback.Handler Unlock = new ReturnHandlerBase() {
         @Override
         public java.lang.String getName() {
@@ -706,6 +883,7 @@ public class IDirectSoundBuffer extends IUnknown {
                 DSMixer.DSOUND_MixToTemporary(data, 0, x2);
                 data.endPos = x1;
             }
+            reportRealtime(data);
             return Error.S_OK;
         }
     };
@@ -742,7 +920,7 @@ public class IDirectSoundBuffer extends IUnknown {
 
         public boolean open() {
             try {
-                AudioFormat af = new AudioFormat(DSMixer.DEVICE_SAMPLE_RATE, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
+                AudioFormat af = new AudioFormat(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, af);
                 line = (SourceDataLine) AudioSystem.getLine(info);
                 line.open(af, LINE_SIZE);
@@ -764,17 +942,36 @@ public class IDirectSoundBuffer extends IUnknown {
         boolean stop = false;
         boolean loop = false;
 
+        /** the position in the program's own buffer that the sound card is playing from */
+        private int playCursor() {
+            long playedBytes = line.getLongFramePosition() * (long) DSMixer.DEVICE_BLOCK_ALIGN;
+            if (data.tmp_buffer_len <= 0)
+                return 0;
+            int inTemporary = (int) (playedBytes % data.tmp_buffer_len);
+            return ((int) ((long) inTemporary * data.buflen / data.tmp_buffer_len) + 3) & ~3;
+        }
+
         private void play(byte[] buffer, int bufferLen, int start, int end) {
             int length = 8192;
             for (int i = start; i < end && !stop && data.tmp_buffer_len == bufferLen; i += 8192) {
                 if (i + length >= end)
                     length = end - i;
                 try {
+                    // the sound card has played everything it was given and is waiting on us:
+                    // whatever it played last is repeating, or there is silence. Either way this
+                    // is the moment the listener hears the sound break up.
+                    if (line.available() >= LINE_SIZE)
+                        underruns++;
+                    countRepeat(buffer, i, length);
                     line.write(buffer, i, length);
                 } catch (Exception e) {
                     logger.log(Level.ERROR, e.getMessage(), e);
                 }
-                data.startPos = ((int) ((long) (i + length) * data.buflen / data.tmp_buffer_len) + 3) & ~3;
+                // where the play cursor is, is where the sound card has got to - not where we
+                // have written to. The card holds a fraction of a second of what it has been
+                // given, and a program that is told the cursor is further on than it is will
+                // write over sound that has not been played yet.
+                data.startPos = playCursor();
             }
         }
 
@@ -799,6 +996,12 @@ public class IDirectSoundBuffer extends IUnknown {
                             prevStart = data.startPos;
                             buffer = data.tmp_buffer;
                             bufferLen = data.tmp_buffer_len;
+                        }
+                        if (end == start) {
+                            // the program has not put anything new in the buffer since the last
+                            // pass, so what plays now is what played before: this is what a break
+                            // in the sound is, and counting them is how choppiness is measured
+                            underruns++;
                         }
                         if (end > start) {
                             play(buffer, bufferLen, start, end);
@@ -841,6 +1044,11 @@ public class IDirectSoundBuffer extends IUnknown {
             line.close();
             line = null;
         }
+    }
+
+    /** a rate a sound card will take; anything odd falls back to the one every card has */
+    static private int usableRate(int freq) {
+        return freq >= 8000 && freq <= 192000 ? freq : DSMixer.DEVICE_SAMPLE_RATE;
     }
 
     static private boolean is_primary_buffer(int This) {

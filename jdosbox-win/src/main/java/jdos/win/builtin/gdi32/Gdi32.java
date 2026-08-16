@@ -69,5 +69,20 @@ public class Gdi32 extends BuiltinModule {
         add(BitBlt.class, "StretchBlt", LOG_GDI ? new String[] {"hdcDest", "nXOriginDest", "nYOriginDest", "nWidthDest", "nHeightDest", "hdcSrc", "nXOriginSrc", "nYOriginSrc", "nWidthSrc", "nHeightSrc", "(HEX)dwRop"} : null);
         add(Dib.class, "StretchDIBits", LOG_GDI ? new String[] {"hdc", "XDest", "YDest", "nDestWidth", "nDestHeight", "XSrc", "YSrc", "nSrcWidth", "nSrcHeight", "(HEX)lpBits", "(HEX)lpBitsInfo", "iUsage", "(HEX)dwRop"} : null);
         add(WinDC.class, "TextOutA", LOG_GDI ? new String[] {"hdc", "x", "y", "(STRINGN4)str", "count"} : null);
+
+        // the unicode entry points: a font or an object is described the same way in both, the
+        // difference is only in the strings inside
+        add(WinBitmap.class, "CreateBitmapIndirect", LOG_GDI ? new String[] {"(HEX)lpbm"} : null);
+        add(WinBitmap.class, "CreateDIBitmap", LOG_GDI ? new String[] {"hdc", "(HEX)lpbmih", "(HEX)fdwInit", "(HEX)lpbInit", "(HEX)lpbmi", "fuUsage"} : null);
+        add(Dib.class, "GetDIBits", LOG_GDI ? new String[] {"hdc", "(GDI)hbmp", "uStartScan", "cScanLines", "(HEX)lpvBits", "(HEX)lpbi", "uUsage"} : null);
+        add(Dib.class, "SetDIBits", LOG_GDI ? new String[] {"hdc", "(GDI)hbmp", "uStartScan", "cScanLines", "(HEX)lpvBits", "(HEX)lpbmi", "fuColorUse"} : null);
+        add(WinDC.class, "SetTextAlign", LOG_GDI ? new String[] {"hdc", "(HEX)fMode"} : null);
+        add(WinDC.class, "GetTextAlign", LOG_GDI ? new String[] {"hdc"} : null);
+
+        add(Wide.class, "CreateFontIndirectW", null);
+        add(Wide.class, "ExtTextOutW", null);
+        add(Wide.class, "GetTextExtentPoint32W", null);
+        add(Wide.class, "TextOutW", null);
+        add_named("GetObjectW", GdiObj.class, "GetObjectA", false);
     }
 }
