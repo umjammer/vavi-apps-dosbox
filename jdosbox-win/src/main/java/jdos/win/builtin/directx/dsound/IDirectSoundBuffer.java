@@ -8,6 +8,8 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
+import jdos.api.AudioSink;
+import jdos.api.JDosBox;
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -909,6 +911,8 @@ public class IDirectSoundBuffer extends IUnknown {
         public PlayThread(Data data) {
             this.format = data.wfx();
             this.data = data;
+            setDaemon(true);
+            playingThreads.add(this);
             open();
         }
 
@@ -919,6 +923,17 @@ public class IDirectSoundBuffer extends IUnknown {
         }
 
         public boolean open() {
+            // an embedding program may have asked for the samples instead of the speakers; the
+            // first buffer that plays claims the sink, and the primary buffer - which carries no
+            // sound of its own, only the format - never does
+            AudioSink candidate = JDosBox.getDirectSoundSink();
+            if (candidate != null && (data.flags() & DSBufferDesc.DSBCAPS_PRIMARYBUFFER) == 0 && claimSink(this, candidate)) {
+                sink = candidate;
+                sink.open(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS);
+                logger.log(Level.DEBUG, "dsound to sink " + data.deviceRate + "Hz "
+                        + DSMixer.DEVICE_BITS_PER_SAMEPLE + "bit " + DSMixer.DEVICE_CHANNELS + "ch");
+                return true;
+            }
             try {
                 AudioFormat af = new AudioFormat(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, af);
@@ -935,6 +950,15 @@ public class IDirectSoundBuffer extends IUnknown {
 
         final WAVEFORMATEX format;
         SourceDataLine line;
+        /** where the samples go when an embedding program asked for them instead of the speakers */
+        AudioSink sink;
+        /** how much has gone to the sink; only {@link #stream} counts it */
+        volatile long deliveredBytes;
+        /** how far round the buffer the sink has been given, in the units it is played in */
+        int sinkPos;
+        /** the write cursor the last pass saw, which is how a whole ring written at once is told
+         * from nothing written at all - both land on the position we are already at */
+        int lastEnd = -1;
         final Data data;
         boolean playing = false;
         final Object mutex = new Object();
@@ -951,9 +975,17 @@ public class IDirectSoundBuffer extends IUnknown {
             return ((int) ((long) inTemporary * data.buflen / data.tmp_buffer_len) + 3) & ~3;
         }
 
+        /**
+         * How much goes out at a time. A sink is handed smaller pieces than a line is: what a
+         * host reads alongside it - which moment of the song this is - is only as fine as the
+         * pieces are, and a sink that blocks paces the machine on each of them.
+         */
+        private static final int LINE_CHUNK = 8192;
+        private static final int SINK_CHUNK = 2048;
+
         private void play(byte[] buffer, int bufferLen, int start, int end) {
-            int length = 8192;
-            for (int i = start; i < end && !stop && data.tmp_buffer_len == bufferLen; i += 8192) {
+            int length = LINE_CHUNK;
+            for (int i = start; i < end && !stop && data.tmp_buffer_len == bufferLen; i += LINE_CHUNK) {
                 if (i + length >= end)
                     length = end - i;
                 try {
@@ -975,8 +1007,113 @@ public class IDirectSoundBuffer extends IUnknown {
             }
         }
 
+        /**
+         * Plays the buffer into an {@link AudioSink} rather than at a sound card.
+         * <p>
+         * A card is a place: it keeps playing whatever it was last given, and a program that
+         * writes nothing hears the last thing again. A sink is a stream, where everything handed
+         * over is heard once and in order - so this sends what the program has written since the
+         * last time and nothing else, and nothing at all while it has written nothing. The sink
+         * blocking until its consumer has room is what holds that to real time, and the play
+         * cursor is moved by what was sent, which is what the program reads to decide how much
+         * more to write.
+         */
+        private void stream() {
+            playing = true;
+            while (!bExit) {
+                if (stop) {
+                    synchronized (mutex) {
+                        stop = false;
+                        playing = false;
+                        if (bExit) {
+                            break;
+                        }
+                        try {
+                            mutex.wait();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        playing = true;
+                        // whatever went by while it was stopped is not going to be played now
+                        sinkPos = data.tmp_buffer_len > 0 ? data.getTmpEnd() % data.tmp_buffer_len : 0;
+                        lastEnd = sinkPos;
+                    }
+                    continue;
+                }
+
+                byte[] buffer = data.tmp_buffer;
+                int bufferLen = data.tmp_buffer_len;
+                if (buffer == null || bufferLen <= 0) {
+                    idle();
+                    continue;
+                }
+                // as a position on the ring, the end of the buffer and its start are the same
+                // place, and the program writes both
+                int end = data.getTmpEnd() % bufferLen;
+                int available = (end - sinkPos + bufferLen) % bufferLen;
+                if (available == 0) {
+                    if (end == lastEnd) {
+                        // one chunk is always left behind, so this really is nothing new
+                        // the program has written nothing since the last pass. A card would be
+                        // playing the last thing again by now; this waits instead, which is also
+                        // what keeps a program that is still loading - and writing nothing for
+                        // seconds at a time - from being run flat out into the sink. It is not
+                        // counted as a break: nothing was played twice and no sound was missed,
+                        // which is the whole difference between a stream and a card.
+                        idle();
+                        continue;
+                    }
+                    // it wrote the whole way round in one go, which lands back where we are
+                    available = bufferLen;
+                }
+                lastEnd = end;
+
+                // a chunk of what has been written is always left untaken, because a ring in
+                // which the play cursor has caught the write cursor is a ring with no free
+                // space in it - which is the same thing a full one looks like. A program that
+                // reads it that way stops writing and the song stops with it. Held a chunk
+                // back, what it reads is a buffer nearly all free, which is what it is.
+                available -= SINK_CHUNK;
+                if (available <= 0) {
+                    idle();
+                    continue;
+                }
+
+                int length = Math.min(Math.min(available, bufferLen - sinkPos), SINK_CHUNK);
+                countRepeat(buffer, sinkPos, length);
+                try {
+                    sink.write(buffer, sinkPos, length);
+                } catch (Exception e) {
+                    logger.log(Level.ERROR, e.getMessage(), e);
+                }
+                deliveredBytes += length;
+                sinkPos = (sinkPos + length) % bufferLen;
+                // where the program is told the sound has got to, which is where it has
+                // actually got to: everything before this has been handed over
+                data.startPos = (int) ((long) sinkPos * data.buflen / bufferLen) & ~3;
+            }
+        }
+
+        private void idle() {
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                bExit = true;
+            }
+        }
+
         @Override
         public void run() {
+            if (sink != null) {
+                stream();
+                sink.close();
+                releaseSink(this);
+                sink = null;
+                playingThreads.remove(this);
+                return;
+            }
             while (!bExit) {
                 playing = true;
                 do {
@@ -1040,9 +1177,69 @@ public class IDirectSoundBuffer extends IUnknown {
                     }
                 }
             }
-            line.stop();
-            line.close();
-            line = null;
+            if (line != null) {
+                line.stop();
+                line.close();
+                line = null;
+            }
+            playingThreads.remove(this);
+        }
+    }
+
+    /** the buffer that has the sink, so a second one played alongside it does not share it */
+    private static PlayThread sinkOwner;
+
+    /** every thread playing a buffer, so that a machine's can be shut down with it */
+    private static final java.util.Set<PlayThread> playingThreads =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+    /**
+     * Throws away every buffer that is playing, ready for a new machine.
+     * <p>
+     * A machine shut down part way through a song leaves its threads running - still playing a
+     * buffer in memory that has gone, still holding the sink - and the next machine's buffers
+     * then find the place taken.
+     */
+    public static void reset() {
+        PlayThread[] threads = playingThreads.toArray(new PlayThread[0]);
+        for (PlayThread thread : threads) {
+            thread.bExit = true;
+            thread.stop = true;
+            synchronized (thread.mutex) {
+                thread.mutex.notifyAll();
+            }
+        }
+        // waited for rather than left to finish in its own time: what it is playing from is the
+        // machine's memory, and the machine is about to be somebody else's
+        for (PlayThread thread : threads) {
+            try {
+                thread.join(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        playingThreads.clear();
+        sinkOwner = null;
+    }
+
+    /**
+     * Takes the sink for this buffer, unless another one that is still going has it. The owner is
+     * remembered rather than the sink itself: a machine shut down part way through leaves its
+     * buffers behind without closing them, and a claim left over from one of those must not keep
+     * the next machine's buffers off the sink.
+     */
+    private static synchronized boolean claimSink(PlayThread thread, AudioSink candidate) {
+        if (sinkOwner != null && sinkOwner.sink == candidate && sinkOwner.isAlive()) {
+            return false;
+        }
+        sinkOwner = thread;
+        return true;
+    }
+
+    private static synchronized void releaseSink(PlayThread thread) {
+        if (sinkOwner == thread) {
+            sinkOwner = null;
         }
     }
 

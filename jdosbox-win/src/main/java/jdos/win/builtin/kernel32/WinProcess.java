@@ -184,7 +184,16 @@ public class WinProcess extends WaitObject {
     public static final long ADDRESS_STACK_END = 0x01000000L;
     public static final long ADDRESS_CALLBACK_START = 0xA4000000L;
     public static final long ADDRESS_CALLBACK_END = 0xA4010000L;
-    public static final long ADDRESS_EXTRA_START = 0xB0000000L;
+    /**
+     * Where a mapping or a {@code VirtualAlloc} that does not say where it wants to be is put.
+     * <p>
+     * It has to be inside {@link #addressSpace}, which is what hands the addresses out: outside
+     * it, {@link Heap#getNextAddress} finds nothing and answers 0, and a caller that takes that
+     * for an address maps its pages over the bottom of the process - which is where the next
+     * thing to be mapped then lands on top of it. Here it sits above the modules (0x00400000)
+     * and the process heap (0x0BA00000) and below the end of the space.
+     */
+    public static final long ADDRESS_EXTRA_START = 0x20000000L;
     public static final long ADDRESS_VIDEO_START = 0xE0000000L;
     public static final long ADDRESS_VIDEO_BITMAP_START = 0xE8000000L;
 

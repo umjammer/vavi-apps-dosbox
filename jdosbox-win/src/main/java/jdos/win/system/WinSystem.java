@@ -14,6 +14,9 @@ import jdos.win.kernel.DescriptorTables;
 import jdos.win.kernel.Interrupts;
 import jdos.win.kernel.KernelMemory;
 import jdos.win.kernel.Timer;
+import jdos.win.builtin.directx.ddraw.IUnknown;
+import jdos.win.builtin.directx.dsound.IDirectSoundBuffer;
+import jdos.win.builtin.winmm.Waveform;
 import jdos.win.kernel.WinCallback;
 import jdos.win.utils.Pixel;
 
@@ -33,6 +36,11 @@ public class WinSystem {
     static public void stop() {
         Scheduler.stop();
         StaticData.stop();
+        // the emulated devices and the COM interface tables are win32 state like any other, and
+        // both of them hold addresses into a machine that is going away - see their own comments
+        Waveform.reset();
+        IDirectSoundBuffer.reset();
+        IUnknown.reset();
         // the callback table is win32 state like any other: left alone it fills up over a few
         // machines - a program spends a few hundred entries on its imports - and the next
         // program to load one dies inside the loader

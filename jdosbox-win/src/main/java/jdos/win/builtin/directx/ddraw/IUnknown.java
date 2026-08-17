@@ -31,6 +31,21 @@ public class IUnknown extends WinAPI {
     static private final Map<String, Integer> vtables = new HashMap<>();
     static private final Map<Integer, String> names = new HashMap<>();
 
+    /**
+     * Throws away every interface table, ready for a new machine.
+     * <p>
+     * A vtable is built once per name and its address kept here - but the address is in the
+     * machine's memory, and the next machine's memory is not the same memory. Left behind, the
+     * first COM object the next program asks for is handed a table that was somewhere else in a
+     * machine that no longer exists, and the program follows it into whatever is there now. That
+     * is a program that starts, loads its dlls and dies without a word, which is what this
+     * looked like on the second song of a play list.
+     */
+    static public void reset() {
+        vtables.clear();
+        names.clear();
+    }
+
     static protected int getVTable(String name) {
         Integer result = vtables.get(name);
         if (result == null)

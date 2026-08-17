@@ -27,7 +27,7 @@ tasks.test {
     // -Djdos.novideo=true runs a win32 guest without drawing anything, which for a program wanted
     // only for its sound gives most of the machine's time back
     for (key in listOf("vavi.test", "cycles", "timeout", "mmftool.path", "jdosbox.volume", "freeDrain", "turbo", "repeats", "mmf", "rate", "mmfs",
-            "jdos.novideo", "jdos.compile.sse", "jdos.registry")) {
+            "jdos.novideo", "jdos.compile.sse", "jdos.registry", "memory", "fmp7.path", "songs")) {
         System.getProperty(key)?.let { systemProperty(key, it) }
     }
     // -Dtest.jdk=<java home> runs the tests on another jdk, to compare how they carry the emulation

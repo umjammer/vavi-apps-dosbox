@@ -27,11 +27,11 @@ $ java -jar /Users/nsano/src/java/jDOSBox/launcher/build/libs/launcher-0.74.31.j
 
 ### embedding
 
-`jdos.api.JDosBox` runs a machine from inside another program. Two of its outputs can be taken
-rather than left to the host: `waveOutSink` for what a win32 guest writes to its `waveOut` device
-(`AudioSink`, whose `write` blocking is also what paces a `turbo` machine), and `stdioSink` for
-what the guest writes to its own `stdout` and `stderr` (`StdioSink` - jdosbox's own diagnostics
-are not included).
+`jdos.api.JDosBox` runs a machine from inside another program. Three of its outputs can be taken
+rather than left to the host: `waveOutSink` for what a win32 guest writes to its `waveOut` device,
+`directSoundSink` for what it writes to a DirectSound buffer (both `AudioSink`, whose `write`
+blocking is also what paces a `turbo` machine), and `stdioSink` for what the guest writes to its
+own `stdout` and `stderr` (`StdioSink` - jdosbox's own diagnostics are not included).
 
 Each chunk of guest output is stamped with the audio the guest had produced when it wrote it, in
 frames of the `AudioSink` stream. That is what lets a host line up what a guest says with the
@@ -50,6 +50,103 @@ JDosBox dosbox = new JDosBox()
 dosbox.start();
 ```
 
+### a DirectSound buffer as a stream
+
+A sound card is a place: it keeps playing whatever it was last given, and a program that writes
+nothing to it hears the last thing again. An `AudioSink` is a stream, where everything handed
+over is heard once and in order. `directSoundSink` therefore plays the buffer differently from
+the way the host's sound card is played - it is given what the program has written since the last
+time and nothing else, and nothing at all while the program has written nothing, which is also
+what keeps a program that is still loading from being run flat out into the sink.
+
+One chunk of what was written is always left untaken. A ring buffer in which the play cursor has
+caught the write cursor is a ring with no free space in it, which is exactly what a full one
+looks like; a program that reads it that way stops writing, and the song stops with it.
+
+The first secondary buffer that plays claims the sink - the primary buffer carries the format
+rather than the sound, so it never does.
+
+### reading a guest's shared memory
+
+`jdos.win.api.SharedMemory` reads a named file mapping the guest made, from the host. On a real
+PC a program that wants to know what another one is doing opens the mapping the other one
+published; here the reader is the program embedding the machine, and there is nothing to call
+`OpenFileMapping` with, so this is that call made from outside.
+
+```java
+byte[] work = new byte[6720];
+SharedMemory.read("FMP7_PUBLIC_WORK", 0, work, 0, work.length);
+```
+
+The guest is not stopped to read it, so what comes back can be half of one update and half of the
+next - the guest's own mutex is a guest object and cannot be taken from here. For a display of
+what is playing that is a wrong pixel for a frame; for anything that has to be consistent, read
+twice and compare.
+
+`Fmp7WorkProbe` is both the example and the test: it runs `FMP7.exe`, takes its sound through
+`directSoundSink` and what it says it is playing through `SharedMemory`.
+
+Note that a mapping's view needs somewhere to go, and until recently there was nowhere: the
+address `MapViewOfFile` reserved came from outside the range the process hands addresses out of,
+so it answered 0 and the view was mapped over the bottom of the process, where the next thing
+mapped landed on top of it. Anything reading a mapping before that read whatever had been mapped
+there last.
+
+### settings for a win32 guest
+
+A program keeps its settings in the registry, and a machine starts with an empty one - so a guest
+runs on its built-in defaults and the dialog it offers for changing them is no use with nobody at
+the keyboard. A `jdosbox.reg` beside the program is read into the registry before it starts
+(`-Djdos.registry=<file>` names one elsewhere), in the format regedit writes:
+
+```
+[HKEY_CURRENT_USER\SOFTWARE\Guu\FMP7]
+"ReSamplePower"=dword:00000000
+```
+
+### running a win32 program for its sound alone
+
+`-Djdos.novideo=true` runs a win32 guest with nothing drawn: no window is repainted, no blit is
+carried out, no pixels reach the screen. A player redrawing its level meters spends real time on
+it - about half of everything the machine does, measured on `FMP7.exe` - and that time is taken
+from whatever is making the sound. The two `FMP7.exe` tests turn it on themselves unless the
+property is already set.
+
+`-Djdos.compile.sse=false` puts the sse instructions back on the interpreter, which is where they
+were before the compiler learned them - a way back if something compiled there looks wrong.
+
+### keeping time
+
+A program that plays music ticks on a multimedia timer - `FMP7.exe` asks for one every 10ms - and
+the song is as long as those ticks make it. The scheduler used to round every sleep up to the next
+ten milliseconds and add one for luck, so a 10ms timer fired every 16.7ms and the music played
+two thirds slower than it should, with the sound breaking up because the machine could not fill
+the buffer at that rate either. It now waits exactly as long as the next thread is due in, and a
+periodic timer is scheduled on an absolute timeline so a slow callback cannot push the rest of the
+song later. A line every five seconds says what the timer asked for and what it is getting.
+
+### is the sound breaking up?
+
+`TestCase#testChoppiness` plays for a while and then asks the sound path how it went, so that
+"it sounds choppy" is a number:
+
+```shell
+$ ./gradlew :jdosbox:test --tests TestCase.testChoppiness -Dvavi.test=ai -Dtimeout=40
+```
+
+It counts *breaks* - the sound card was left with nothing to play - and *repeats* - what went to
+the card was exactly what went before it, which is the machine failing to render in time and the
+same sound coming out twice. Silence repeats itself and is not counted. While it plays, a line a
+second says what a second of sound costs in processor time.
+
+The repeat count is worth watching after any change to the cpu: it found a compiled `comisd` that
+did not say which flags it writes, which made the compiler read a flag from the instruction
+before it - the sound went wrong long before anything crashed.
+
+For `FMP7.exe` this is what makes it keep up: with its own defaults it needs ~98% of real time to
+synthesize, so anything at all breaks the sound up, and turning its oversampling off brings that
+to ~83%. Its output is a 48kHz stereo DirectSound buffer whatever the settings say.
+
 ## References
 
  * [original](https://github.com/Tennessene/jDOSBox)
@@ -62,6 +159,13 @@ dosbox.start();
    * graalvm is faster than openjdk is real
 
 ## TODO
+
+ * a program that runs after a machine that was stopped part way through a song can fail to
+   start - `FMP7.exe` throws an error code of its own and dies before it makes a sound, having
+   loaded and set up its DirectSound buffers. The win32 layer is a whole system in statics for a
+   process that runs one program and exits, and this is one more thing in it that a machine
+   leaves behind; the interface tables and the emulated devices, which were two others, are now
+   thrown away in `WinSystem#stop`.
 
  * ~~pc98~~ ... use j98
  * keep aspect ratio

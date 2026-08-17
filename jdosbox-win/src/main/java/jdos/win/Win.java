@@ -24,8 +24,10 @@ import jdos.hardware.Pic;
 import jdos.misc.setup.Section;
 import jdos.util.StringRef;
 import jdos.win.builtin.WinAPI;
+import jdos.win.builtin.directx.dsound.IDirectSoundBuffer;
 import jdos.win.builtin.kernel32.WinProcess;
 import jdos.win.builtin.user32.WinCursor;
+import jdos.win.builtin.winmm.Waveform;
 import jdos.win.kernel.VideoMemory;
 import jdos.win.loader.winpe.HeaderPE;
 import jdos.win.system.WinFile;
@@ -81,7 +83,25 @@ public class Win extends WinAPI {
     public static void exit() {
         Main.defaultKeyboardHandler = null;
         Main.defaultMouseHandler = null;
+        stopSound();
         throw new Dos_programs.ReturnToPromptException(returnToPromptCommand);
+    }
+
+    /**
+     * Stops what the program was playing, here rather than when the next machine starts.
+     * <p>
+     * A device plays from the machine's memory on a thread of its own, and the machine is about
+     * to end - so left running it is a thread reading a program that has gone, on a host that
+     * may be setting up the next machine over the top of it. {@link jdos.win.system.WinSystem#stop}
+     * does this too, for a machine that never got as far as finishing its program.
+     */
+    private static void stopSound() {
+        try {
+            Waveform.reset();
+            IDirectSoundBuffer.reset();
+        } catch (Throwable t) {
+            logger.log(Level.DEBUG, "leaving a sound device behind: " + t);
+        }
     }
 
     static public boolean run(Drive_fat drive, Drive_fat.fatFile fil, String path, String args) {
@@ -247,6 +267,7 @@ public class Win extends WinAPI {
         returnToPromptCommand = null;
         Main.defaultKeyboardHandler = null;
         Main.defaultMouseHandler = null;
+        stopSound();
         throw new Dos_programs.ReturnToPromptException(command);
     }
 }

@@ -264,8 +264,35 @@ public class Msvcr90 extends BuiltinModule {
     // really taken ends the program the way an unhandled one would
     public static void _CxxThrowException(int object, int throwInfo) {
         Console.out("msvcr90: unhandled c++ exception\n");
-        logger.log(Level.ERROR, "_CxxThrowException object=0x" + Integer.toHexString(object));
+        logger.log(Level.ERROR, "_CxxThrowException object=0x" + Integer.toHexString(object) + " type=" + throwTypeName(throwInfo));
         WinSystem.getCurrentProcess().exitAndReturnToPrompt(3);
+    }
+
+    /**
+     * The mangled name of what was thrown, which is the only thing that says anything about why
+     * a program ended here: the compiler leaves a ThrowInfo beside the throw, whose first
+     * catchable type points at a type descriptor with the name in it. {@code .H} is an int,
+     * which is a program throwing an error code of its own rather than anything standard.
+     */
+    private static String throwTypeName(int throwInfo) {
+        try {
+            int catchableArray = Memory.mem_readd(throwInfo + 12);
+            if (catchableArray == 0 || Memory.mem_readd(catchableArray) < 1) {
+                return "?";
+            }
+            int descriptor = Memory.mem_readd(Memory.mem_readd(catchableArray + 4) + 4);
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < 128; i++) {
+                int c = Memory.mem_readb(descriptor + 8 + i);
+                if (c == 0) {
+                    break;
+                }
+                sb.append((char) c);
+            }
+            return sb.toString();
+        } catch (Throwable t) {
+            return "?";
+        }
     }
 
     public static void type_info_dtor() {
