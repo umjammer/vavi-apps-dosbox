@@ -59,7 +59,11 @@ public class WinTimer {
             killTimer(id);
         }
         item = new TimerItem(id, timerProc, time);
-        itemsById.put(id + 1, item);
+        // under its own id: filed one along, as this used to, nothing could ever find it again -
+        // killTimer answered FALSE and left the timer running, and the window went on being sent
+        // WM_TIMER for a timer it had asked twice to stop. FMP7 asks on every tick and passes the
+        // message it did not want to DefWindowProc, which is what put us onto this.
+        itemsById.put(id, item);
         itemsByTime.add(item);
         Collections.sort(itemsByTime);
         return id;

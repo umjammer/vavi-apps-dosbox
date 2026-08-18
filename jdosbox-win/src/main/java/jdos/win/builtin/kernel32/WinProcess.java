@@ -62,23 +62,22 @@ public class WinProcess extends WaitObject {
         return (WinProcess) object;
     }
 
-    // BOOL WINAPI CloseHandle(HANDLE hObject)
+    /**
+     * BOOL WINAPI CloseHandle(HANDLE hObject)
+     * <p>
+     * Whatever the handle is for, closing it is {@link WinObject#close} - every kind of object
+     * knows how to be closed, and the one that does not exist is the only error there is. This
+     * used to name the kinds it would close and panic on the rest, which took the program down
+     * with it: FMP7 keeps three mutexes and closing any of them ended the song, at whatever point
+     * in it the program got round to that.
+     */
     static public int closeHandle(int hObject) {
         WinObject object = WinObject.getObject(hObject);
-        switch (object) {
-            case null -> {
-                SetLastError(Error.ERROR_INVALID_HANDLE);
-                return FALSE;
-            }
-            case WinProcess winProcess -> object.close();
-            case WinThread winThread -> object.close();
-            case WinFileMapping winFileMapping -> object.close();
-            case WinFile winFile -> object.close();
-            case WinEvent winEvent -> object.close();
-            case WinIcon winIcon -> object.close();
-            case WinCursor winCursor -> object.close();
-            default -> Win.panic("CloseHandle not implemented for type: " + object);
+        if (object == null) {
+            SetLastError(Error.ERROR_INVALID_HANDLE);
+            return FALSE;
         }
+        object.close();
         return TRUE;
     }
 

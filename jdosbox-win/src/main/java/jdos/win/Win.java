@@ -81,6 +81,7 @@ public class Win extends WinAPI {
     }
 
     public static void exit() {
+        jdos.win.loader.BuiltinModule.dumpRecent();
         Main.defaultKeyboardHandler = null;
         Main.defaultMouseHandler = null;
         stopSound();
@@ -263,6 +264,7 @@ public class Win extends WinAPI {
     }
 
     public static void returnToPrompt() {
+        jdos.win.loader.BuiltinModule.dumpRecent();
         String command = returnToPromptCommand;
         returnToPromptCommand = null;
         Main.defaultKeyboardHandler = null;

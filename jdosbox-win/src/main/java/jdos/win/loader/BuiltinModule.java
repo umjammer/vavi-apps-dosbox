@@ -2,6 +2,8 @@ package jdos.win.loader;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.List;
@@ -305,9 +307,91 @@ public class BuiltinModule extends Module {
         logger.log(Level.DEBUG, " time=" + (System.currentTimeMillis() - startTime));
     }
 
+    /** the last api calls the guest made, for working out what it gave up on */
+    private static final String[] recent = new String[512];
+    private static int recentAt;
+    private static long recordingStartedAt;
+
+    /**
+     * The calls the audio threads make thousands of times a second, which crowd everything else
+     * out of the trail: what a program did before it gave up is in its window messages, not in
+     * its arithmetic.
+     */
+    private static boolean isNoise(String name) {
+        return switch (name) {
+            case "_CIpow", "memset", "rand", "??2@YAPAXI@Z", "??3@YAXPAX@Z", "malloc", "free",
+                 "lstrlenW", "lstrlenA", "lstrcpyW", "lstrcpyA",
+                 "_CIsqrt", "_CIsin", "_CIcos", "_CIexp", "_CIlog", "_ftol2_sse", "_ftol2" -> true;
+            default -> false;
+        };
+    }
+
+    /** -Djdos.trail=true keeps a trail of the guest's api calls; it costs time per call */
+    private static final boolean TRAIL = Boolean.getBoolean("jdos.trail");
+
+    static void record(String name, Integer[] args) {
+        if (!TRAIL || isNoise(name)) {
+            return;
+        }
+        if (recordingStartedAt == 0) {
+            recordingStartedAt = System.nanoTime();
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append((System.nanoTime() - recordingStartedAt) / 1000000L).append("ms ").append(name);
+        for (Integer a : args) {
+            sb.append(' ').append(Integer.toHexString(a));
+        }
+        recent[recentAt++ & 511] = sb.toString();
+    }
+
+    /** prints them oldest first */
+    public static void dumpRecent() {
+        if (!TRAIL) {
+            return;
+        }
+        System.err.println("### the last api calls before this:");
+        for (int i = 0; i < 512; i++) {
+            String call = recent[(recentAt + i) & 511];
+            if (call != null) {
+                System.err.println("###   " + call);
+            }
+        }
+    }
+
+    /**
+     * A direct handle on a builtin whose arguments and result are all {@code int}, which is
+     * nearly all of them.
+     * <p>
+     * The reflective path boxes every argument: {@code args[i] = CPU.CPU_Pop32()} allocates an
+     * Integer per argument per call, and a guest's audio path makes thousands of calls a second
+     * with addresses in them - never small enough for the Integer cache. That allocation is the
+     * per-call cost that matters, and not because it shows up in a profile: FMP7 gives up and
+     * shuts itself down when the machine falls behind, so anything spent here is spent on the
+     * edge of a song stopping. Handed over as ints, nothing is allocated at all.
+     */
+    static MethodHandle directHandle(Method method, Class<?> returns) {
+        if (method.getReturnType() != returns) {
+            return null;
+        }
+        for (Class<?> type : method.getParameterTypes()) {
+            if (type != int.class) {
+                return null;
+            }
+        }
+        if (method.getParameterTypes().length > 10) {
+            return null;
+        }
+        try {
+            return MethodHandles.lookup().unreflect(method);
+        } catch (IllegalAccessException e) {
+            return null;
+        }
+    }
+
     public static class ReturnHandler extends ReturnHandlerBase {
 
         final Method method;
+        final MethodHandle handle;
         final Integer[] args;
         final String name;
         final boolean pop;
@@ -315,6 +399,7 @@ public class BuiltinModule extends Module {
 
         public ReturnHandler(String name, Method method, boolean pop, String[] params) {
             this.method = method;
+            this.handle = directHandle(method, int.class);
             args = new Integer[method.getParameterTypes().length];
             this.name = name;
             this.pop = pop;
@@ -323,6 +408,9 @@ public class BuiltinModule extends Module {
 
         @Override
         public int processReturn() {
+            if (handle != null && !TRAIL && !LOG && !TRACE_UI) {
+                return callDirect(handle, args.length, pop);
+            }
             for (int i = 0; i < args.length; i++) {
                 if (pop)
                     args[i] = CPU.CPU_Pop32();
@@ -335,6 +423,7 @@ public class BuiltinModule extends Module {
                 }
                 if (LOG && params != null)
                     preLog(name, args, params);
+                record(name, args);
                 Integer result = (Integer) method.invoke(null, (Object[]) args);
                 if (TRACE_UI && method.getDeclaringClass().getName().equals("jdos.win.builtin.Msvcrt")) {
                     logger.log(Level.TRACE, "[trace-ui] result " + method.getDeclaringClass().getSimpleName() + "." + name + "=" + result);
@@ -365,6 +454,74 @@ public class BuiltinModule extends Module {
         }
     }
 
+    /** takes the arguments off the guest's stack as ints and calls straight through */
+    static int callDirect(MethodHandle handle, int arity, boolean pop) {
+        try {
+            return switch (arity) {
+                case 0 -> (int) handle.invokeExact();
+                case 1 -> (int) handle.invokeExact(arg(pop, 0));
+                case 2 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1));
+                case 3 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2));
+                case 4 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3));
+                case 5 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4));
+                case 6 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5));
+                case 7 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6));
+                case 8 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7));
+                case 9 -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7), arg(pop, 8));
+                default -> (int) handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7), arg(pop, 8), arg(pop, 9));
+            };
+        } catch (RuntimeException | Error e) {
+            // control flow the emulator unwinds with - a process exiting, an exception in the
+            // guest - belongs to whoever threw it
+            throw e;
+        } catch (Throwable t) {
+            logger.log(Level.ERROR, t.getMessage(), t);
+            Win.panic("failed to execute: " + t.getMessage());
+            return 0;
+        }
+    }
+
+    /** the guest's arguments are pushed in order, so they come off in order */
+    private static int arg(boolean pop, int index) {
+        return pop ? CPU.CPU_Pop32() : CPU.CPU_Peek32(index);
+    }
+
+    /** the same for the builtins that answer nothing */
+    static void callDirectVoid(MethodHandle handle, int arity, boolean pop) {
+        try {
+            switch (arity) {
+                case 0 -> handle.invokeExact();
+                case 1 -> handle.invokeExact(arg(pop, 0));
+                case 2 -> handle.invokeExact(arg(pop, 0), arg(pop, 1));
+                case 3 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2));
+                case 4 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3));
+                case 5 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4));
+                case 6 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5));
+                case 7 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6));
+                case 8 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7));
+                case 9 -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7), arg(pop, 8));
+                default -> handle.invokeExact(arg(pop, 0), arg(pop, 1), arg(pop, 2), arg(pop, 3),
+                        arg(pop, 4), arg(pop, 5), arg(pop, 6), arg(pop, 7), arg(pop, 8), arg(pop, 9));
+            }
+        } catch (RuntimeException | Error e) {
+            throw e;
+        } catch (Throwable t) {
+            logger.log(Level.ERROR, t.getMessage(), t);
+            Win.panic("failed to execute: " + t.getMessage());
+        }
+    }
+
     public static class NoReturnHandler extends HandlerBase {
 
         final Method method;
@@ -373,8 +530,11 @@ public class BuiltinModule extends Module {
         final boolean pop;
         final String[] params;
 
+        final MethodHandle handle;
+
         public NoReturnHandler(String name, Method method, boolean pop, String[] params) {
             this.method = method;
+            this.handle = directHandle(method, void.class);
             args = new Integer[method.getParameterTypes().length];
             this.name = name;
             this.pop = pop;
@@ -383,6 +543,10 @@ public class BuiltinModule extends Module {
 
         @Override
         public void onCall() {
+            if (handle != null && !TRAIL && !LOG && !TRACE_UI) {
+                callDirectVoid(handle, args.length, pop);
+                return;
+            }
             for (int i = 0; i < args.length; i++) {
                 if (pop)
                     args[i] = CPU.CPU_Pop32();
@@ -395,6 +559,7 @@ public class BuiltinModule extends Module {
                 }
                 if (LOG && params != null)
                     preLog(name, args, params);
+                record(name, args);
                 method.invoke(null, (Object[]) args);
                 if (LOG && params != null)
                     postLog(name, null, null, args, params);

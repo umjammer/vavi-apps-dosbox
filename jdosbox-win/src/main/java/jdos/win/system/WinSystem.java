@@ -16,6 +16,7 @@ import jdos.win.kernel.KernelMemory;
 import jdos.win.kernel.Timer;
 import jdos.win.builtin.directx.ddraw.IUnknown;
 import jdos.win.builtin.directx.dsound.IDirectSoundBuffer;
+import jdos.win.builtin.winmm.MMTime;
 import jdos.win.builtin.winmm.Waveform;
 import jdos.win.kernel.WinCallback;
 import jdos.win.utils.Pixel;
@@ -40,6 +41,7 @@ public class WinSystem {
         // both of them hold addresses into a machine that is going away - see their own comments
         Waveform.reset();
         IDirectSoundBuffer.reset();
+        MMTime.reset();
         IUnknown.reset();
         // the callback table is win32 state like any other: left alone it fills up over a few
         // machines - a program spends a few hundred entries on its imports - and the next

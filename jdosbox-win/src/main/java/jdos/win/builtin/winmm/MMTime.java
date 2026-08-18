@@ -188,11 +188,33 @@ public class MMTime extends WinAPI {
                 if ((flags & TIME_PERIODIC) == 0)
                     break;
             }
-            timers.remove(this);
+            // by its id: the table is keyed by that, and removing by the timer itself - which is
+            // what this used to do - never removed anything, so every timer a program ever set
+            // stayed in it
+            timers.remove(id);
         }
     }
 
     static private final Map<Integer, MMTimer> timers = new HashMap<>();
+
+    /**
+     * Throws away every timer, ready for a new machine.
+     * <p>
+     * A timer holds a callback address in the machine's memory and a thread of the machine's
+     * scheduler, and neither of those means anything to the machine after it. Left in the table,
+     * the next program to set a timer is handed an id that is already taken and a table with
+     * somebody else's timers in it.
+     */
+    static public void reset() {
+        // the table is emptied and nothing is closed: a timer's thread belongs to the scheduler,
+        // which has already been stopped by the time this runs, and asking a stopped scheduler to
+        // remove a thread is not something to do on the way out
+        timers.clear();
+        nextTimerId = 1;
+        ticks = 0;
+        ticksSince = 0;
+        ticksReportedAt = 0;
+    }
 
     // MMRESULT timeBeginPeriod(UINT uPeriod)
     static public int timeBeginPeriod(int wPeriod) {

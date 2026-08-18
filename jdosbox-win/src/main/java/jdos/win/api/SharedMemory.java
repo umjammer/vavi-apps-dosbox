@@ -66,11 +66,24 @@ public final class SharedMemory {
         if (len <= 0) {
             return 0;
         }
-        for (int i = 0; i < len; i++) {
+        // the view the guest is handed starts at the mapping's second page - the first one holds
+        // jdosbox's own bookkeeping, in front of it - and is read a word at a time where it can
+        // be, which for a work read a hundred times a second is worth the four lines
+        int i = 0;
+        while (i < len) {
             int at = offset + i;
-            // the view the guest is handed starts at the mapping's second page - the first one
-            // holds jdosbox's own bookkeeping, in front of it
-            b[off + i] = (byte) Memory.phys_readb((mapping.frame(1 + (at >>> 12)) << 12) + (at & 0xFFF));
+            int page = (mapping.frame(1 + (at >>> 12)) << 12) + (at & 0xFFF);
+            if ((at & 3) == 0 && len - i >= 4 && (at & 0xFFF) <= 0xFFC) {
+                int v = Memory.phys_readd(page);
+                b[off + i] = (byte) v;
+                b[off + i + 1] = (byte) (v >> 8);
+                b[off + i + 2] = (byte) (v >> 16);
+                b[off + i + 3] = (byte) (v >> 24);
+                i += 4;
+            } else {
+                b[off + i] = (byte) Memory.phys_readb(page);
+                i++;
+            }
         }
         return len;
     }

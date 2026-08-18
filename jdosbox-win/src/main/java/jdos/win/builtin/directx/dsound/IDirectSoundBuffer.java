@@ -107,6 +107,27 @@ public class IDirectSoundBuffer extends IUnknown {
                 thread.stop = true;
         }
 
+        /** when this buffer's play cursor started running; 0 while it is not playing to a sink */
+        public long cursorStartedAt;
+
+        /**
+         * Where the play cursor is, as a clock rather than as a count of what has been taken.
+         * <p>
+         * A card's play cursor never stops - it is the clock the program's whole idea of the
+         * device runs on. Reported from what an {@link AudioSink} has taken instead, it stands
+         * still for as long as whoever is taking the samples is not ready for more, and a program
+         * watching that decides its sound card has failed.
+         */
+        public int playCursor() {
+            int len = tmp_buffer_len > 0 ? tmp_buffer_len : buflen;
+            if (cursorStartedAt == 0 || buflen <= 0 || len <= 0) {
+                return startPos;
+            }
+            long bytesPerSecond = (long) deviceRate * DSMixer.DEVICE_BLOCK_ALIGN;
+            long played = (System.nanoTime() - cursorStartedAt) * bytesPerSecond / 1_000_000_000L;
+            return (int) ((played % len) * buflen / len) & ~3;
+        }
+
         public PlayThread thread;
         public int This;
         public int startPos;
@@ -394,7 +415,7 @@ public class IDirectSoundBuffer extends IUnknown {
             int lpdwCurrentPlayCursor = CPU.CPU_Pop32();
             int lpdwCurrentWriteCursor = CPU.CPU_Pop32();
             Data data = Data.get(This);
-            Memory.mem_writed(lpdwCurrentPlayCursor, data.startPos);
+            Memory.mem_writed(lpdwCurrentPlayCursor, data.playCursor());
             Memory.mem_writed(lpdwCurrentWriteCursor, data.endPos);
             CPU_Regs.reg_eax.dword = Error.S_OK;
         }
@@ -930,6 +951,7 @@ public class IDirectSoundBuffer extends IUnknown {
             if (candidate != null && (data.flags() & DSBufferDesc.DSBCAPS_PRIMARYBUFFER) == 0 && claimSink(this, candidate)) {
                 sink = candidate;
                 sink.open(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS);
+                data.cursorStartedAt = System.nanoTime();
                 logger.log(Level.DEBUG, "dsound to sink " + data.deviceRate + "Hz "
                         + DSMixer.DEVICE_BITS_PER_SAMEPLE + "bit " + DSMixer.DEVICE_CHANNELS + "ch");
                 return true;
@@ -1054,13 +1076,16 @@ public class IDirectSoundBuffer extends IUnknown {
                 int available = (end - sinkPos + bufferLen) % bufferLen;
                 if (available == 0) {
                     if (end == lastEnd) {
-                        // one chunk is always left behind, so this really is nothing new
-                        // the program has written nothing since the last pass. A card would be
-                        // playing the last thing again by now; this waits instead, which is also
-                        // what keeps a program that is still loading - and writing nothing for
-                        // seconds at a time - from being run flat out into the sink. It is not
-                        // counted as a break: nothing was played twice and no sound was missed,
-                        // which is the whole difference between a stream and a card.
+                        // one chunk is always left behind, so this really is nothing new: the
+                        // program has written nothing since the last pass. A card would be
+                        // playing the last thing again by now; this sends nothing instead, which
+                        // is the difference between a stream and a card and also what keeps a
+                        // program that is still loading from being run flat out into the sink.
+                        //
+                        // The cursor still moves, though. A card's play cursor is a clock and
+                        // never stops, and a program watching one that has stopped decides its
+                        // sound device has failed - FMP7 shuts itself down cleanly when it sees
+                        // that, at whatever point in the song its own threads happened to pause.
                         idle();
                         continue;
                     }
@@ -1070,10 +1095,10 @@ public class IDirectSoundBuffer extends IUnknown {
                 lastEnd = end;
 
                 // a chunk of what has been written is always left untaken, because a ring in
-                // which the play cursor has caught the write cursor is a ring with no free
-                // space in it - which is the same thing a full one looks like. A program that
-                // reads it that way stops writing and the song stops with it. Held a chunk
-                // back, what it reads is a buffer nearly all free, which is what it is.
+                // which the play cursor has caught the write cursor is a ring with no free space
+                // in it - which is the same thing a full one looks like. A program that reads it
+                // that way stops writing and the song stops with it: taking this out makes every
+                // song silent, which is worth knowing before taking it out again.
                 available -= SINK_CHUNK;
                 if (available <= 0) {
                     idle();
@@ -1082,16 +1107,21 @@ public class IDirectSoundBuffer extends IUnknown {
 
                 int length = Math.min(Math.min(available, bufferLen - sinkPos), SINK_CHUNK);
                 countRepeat(buffer, sinkPos, length);
+                // the cursor moves before the sound goes out, not after. Handing it over can take
+                // as long as the sound lasts - that is what paces the machine - and a card would
+                // have been playing it throughout, not standing still until it was finished.
+                int from = sinkPos;
+                sinkPos = (sinkPos + length) % bufferLen;
+                // the cursor moves before the sound goes out, not after: handing it over can
+                // take as long as the sound lasts, and a card would have been playing it
+                // throughout rather than standing still until it was finished
+                data.startPos = (int) ((long) sinkPos * data.buflen / bufferLen) & ~3;
                 try {
-                    sink.write(buffer, sinkPos, length);
+                    sink.write(buffer, from, length);
                 } catch (Exception e) {
                     logger.log(Level.ERROR, e.getMessage(), e);
                 }
                 deliveredBytes += length;
-                sinkPos = (sinkPos + length) % bufferLen;
-                // where the program is told the sound has got to, which is where it has
-                // actually got to: everything before this has been handed over
-                data.startPos = (int) ((long) sinkPos * data.buflen / bufferLen) & ~3;
             }
         }
 
@@ -1108,8 +1138,11 @@ public class IDirectSoundBuffer extends IUnknown {
         public void run() {
             if (sink != null) {
                 stream();
-                sink.close();
-                releaseSink(this);
+                // closed only by whoever still owns it: the buffer that took it over is playing
+                // through it now, and closing it under that one is what stops the song
+                if (releaseSink(this)) {
+                    sink.close();
+                }
                 sink = null;
                 playingThreads.remove(this);
                 return;
@@ -1230,17 +1263,24 @@ public class IDirectSoundBuffer extends IUnknown {
      * the next machine's buffers off the sink.
      */
     private static synchronized boolean claimSink(PlayThread thread, AudioSink candidate) {
-        if (sinkOwner != null && sinkOwner.sink == candidate && sinkOwner.isAlive()) {
+        // a buffer that is finishing does not keep the sink from the one that replaces it. A
+        // program may release its streaming buffer and make another - FMP7 does, a second into
+        // the song - and refusing the new one sends the rest of the song to the speakers instead
+        // of to whoever asked for it, which from there looks like the machine dying mid-song.
+        if (sinkOwner != null && sinkOwner != thread && sinkOwner.isAlive() && !sinkOwner.bExit) {
             return false;
         }
         sinkOwner = thread;
         return true;
     }
 
-    private static synchronized void releaseSink(PlayThread thread) {
+    /** gives the sink back, and answers whether this thread still had it to give */
+    private static synchronized boolean releaseSink(PlayThread thread) {
         if (sinkOwner == thread) {
             sinkOwner = null;
+            return true;
         }
+        return false;
     }
 
     /** a rate a sound card will take; anything odd falls back to the one every card has */
