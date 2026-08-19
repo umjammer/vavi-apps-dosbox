@@ -156,7 +156,7 @@ to ~83%. Its output is a 48kHz stereo DirectSound buffer whatever the settings s
 ### Tech Know
 
  * ~~graalvm doesn't make choppy sound~~ ... because of heavy debug logging
-   * graalvm is faster than openjdk is real
+   * "graalvm is faster than openjdk" is real
 
 ## TODO
 
