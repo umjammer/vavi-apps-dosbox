@@ -19,6 +19,14 @@ public class WinAPI extends Error {
     final static public boolean LOG_GDI = LOG;
     final static public boolean LOG_MM = false;
     final static public boolean MSGLOG = false;
+    /**
+     * {@code -Djdos.novideo=true} runs a win32 program with nothing drawn: no window is repainted
+     * and no pixels are pushed anywhere. A program that is only wanted for its sound spends real
+     * time on its own drawing - a player redrawing its level meters is the whole of it - and that
+     * time is the machine's, taken from what is making the sound.
+     */
+    final static public boolean NO_VIDEO = Boolean.getBoolean("jdos.novideo");
+
     final static public boolean TRACE_UI = Boolean.getBoolean("jdos.trace.ui");
     final static public boolean TRACE_IMPORTS = Boolean.getBoolean("jdos.trace.imports");
     static public final int NULL = 0;
@@ -36,7 +44,9 @@ public class WinAPI extends Error {
     }
 
     static public void warn(String s) {
-        log(HandlerBase.currentHandler.getName() + ": " + s);
+        // there is not always a call in progress - a warning can come from a thread of ours
+        HandlerBase handler = HandlerBase.currentHandler;
+        log((handler == null ? "" : handler.getName() + ": ") + s);
     }
 
     static public void faked() {

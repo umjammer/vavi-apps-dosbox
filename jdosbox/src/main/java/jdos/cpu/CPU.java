@@ -683,6 +683,10 @@ public class CPU extends Module_base {
         return Memory.mem_readd(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword + index * 4 & cpu.stack.mask));
     }
 
+    public static void CPU_Poke32(int index, int value) {
+        Memory.mem_writed(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword + index * 4 & cpu.stack.mask), value);
+    }
+
     public static /*Bitu*/int CPU_Pop32() {
         /*Bitu*/
         int val = Memory.mem_readd(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword & cpu.stack.mask));

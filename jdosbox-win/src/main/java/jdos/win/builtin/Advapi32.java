@@ -38,6 +38,53 @@ public class Advapi32 extends BuiltinModule {
         add(RegOpenKeyExA);
         add(RegQueryValueExA);
         add(RegSetValueExA);
+
+        // the unicode entry points: only the names need converting, the values a program stores
+        // come back as the same bytes it wrote
+        add_wide("RegCreateKeyExW", RegCreateKeyExA, 1, 3);
+        add_wide("RegOpenKeyExW", RegOpenKeyExA, 1);
+        add_wide("RegQueryValueExW", RegQueryValueExA, 1);
+        add_wide("RegSetValueExW", RegSetValueExA, 1);
+        add(Advapi32.class, "RegDeleteKeyA", new String[] {"hKey", "(STRING)lpSubKey"});
+        add(Advapi32.class, "RegEnumKeyExA", new String[] {"hKey", "dwIndex", "(HEX)lpName", "(HEX)lpcName", "(HEX)lpReserved", "(HEX)lpClass", "(HEX)lpcClass", "(HEX)lpftLastWriteTime"});
+        add(Advapi32.class, "RegQueryInfoKeyA", new String[] {"hKey", "(HEX)lpClass", "(HEX)lpcClass", "(HEX)lpReserved", "(HEX)lpcSubKeys", "(HEX)lpcMaxSubKeyLen", "(HEX)lpcMaxClassLen", "(HEX)lpcValues", "(HEX)lpcMaxValueNameLen", "(HEX)lpcMaxValueLen", "(HEX)lpcbSecurityDescriptor", "(HEX)lpftLastWriteTime"});
+        add_wide("RegDeleteKeyW", Advapi32.class, "RegDeleteKeyA", 1);
+        add_named("RegEnumKeyExW", Advapi32.class, "RegEnumKeyExA", false);
+        add_named("RegQueryInfoKeyW", Advapi32.class, "RegQueryInfoKeyA", false);
+    }
+
+    static private final int ERROR_SUCCESS = 0;
+    static private final int ERROR_NO_MORE_ITEMS = 259;
+
+    // LONG RegDeleteKey(HKEY hKey, LPCTSTR lpSubKey)
+    static public int RegDeleteKeyA(int hKey, int lpSubKey) {
+        // nothing here is written to a registry that outlives the machine, so there is nothing to delete
+        return ERROR_SUCCESS;
+    }
+
+    // LONG RegEnumKeyEx(HKEY, DWORD dwIndex, LPTSTR lpName, LPDWORD lpcName, ...)
+    static public int RegEnumKeyExA(int hKey, int dwIndex, int lpName, int lpcName, int lpReserved,
+                                    int lpClass, int lpcClass, int lpftLastWriteTime) {
+        return ERROR_NO_MORE_ITEMS;
+    }
+
+    // LONG RegQueryInfoKey(HKEY, LPTSTR lpClass, LPDWORD lpcClass, ...)
+    static public int RegQueryInfoKeyA(int hKey, int lpClass, int lpcClass, int lpReserved,
+                                       int lpcSubKeys, int lpcMaxSubKeyLen, int lpcMaxClassLen,
+                                       int lpcValues, int lpcMaxValueNameLen, int lpcMaxValueLen,
+                                       int lpcbSecurityDescriptor, int lpftLastWriteTime) {
+        for (int count : new int[] {lpcSubKeys, lpcMaxSubKeyLen, lpcMaxClassLen, lpcValues,
+                lpcMaxValueNameLen, lpcMaxValueLen, lpcbSecurityDescriptor}) {
+            if (count != 0)
+                Memory.mem_writed(count, 0);
+        }
+        if (lpcClass != 0)
+            Memory.mem_writed(lpcClass, 0);
+        if (lpftLastWriteTime != 0) {
+            Memory.mem_writed(lpftLastWriteTime, 0);
+            Memory.mem_writed(lpftLastWriteTime + 4, 0);
+        }
+        return ERROR_SUCCESS;
     }
 
     // BOOL WINAPI AddAccessAllowedAce(PACL pAcl, DWORD dwAceRevision, DWORD AccessMask, PSID pSid)

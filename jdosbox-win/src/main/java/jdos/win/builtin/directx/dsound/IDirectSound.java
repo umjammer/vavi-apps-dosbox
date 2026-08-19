@@ -41,8 +41,24 @@ public class IDirectSound extends IUnknown {
         return address;
     }
 
+    /** the vtable directsound 8 hands out: the same calls, with {@code VerifyCertification} added */
+    private static int createVTable8() {
+        int address = allocateVTable("IDirectSound8", VTABLE_SIZE + 1);
+        add(addIDirectSound(address), VerifyCertification);
+        return address;
+    }
+
     public static int create() {
         return create("IDirectSound", 0);
+    }
+
+    public static int create8() {
+        int vtable = getVTable("IDirectSound8");
+        if (vtable == 0)
+            vtable = createVTable8();
+        int address = allocate(vtable, DATA_SIZE, 0);
+        setData(address, OFFSET_FLAGS, 0);
+        return address;
     }
 
     public static int create(String name, int flags) {
@@ -100,7 +116,11 @@ public class IDirectSound extends IUnknown {
             }
             caps.dwFlags = DSCAPS_PRIMARYMONO | DSCAPS_PRIMARYSTEREO | DSCAPS_PRIMARY8BIT | DSCAPS_PRIMARY16BIT | DSCAPS_CONTINUOUSRATE | DSCAPS_CERTIFIED | DSCAPS_SECONDARYMONO | DSCAPS_SECONDARYSTEREO | DSCAPS_SECONDARY8BIT | DSCAPS_SECONDARY16BIT;
             caps.dwMinSecondarySampleRate = 4000;
-            caps.dwMaxSecondarySampleRate = 48000;
+            // what the device can really do, which is the rate the mixer behind it runs at. A
+            // program that picks the highest rate the device claims - which a music player does,
+            // for quality - is otherwise made to synthesize at a rate that then has to be
+            // resampled back down here, paying for it twice.
+            caps.dwMaxSecondarySampleRate = DSMixer.DEVICE_SAMPLE_RATE;
             caps.dwPrimaryBuffers = 1;
             caps.dwMaxHwMixingAllBuffers = 1;
             caps.dwMaxHwMixingStaticBuffers = 1;
@@ -202,6 +222,25 @@ public class IDirectSound extends IUnknown {
             int This = CPU.CPU_Pop32();
             int dwSpeakerConfig = CPU.CPU_Pop32();
             notImplemented();
+        }
+    };
+
+    // HRESULT VerifyCertification(this, LPDWORD pdwCertified)
+    static private final Callback.Handler VerifyCertification = new HandlerBase() {
+        static final int DS_CERTIFIED = 0;
+
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSound.VerifyCertification";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int pdwCertified = CPU.CPU_Pop32();
+            if (pdwCertified != 0)
+                jdos.hardware.Memory.mem_writed(pdwCertified, DS_CERTIFIED);
+            CPU_Regs.reg_eax.dword = Error.S_OK;
         }
     };
 

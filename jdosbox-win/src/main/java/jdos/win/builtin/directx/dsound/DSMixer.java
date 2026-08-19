@@ -12,6 +12,7 @@ import jdos.win.builtin.winmm.WAVEFORMATEXTENSIBLE;
 
 public class DSMixer extends IDirectSoundBuffer {
 
+    /** the rate used when a program does not say what it wants, or asks for something impossible */
     public final static int DEVICE_SAMPLE_RATE = 44100;
     public final static int DEVICE_CHANNELS = 2;
     public final static int DEVICE_BITS_PER_SAMEPLE = 16;
@@ -62,7 +63,7 @@ public class DSMixer extends IDirectSoundBuffer {
         size = len / iAdvance;
 
         /* Check for same sample rate */
-        if (dsb.freq == DEVICE_SAMPLE_RATE) {
+        if (dsb.freq == dsb.deviceRate) {
             obp = obp_begin;
             obp.inc(writepos / iAdvance * oAdvance);
             cp_fields(dsb, ibp, obp, iAdvance, oAdvance, size, 0, 1 << DSOUND_FREQSHIFT);
@@ -104,7 +105,7 @@ public class DSMixer extends IDirectSoundBuffer {
      */
     static void DSOUND_RecalcFormat(IDirectSoundBuffer.Data dsb) {
         boolean needremix = true;
-        boolean needresample = dsb.freq != DEVICE_SAMPLE_RATE;
+        boolean needresample = dsb.freq != dsb.deviceRate;
         WAVEFORMATEX wfx = dsb.wfx();
         int bAlign = wfx.nBlockAlign;
         int pAlign = DEVICE_BLOCK_ALIGN;
@@ -130,20 +131,19 @@ public class DSMixer extends IDirectSoundBuffer {
         else
             dsb.convert = DSConvert.convertbpp[wfx.wBitsPerSample / 8 - 1][DEVICE_BITS_PER_SAMEPLE / 8 - 1];
 
-        if (needremix) {
-            if (needresample)
-                DSOUND_RecalcFreqAcc(dsb);
-            else
-                dsb.tmp_buffer_len = dsb.buflen / bAlign * pAlign;
-            dsb.max_buffer_len = dsb.tmp_buffer_len;
-            if (dsb.tmp_buffer == null || dsb.tmp_buffer_len > dsb.tmp_buffer.length || dsb.tmp_buffer_copied)
-                dsb.tmp_buffer = new byte[dsb.max_buffer_len];
-            Arrays.fill(dsb.tmp_buffer, DEVICE_BITS_PER_SAMEPLE == 8 ? (byte) 128 : 0);
-            dsb.tmp_buffer_copied = false;
-        } else {
-            dsb.max_buffer_len = dsb.buflen;
-            dsb.tmp_buffer_len = dsb.buflen;
-        }
+        // the buffer that is played from is always this one, even when nothing has to be changed
+        // on the way into it: what the program wrote is in the machine's memory, and what the
+        // sound card is handed has to be an array here. Leaving it unallocated - which is what
+        // "nothing to remix" used to do - is what made the same-rate path unusable.
+        if (needresample)
+            DSOUND_RecalcFreqAcc(dsb);
+        else
+            dsb.tmp_buffer_len = dsb.buflen / bAlign * pAlign;
+        dsb.max_buffer_len = dsb.tmp_buffer_len;
+        if (dsb.tmp_buffer == null || dsb.tmp_buffer_len > dsb.tmp_buffer.length || dsb.tmp_buffer_copied)
+            dsb.tmp_buffer = new byte[dsb.max_buffer_len];
+        Arrays.fill(dsb.tmp_buffer, DEVICE_BITS_PER_SAMEPLE == 8 ? (byte) 128 : 0);
+        dsb.tmp_buffer_copied = false;
         dsb.buf_mixpos = DSOUND_secpos_to_bufpos(dsb, dsb.sec_mixpos, 0, null);
     }
 

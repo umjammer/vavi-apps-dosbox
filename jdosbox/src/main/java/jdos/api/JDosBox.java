@@ -61,6 +61,9 @@ public class JDosBox {
     /** where the DOSBox mixer sends its samples, or null for the host's speakers */
     private static volatile AudioSink mixerSink;
 
+    /** where a Win32 guest's DirectSound samples go, or null for the host's speakers */
+    private static volatile AudioSink directSoundSink;
+
     /** where a guest program's console output goes, or null for the host's stdout */
     private static volatile StdioSink stdioSink;
 
@@ -116,6 +119,19 @@ public class JDosBox {
     /** where the DOSBox mixer's samples go; null leaves them going to the speakers */
     public JDosBox mixerSink(AudioSink sink) {
         JDosBox.mixerSink = sink;
+        return this;
+    }
+
+    /**
+     * Where a Win32 guest's DirectSound samples go; null leaves them going to the speakers.
+     * <p>
+     * The first secondary buffer that plays claims it - the primary buffer carries the format
+     * rather than the sound, so it never does - and it is what paces the machine from then on:
+     * the buffer is handed over only as fast as the sink takes it, which is the emulated sound
+     * card playing at the rate the program wrote for.
+     */
+    public JDosBox directSoundSink(AudioSink sink) {
+        JDosBox.directSoundSink = sink;
         return this;
     }
 
@@ -181,6 +197,11 @@ public class JDosBox {
     /** the samples the DOSBox mixer produces, for whoever emulates it */
     public static AudioSink getMixerSink() {
         return mixerSink;
+    }
+
+    /** the samples a Win32 guest's DirectSound buffers produce, for whoever emulates them */
+    public static AudioSink getDirectSoundSink() {
+        return directSoundSink;
     }
 
     /** where a guest program's console output goes, for whoever emulates writing to it */
@@ -273,6 +294,7 @@ public class JDosBox {
             // left to send a shutdown to
             waveOutSink = null;
             mixerSink = null;
+            directSoundSink = null;
             stdioSink = null;
             return;
         }
@@ -303,6 +325,7 @@ public class JDosBox {
         // writing into a queue nobody is reading any more
         waveOutSink = null;
         mixerSink = null;
+        directSoundSink = null;
         stdioSink = null;
     }
 

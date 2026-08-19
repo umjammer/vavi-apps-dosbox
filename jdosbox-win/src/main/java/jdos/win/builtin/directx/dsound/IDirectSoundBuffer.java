@@ -8,6 +8,8 @@ import javax.sound.sampled.DataLine;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.SourceDataLine;
 
+import jdos.api.AudioSink;
+import jdos.api.JDosBox;
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -30,7 +32,8 @@ public class IDirectSoundBuffer extends IUnknown {
 
     private static final Logger logger = System.getLogger(IDirectSoundBuffer.class.getName());
 
-    static final int VTABLE_SIZE = 18;
+    /** the 18 calls of a sound buffer, and the three that the version 8 interface adds */
+    static final int VTABLE_SIZE = 21;
 
     final static int DSBSIZE_MIN = 4;
     final static int DSBSIZE_MAX = 0xFFFFFFF;
@@ -104,12 +107,40 @@ public class IDirectSoundBuffer extends IUnknown {
                 thread.stop = true;
         }
 
+        /** when this buffer's play cursor started running; 0 while it is not playing to a sink */
+        public long cursorStartedAt;
+
+        /**
+         * Where the play cursor is, as a clock rather than as a count of what has been taken.
+         * <p>
+         * A card's play cursor never stops - it is the clock the program's whole idea of the
+         * device runs on. Reported from what an {@link AudioSink} has taken instead, it stands
+         * still for as long as whoever is taking the samples is not ready for more, and a program
+         * watching that decides its sound card has failed.
+         */
+        public int playCursor() {
+            int len = tmp_buffer_len > 0 ? tmp_buffer_len : buflen;
+            if (cursorStartedAt == 0 || buflen <= 0 || len <= 0) {
+                return startPos;
+            }
+            long bytesPerSecond = (long) deviceRate * DSMixer.DEVICE_BLOCK_ALIGN;
+            long played = (System.nanoTime() - cursorStartedAt) * bytesPerSecond / 1_000_000_000L;
+            return (int) ((played % len) * buflen / len) & ~3;
+        }
+
         public PlayThread thread;
         public int This;
         public int startPos;
         public int endPos;
         public int parent;
         public int freq;
+        /**
+         * The rate the sound card behind this buffer runs at. It is the rate the program asked
+         * for, so that what it writes is played as it wrote it: resampling here would cost time
+         * per sample and lose quality doing it, and a sound card that can only be asked for one
+         * rate is not something a modern host has.
+         */
+        public int deviceRate = DSMixer.DEVICE_SAMPLE_RATE;
         public int nAvgBytesPerSec;
         public int buflen;
         public int freqAdjust;
@@ -195,8 +226,66 @@ public class IDirectSoundBuffer extends IUnknown {
         address = add(address, Stop);
         address = add(address, Unlock);
         address = add(address, Restore);
+        address = add(address, SetFX);
+        address = add(address, AcquireResources);
+        address = add(address, GetObjectInPath);
         return address;
     }
+
+    /**
+     * The three calls a version 8 buffer has over a plain one, all of them about effects the
+     * hardware might apply. There is no hardware here, so a program asking for one is told so.
+     */
+    static private final Callback.Handler SetFX = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.SetFX";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int dwEffectsCount = CPU.CPU_Pop32();
+            int pDSFXDesc = CPU.CPU_Pop32();
+            int pdwResultCodes = CPU.CPU_Pop32();
+            CPU_Regs.reg_eax.dword = DError.DSERR_CONTROLUNAVAIL;
+        }
+    };
+
+    static private final Callback.Handler AcquireResources = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.AcquireResources";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int dwFlags = CPU.CPU_Pop32();
+            int dwEffectsCount = CPU.CPU_Pop32();
+            int pdwResultCodes = CPU.CPU_Pop32();
+            CPU_Regs.reg_eax.dword = Error.S_OK;
+        }
+    };
+
+    static private final Callback.Handler GetObjectInPath = new HandlerBase() {
+        @Override
+        public java.lang.String getName() {
+            return "IDirectSoundBuffer8.GetObjectInPath";
+        }
+
+        @Override
+        public void onCall() {
+            int This = CPU.CPU_Pop32();
+            int rguidObject = CPU.CPU_Pop32();
+            int dwIndex = CPU.CPU_Pop32();
+            int rguidInterface = CPU.CPU_Pop32();
+            int ppObject = CPU.CPU_Pop32();
+            if (ppObject != 0)
+                jdos.hardware.Memory.mem_writed(ppObject, 0);
+            CPU_Regs.reg_eax.dword = DError.DSERR_CONTROLUNAVAIL;
+        }
+    };
 
     static private final Callback.Handler CleanUp = new DirectCallback() {
         @Override
@@ -256,10 +345,14 @@ public class IDirectSoundBuffer extends IUnknown {
         d.buffer = WinSystem.getCurrentProcess().heap.alloc(desc.dwBufferBytes + MEMORY_HEADER_SIZE, false);
         d.buflen = desc.dwBufferBytes;
         d.freq = desc.lpwfxFormat.nSamplesPerSec;
-        d.freqAdjust = (int) (((long) d.freq << DSOUND_FREQSHIFT) / DSMixer.DEVICE_SAMPLE_RATE);
+        d.deviceRate = usableRate(d.freq);
+        d.freqAdjust = (int) (((long) d.freq << DSOUND_FREQSHIFT) / d.deviceRate);
         d.nAvgBytesPerSec = d.freq * desc.lpwfxFormat.nBlockAlign;
 
         DSMixer.DSOUND_RecalcFormat(d);
+        logger.log(Level.INFO, "sound buffer: " + d.freq + "Hz " + desc.lpwfxFormat.wBitsPerSample
+                + " bit " + desc.lpwfxFormat.nChannels + " channel, " + desc.dwBufferBytes + " bytes ("
+                + (d.nAvgBytesPerSec == 0 ? "?" : (desc.dwBufferBytes * 1000L / d.nAvgBytesPerSec) + "ms") + ")");
         setData(address, OFFSET_HANDLE, d.handle);
         incrementMemoryRef(address);
         return Error.S_OK;
@@ -322,7 +415,7 @@ public class IDirectSoundBuffer extends IUnknown {
             int lpdwCurrentPlayCursor = CPU.CPU_Pop32();
             int lpdwCurrentWriteCursor = CPU.CPU_Pop32();
             Data data = Data.get(This);
-            Memory.mem_writed(lpdwCurrentPlayCursor, data.startPos);
+            Memory.mem_writed(lpdwCurrentPlayCursor, data.playCursor());
             Memory.mem_writed(lpdwCurrentWriteCursor, data.endPos);
             CPU_Regs.reg_eax.dword = Error.S_OK;
         }
@@ -469,6 +562,10 @@ public class IDirectSoundBuffer extends IUnknown {
                 dwOffset = 0;
             int memory = data.buffer;
             int size = data.buflen;
+            if ((dwFlags & DSBLOCK_ENTIREBUFFER) != 0)
+                dwBytes = size;
+            lockedBytes = dwBytes;
+            lockedAt = System.currentTimeMillis();
 
             Memory.mem_writed(ppvAudioPtr1, memory + dwOffset);
             int length = size - dwOffset;
@@ -650,7 +747,7 @@ public class IDirectSoundBuffer extends IUnknown {
             if (freq != oldFreq) {
                 synchronized (data) {
                     data.freq = freq;
-                    data.freqAdjust = (int) (((long) freq << DSOUND_FREQSHIFT) / DSMixer.DEVICE_SAMPLE_RATE);
+                    data.freqAdjust = (int) (((long) freq << DSOUND_FREQSHIFT) / data.deviceRate);
                     data.nAvgBytesPerSec = freq * wfx.nBlockAlign;
                     DSMixer.DSOUND_RecalcFormat(data);
                     DSMixer.DSOUND_MixToTemporary(data, 0, data.buflen);
@@ -677,6 +774,109 @@ public class IDirectSoundBuffer extends IUnknown {
     };
 
     // HRESULT Unlock(this, LPVOID pvAudioPtr1, DWORD dwAudioBytes1, LPVOID pvAudioPtr2, DWORD dwAudioPtr2)
+    /**
+     * How long the program took to fill what it locked, against how long that much sound lasts.
+     * Below 1.0 the machine is making sound faster than it is played, which is what it has to do
+     * to sound continuous; above it, the buffer runs dry and what comes out is broken up.
+     */
+    private static long lockedAt;
+    private static int lockedBytes;
+    private static long realtimeReportedAt;
+    private static long filledMs;
+    private static long cpuAtStart;
+    private static long filledAtStart;
+
+    /**
+     * What the thread running the machine has burned so far, in nanoseconds. It is this thread
+     * and not the whole process on purpose: the audio thread and the jit are not the machine, and
+     * a guest that polls while it waits for the buffer to drain would otherwise look like work.
+     */
+    private static long cpuTime() {
+        java.lang.management.ThreadMXBean threads = java.lang.management.ManagementFactory.getThreadMXBean();
+        if (threads.isCurrentThreadCpuTimeSupported())
+            return threads.getCurrentThreadCpuTime();
+        return System.nanoTime();
+    }
+
+    /** how many times the sound played on with nothing new to play - see the play loop */
+    private static volatile int underruns;
+
+    /** silence repeats itself exactly and is not choppiness, so it is not counted as one */
+    private static boolean isSilent(byte[] buffer, int offset, int length) {
+        for (int i = 0; i < length; i++) {
+            if (buffer[offset + i] != 0)
+                return false;
+        }
+        return true;
+    }
+
+    /** how many times what went to the sound card was exactly what went before it */
+    private static volatile int repeats;
+    private static byte[] previousChunk = new byte[0];
+
+    /**
+     * Music does not repeat itself to the byte, so a chunk that is identical to the one before it
+     * is the same sound being played twice - which is what a machine that could not keep up
+     * sounds like. This catches what a starved sound card does not: the buffer here can be full
+     * the whole time and still hold what was in it a moment ago.
+     */
+    private static void countRepeat(byte[] buffer, int offset, int length) {
+        if (length <= 0 || isSilent(buffer, offset, length))
+            return;
+        if (previousChunk.length == length) {
+            int i = 0;
+            while (i < length && previousChunk[i] == buffer[offset + i]) i++;
+            if (i == length) {
+                repeats++;
+                return;
+            }
+        }
+        if (previousChunk.length != length)
+            previousChunk = new byte[length];
+        System.arraycopy(buffer, offset, previousChunk, 0, length);
+    }
+
+    /** how many breaks in the sound there have been, which is choppiness as a number */
+    public static int getUnderruns() {
+        return underruns;
+    }
+
+    /** how much of what was played was a repeat of what came before - choppiness, as a number */
+    public static int getRepeats() {
+        return repeats;
+    }
+
+    public static void resetUnderruns() {
+        underruns = 0;
+        repeats = 0;
+        filledMs = 0;
+        cpuAtStart = 0;
+    }
+
+    static private void reportRealtime(Data data) {
+        if (lockedAt == 0 || lockedBytes == 0 || data.nAvgBytesPerSec == 0)
+            return;
+        long now = System.currentTimeMillis();
+        filledMs += lockedBytes * 1000L / data.nAvgBytesPerSec;
+        lockedAt = 0;
+        if (filledMs > 0 && now - realtimeReportedAt >= 1000) {
+            realtimeReportedAt = now;
+            // how much processor a second of sound costs. Wall time between locking and
+            // unlocking would count the program waiting for the buffer to drain, which is what
+            // it is supposed to do; this counts only work, and can pass 1.0 on more than one core
+            long cpu = cpuTime();
+            if (cpuAtStart == 0) {
+                cpuAtStart = cpu;
+                filledAtStart = filledMs;
+                return;
+            }
+            long audio = filledMs - filledAtStart;
+            logger.log(Level.INFO, "sound: " + audio + "ms of audio cost " + ((cpu - cpuAtStart) / 1000000L)
+                    + "ms of machine (x" + String.format("%.2f", (cpu - cpuAtStart) / 1e6 / audio) + "), "
+                    + underruns + " breaks, " + repeats + " repeats");
+        }
+    }
+
     static private final Callback.Handler Unlock = new ReturnHandlerBase() {
         @Override
         public java.lang.String getName() {
@@ -706,6 +906,7 @@ public class IDirectSoundBuffer extends IUnknown {
                 DSMixer.DSOUND_MixToTemporary(data, 0, x2);
                 data.endPos = x1;
             }
+            reportRealtime(data);
             return Error.S_OK;
         }
     };
@@ -731,6 +932,8 @@ public class IDirectSoundBuffer extends IUnknown {
         public PlayThread(Data data) {
             this.format = data.wfx();
             this.data = data;
+            setDaemon(true);
+            playingThreads.add(this);
             open();
         }
 
@@ -741,8 +944,20 @@ public class IDirectSoundBuffer extends IUnknown {
         }
 
         public boolean open() {
+            // an embedding program may have asked for the samples instead of the speakers; the
+            // first buffer that plays claims the sink, and the primary buffer - which carries no
+            // sound of its own, only the format - never does
+            AudioSink candidate = JDosBox.getDirectSoundSink();
+            if (candidate != null && (data.flags() & DSBufferDesc.DSBCAPS_PRIMARYBUFFER) == 0 && claimSink(this, candidate)) {
+                sink = candidate;
+                sink.open(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS);
+                data.cursorStartedAt = System.nanoTime();
+                logger.log(Level.DEBUG, "dsound to sink " + data.deviceRate + "Hz "
+                        + DSMixer.DEVICE_BITS_PER_SAMEPLE + "bit " + DSMixer.DEVICE_CHANNELS + "ch");
+                return true;
+            }
             try {
-                AudioFormat af = new AudioFormat(DSMixer.DEVICE_SAMPLE_RATE, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
+                AudioFormat af = new AudioFormat(data.deviceRate, DSMixer.DEVICE_BITS_PER_SAMEPLE, DSMixer.DEVICE_CHANNELS, true, false);
                 DataLine.Info info = new DataLine.Info(SourceDataLine.class, af);
                 line = (SourceDataLine) AudioSystem.getLine(info);
                 line.open(af, LINE_SIZE);
@@ -757,6 +972,15 @@ public class IDirectSoundBuffer extends IUnknown {
 
         final WAVEFORMATEX format;
         SourceDataLine line;
+        /** where the samples go when an embedding program asked for them instead of the speakers */
+        AudioSink sink;
+        /** how much has gone to the sink; only {@link #stream} counts it */
+        volatile long deliveredBytes;
+        /** how far round the buffer the sink has been given, in the units it is played in */
+        int sinkPos;
+        /** the write cursor the last pass saw, which is how a whole ring written at once is told
+         * from nothing written at all - both land on the position we are already at */
+        int lastEnd = -1;
         final Data data;
         boolean playing = false;
         final Object mutex = new Object();
@@ -764,22 +988,165 @@ public class IDirectSoundBuffer extends IUnknown {
         boolean stop = false;
         boolean loop = false;
 
+        /** the position in the program's own buffer that the sound card is playing from */
+        private int playCursor() {
+            long playedBytes = line.getLongFramePosition() * (long) DSMixer.DEVICE_BLOCK_ALIGN;
+            if (data.tmp_buffer_len <= 0)
+                return 0;
+            int inTemporary = (int) (playedBytes % data.tmp_buffer_len);
+            return ((int) ((long) inTemporary * data.buflen / data.tmp_buffer_len) + 3) & ~3;
+        }
+
+        /**
+         * How much goes out at a time. A sink is handed smaller pieces than a line is: what a
+         * host reads alongside it - which moment of the song this is - is only as fine as the
+         * pieces are, and a sink that blocks paces the machine on each of them.
+         */
+        private static final int LINE_CHUNK = 8192;
+        private static final int SINK_CHUNK = 2048;
+
         private void play(byte[] buffer, int bufferLen, int start, int end) {
-            int length = 8192;
-            for (int i = start; i < end && !stop && data.tmp_buffer_len == bufferLen; i += 8192) {
+            int length = LINE_CHUNK;
+            for (int i = start; i < end && !stop && data.tmp_buffer_len == bufferLen; i += LINE_CHUNK) {
                 if (i + length >= end)
                     length = end - i;
                 try {
+                    // the sound card has played everything it was given and is waiting on us:
+                    // whatever it played last is repeating, or there is silence. Either way this
+                    // is the moment the listener hears the sound break up.
+                    if (line.available() >= LINE_SIZE)
+                        underruns++;
+                    countRepeat(buffer, i, length);
                     line.write(buffer, i, length);
                 } catch (Exception e) {
                     logger.log(Level.ERROR, e.getMessage(), e);
                 }
-                data.startPos = ((int) ((long) (i + length) * data.buflen / data.tmp_buffer_len) + 3) & ~3;
+                // where the play cursor is, is where the sound card has got to - not where we
+                // have written to. The card holds a fraction of a second of what it has been
+                // given, and a program that is told the cursor is further on than it is will
+                // write over sound that has not been played yet.
+                data.startPos = playCursor();
+            }
+        }
+
+        /**
+         * Plays the buffer into an {@link AudioSink} rather than at a sound card.
+         * <p>
+         * A card is a place: it keeps playing whatever it was last given, and a program that
+         * writes nothing hears the last thing again. A sink is a stream, where everything handed
+         * over is heard once and in order - so this sends what the program has written since the
+         * last time and nothing else, and nothing at all while it has written nothing. The sink
+         * blocking until its consumer has room is what holds that to real time, and the play
+         * cursor is moved by what was sent, which is what the program reads to decide how much
+         * more to write.
+         */
+        private void stream() {
+            playing = true;
+            while (!bExit) {
+                if (stop) {
+                    synchronized (mutex) {
+                        stop = false;
+                        playing = false;
+                        if (bExit) {
+                            break;
+                        }
+                        try {
+                            mutex.wait();
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        playing = true;
+                        // whatever went by while it was stopped is not going to be played now
+                        sinkPos = data.tmp_buffer_len > 0 ? data.getTmpEnd() % data.tmp_buffer_len : 0;
+                        lastEnd = sinkPos;
+                    }
+                    continue;
+                }
+
+                byte[] buffer = data.tmp_buffer;
+                int bufferLen = data.tmp_buffer_len;
+                if (buffer == null || bufferLen <= 0) {
+                    idle();
+                    continue;
+                }
+                // as a position on the ring, the end of the buffer and its start are the same
+                // place, and the program writes both
+                int end = data.getTmpEnd() % bufferLen;
+                int available = (end - sinkPos + bufferLen) % bufferLen;
+                if (available == 0) {
+                    if (end == lastEnd) {
+                        // one chunk is always left behind, so this really is nothing new: the
+                        // program has written nothing since the last pass. A card would be
+                        // playing the last thing again by now; this sends nothing instead, which
+                        // is the difference between a stream and a card and also what keeps a
+                        // program that is still loading from being run flat out into the sink.
+                        //
+                        // The cursor still moves, though. A card's play cursor is a clock and
+                        // never stops, and a program watching one that has stopped decides its
+                        // sound device has failed - FMP7 shuts itself down cleanly when it sees
+                        // that, at whatever point in the song its own threads happened to pause.
+                        idle();
+                        continue;
+                    }
+                    // it wrote the whole way round in one go, which lands back where we are
+                    available = bufferLen;
+                }
+                lastEnd = end;
+
+                // a chunk of what has been written is always left untaken, because a ring in
+                // which the play cursor has caught the write cursor is a ring with no free space
+                // in it - which is the same thing a full one looks like. A program that reads it
+                // that way stops writing and the song stops with it: taking this out makes every
+                // song silent, which is worth knowing before taking it out again.
+                available -= SINK_CHUNK;
+                if (available <= 0) {
+                    idle();
+                    continue;
+                }
+
+                int length = Math.min(Math.min(available, bufferLen - sinkPos), SINK_CHUNK);
+                countRepeat(buffer, sinkPos, length);
+                // the cursor moves before the sound goes out, not after. Handing it over can take
+                // as long as the sound lasts - that is what paces the machine - and a card would
+                // have been playing it throughout, not standing still until it was finished.
+                int from = sinkPos;
+                sinkPos = (sinkPos + length) % bufferLen;
+                // the cursor moves before the sound goes out, not after: handing it over can
+                // take as long as the sound lasts, and a card would have been playing it
+                // throughout rather than standing still until it was finished
+                data.startPos = (int) ((long) sinkPos * data.buflen / bufferLen) & ~3;
+                try {
+                    sink.write(buffer, from, length);
+                } catch (Exception e) {
+                    logger.log(Level.ERROR, e.getMessage(), e);
+                }
+                deliveredBytes += length;
+            }
+        }
+
+        private void idle() {
+            try {
+                Thread.sleep(2);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                bExit = true;
             }
         }
 
         @Override
         public void run() {
+            if (sink != null) {
+                stream();
+                // closed only by whoever still owns it: the buffer that took it over is playing
+                // through it now, and closing it under that one is what stops the song
+                if (releaseSink(this)) {
+                    sink.close();
+                }
+                sink = null;
+                playingThreads.remove(this);
+                return;
+            }
             while (!bExit) {
                 playing = true;
                 do {
@@ -799,6 +1166,12 @@ public class IDirectSoundBuffer extends IUnknown {
                             prevStart = data.startPos;
                             buffer = data.tmp_buffer;
                             bufferLen = data.tmp_buffer_len;
+                        }
+                        if (end == start) {
+                            // the program has not put anything new in the buffer since the last
+                            // pass, so what plays now is what played before: this is what a break
+                            // in the sound is, and counting them is how choppiness is measured
+                            underruns++;
                         }
                         if (end > start) {
                             play(buffer, bufferLen, start, end);
@@ -837,10 +1210,82 @@ public class IDirectSoundBuffer extends IUnknown {
                     }
                 }
             }
-            line.stop();
-            line.close();
-            line = null;
+            if (line != null) {
+                line.stop();
+                line.close();
+                line = null;
+            }
+            playingThreads.remove(this);
         }
+    }
+
+    /** the buffer that has the sink, so a second one played alongside it does not share it */
+    private static PlayThread sinkOwner;
+
+    /** every thread playing a buffer, so that a machine's can be shut down with it */
+    private static final java.util.Set<PlayThread> playingThreads =
+            java.util.Collections.newSetFromMap(new java.util.concurrent.ConcurrentHashMap<>());
+
+    /**
+     * Throws away every buffer that is playing, ready for a new machine.
+     * <p>
+     * A machine shut down part way through a song leaves its threads running - still playing a
+     * buffer in memory that has gone, still holding the sink - and the next machine's buffers
+     * then find the place taken.
+     */
+    public static void reset() {
+        PlayThread[] threads = playingThreads.toArray(new PlayThread[0]);
+        for (PlayThread thread : threads) {
+            thread.bExit = true;
+            thread.stop = true;
+            synchronized (thread.mutex) {
+                thread.mutex.notifyAll();
+            }
+        }
+        // waited for rather than left to finish in its own time: what it is playing from is the
+        // machine's memory, and the machine is about to be somebody else's
+        for (PlayThread thread : threads) {
+            try {
+                thread.join(1000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            }
+        }
+        playingThreads.clear();
+        sinkOwner = null;
+    }
+
+    /**
+     * Takes the sink for this buffer, unless another one that is still going has it. The owner is
+     * remembered rather than the sink itself: a machine shut down part way through leaves its
+     * buffers behind without closing them, and a claim left over from one of those must not keep
+     * the next machine's buffers off the sink.
+     */
+    private static synchronized boolean claimSink(PlayThread thread, AudioSink candidate) {
+        // a buffer that is finishing does not keep the sink from the one that replaces it. A
+        // program may release its streaming buffer and make another - FMP7 does, a second into
+        // the song - and refusing the new one sends the rest of the song to the speakers instead
+        // of to whoever asked for it, which from there looks like the machine dying mid-song.
+        if (sinkOwner != null && sinkOwner != thread && sinkOwner.isAlive() && !sinkOwner.bExit) {
+            return false;
+        }
+        sinkOwner = thread;
+        return true;
+    }
+
+    /** gives the sink back, and answers whether this thread still had it to give */
+    private static synchronized boolean releaseSink(PlayThread thread) {
+        if (sinkOwner == thread) {
+            sinkOwner = null;
+            return true;
+        }
+        return false;
+    }
+
+    /** a rate a sound card will take; anything odd falls back to the one every card has */
+    static private int usableRate(int freq) {
+        return freq >= 8000 && freq <= 192000 ? freq : DSMixer.DEVICE_SAMPLE_RATE;
     }
 
     static private boolean is_primary_buffer(int This) {

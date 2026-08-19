@@ -3,6 +3,9 @@ package jdos.win.builtin.winmm;
 import java.util.HashMap;
 import java.util.Map;
 
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+
 import jdos.cpu.CPU;
 import jdos.cpu.CPU_Regs;
 import jdos.cpu.Callback;
@@ -17,6 +20,9 @@ import jdos.win.system.WinSystem;
 
 
 public class MMTime extends WinAPI {
+
+    private static final Logger logger = System.getLogger(MMTime.class.getName());
+
 
     static final public int MMSYSTIME_MININTERVAL = 1;
     static final public int MMSYSTIME_MAXINTERVAL = 65535;
@@ -58,13 +64,47 @@ public class MMTime extends WinAPI {
             //lastCall = System.currentTimeMillis();
             CPU_Regs.reg_eip = eip;
             CPU_Regs.reg_esp.dword = esp;
+            countTick(dwDelay);
             if (dwDelay == 0) {
                 Scheduler.removeThread(thread);
                 timers.remove(id);
-            } else
-                Scheduler.sleep(thread, dwDelay - (int) (System.currentTimeMillis() - start));
+            } else {
+                // the next tick is due a fixed period after the last one was due, not after this
+                // one finished: measuring from the end makes every callback's own length part of
+                // the period, and a driver ticking on it plays the music slower and slower
+                MMTimer timer = timers.get(id);
+                long now = System.currentTimeMillis();
+                long due = timer == null ? now + dwDelay : timer.nextDue(now, dwDelay);
+                Scheduler.sleep(thread, (int) Math.max(0, due - now));
+            }
         }
     };
+
+    /** how much stack the thread that runs a timer callback gets */
+    static private final int TIMER_STACK_SIZE = 1024 * 1024;
+
+    /** how often the timer really fires, against how often it was asked to */
+    private static long ticks;
+    private static long ticksSince;
+    private static long ticksReportedAt;
+
+    static private void countTick(int delay) {
+        long now = System.currentTimeMillis();
+        ticks++;
+        if (ticksReportedAt == 0) {
+            ticksReportedAt = now;
+            ticksSince = ticks;
+            return;
+        }
+        if (now - ticksReportedAt >= 5000) {
+            long fired = ticks - ticksSince;
+            double actual = (now - ticksReportedAt) / (double) fired;
+            logger.log(Level.INFO, "timer: asked for every " + delay + "ms, firing every "
+                    + String.format("%.1f", actual) + "ms (x" + String.format("%.2f", actual / Math.max(1, delay)) + ")");
+            ticksReportedAt = now;
+            ticksSince = ticks;
+        }
+    }
 
     static private class MMTimer extends Thread {
 
@@ -88,7 +128,10 @@ public class MMTime extends WinAPI {
                     int cb = WinCallback.addCallback(mmTimerThread);
                     process.mmTimerThreadEIP = process.loader.registerFunction(cb);
                 }
-                this.thread = WinThread.create(process, process.mmTimerThreadEIP, 8192, 8192, true); // primary=true so that we don't call dllmain's with this thread
+                // the callback is the program's own code and can be as deep as any other thread's
+                // - a music driver renders a whole buffer of sound in here - so this thread is
+                // given the same stack a thread the program made itself would get
+                this.thread = WinThread.create(process, process.mmTimerThreadEIP, TIMER_STACK_SIZE, TIMER_STACK_SIZE, true); // primary=true so that we don't call dllmain's with this thread
                 thread.pushStack32((flags & TIME_PERIODIC) == 0 ? 0 : delay);
                 thread.pushStack32(dwUser);
                 thread.pushStack32(callback);
@@ -102,6 +145,18 @@ public class MMTime extends WinAPI {
                 this.thread = null;
                 this.start();
             }
+        }
+
+        private long due;
+
+        /** when the tick after this one is due, kept on an absolute timeline so it cannot drift */
+        long nextDue(long now, int delay) {
+            due = (due == 0 ? now : due) + delay;
+            // if the machine fell far enough behind that whole ticks were missed, give up on
+            // catching them up - playing them back to back would only make the sound worse
+            if (due < now - delay)
+                due = now + delay;
+            return due;
         }
 
         public void close() {
@@ -133,11 +188,33 @@ public class MMTime extends WinAPI {
                 if ((flags & TIME_PERIODIC) == 0)
                     break;
             }
-            timers.remove(this);
+            // by its id: the table is keyed by that, and removing by the timer itself - which is
+            // what this used to do - never removed anything, so every timer a program ever set
+            // stayed in it
+            timers.remove(id);
         }
     }
 
     static private final Map<Integer, MMTimer> timers = new HashMap<>();
+
+    /**
+     * Throws away every timer, ready for a new machine.
+     * <p>
+     * A timer holds a callback address in the machine's memory and a thread of the machine's
+     * scheduler, and neither of those means anything to the machine after it. Left in the table,
+     * the next program to set a timer is handed an id that is already taken and a table with
+     * somebody else's timers in it.
+     */
+    static public void reset() {
+        // the table is emptied and nothing is closed: a timer's thread belongs to the scheduler,
+        // which has already been stopped by the time this runs, and asking a stopped scheduler to
+        // remove a thread is not something to do on the way out
+        timers.clear();
+        nextTimerId = 1;
+        ticks = 0;
+        ticksSince = 0;
+        ticksReportedAt = 0;
+    }
 
     // MMRESULT timeBeginPeriod(UINT uPeriod)
     static public int timeBeginPeriod(int wPeriod) {
@@ -185,6 +262,7 @@ public class MMTime extends WinAPI {
     static public int timeSetEvent(int uDelay, int uResolution, int lpTimeProc, int dwUser, int fuEvent) {
         if (uDelay < MMSYSTIME_MININTERVAL || uDelay > MMSYSTIME_MAXINTERVAL)
             return 0;
+        logger.log(Level.INFO, "timer: every " + uDelay + "ms (resolution " + uResolution + "ms, flags 0x" + Integer.toHexString(fuEvent) + ")");
         MMTimer timer = new MMTimer(nextTimerId++, uDelay, lpTimeProc, dwUser, fuEvent);
         timers.put(timer.id, timer);
         return timer.id;

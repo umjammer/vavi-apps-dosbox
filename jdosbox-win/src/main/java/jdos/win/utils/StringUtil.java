@@ -41,27 +41,25 @@ public class StringUtil extends WinAPI {
         return (s - str) / 2;
     }
 
+    // these two are on the path of every string a program hands to the api, so they measure the
+    // string first and fill an array of that size, rather than growing one a character at a time
+
     static public String getString(int address) {
-        StringBuilder result = new StringBuilder();
-        while (true) {
-            char c = (char) Memory.mem_readb(address++); // TODO need to research converting according to 1252
-            if (c == 0)
-                break;
-            result.append(c);
+        int length = strlenA(address);
+        char[] result = new char[length];
+        for (int i = 0; i < length; i++) {
+            result[i] = (char) Memory.mem_readb(address + i); // TODO need to research converting according to 1252
         }
-        return result.toString();
+        return new String(result);
     }
 
     static public String getStringW(int address) {
-        StringBuilder result = new StringBuilder();
-        while (true) {
-            char c = (char) Memory.mem_readw(address);
-            address += 2;
-            if (c == 0)
-                break;
-            result.append(c);
+        int length = strlenW(address);
+        char[] result = new char[length];
+        for (int i = 0; i < length; i++) {
+            result[i] = (char) Memory.mem_readw(address + i * 2);
         }
-        return result.toString();
+        return new String(result);
     }
 
     static public String getString(int address, int count) {
@@ -250,6 +248,14 @@ public class StringUtil extends WinAPI {
         byte[] b = s.getBytes();
         int address = WinSystem.getCurrentProcess().heap.alloc(b.length + 1, false);
         strcpy(address, s);
+        return address;
+    }
+
+    static public int allocateW(String s) {
+        if (s == null)
+            return 0;
+        int address = WinSystem.getCurrentProcess().heap.alloc((s.length() + 1) * 2, false);
+        strcpyW(address, s);
         return address;
     }
 

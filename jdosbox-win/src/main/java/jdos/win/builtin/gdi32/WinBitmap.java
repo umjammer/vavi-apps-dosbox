@@ -14,6 +14,9 @@ import jdos.win.utils.Pixel;
 
 public class WinBitmap extends WinGDI {
 
+    /** the compression that means the header is followed by a mask per colour channel */
+    static private final int BI_BITFIELDS = 3;
+
     static public WinBitmap create(int address, boolean owner) {
         return new WinBitmap(nextObjectId(), address, DIB_RGB_COLORS, 0, owner);
     }
@@ -38,6 +41,36 @@ public class WinBitmap extends WinGDI {
         }
         return create(nWidth, nHeight, cBitsPerPel, lpvBits, null, false).handle;
     }
+
+    /**
+     * BITMAP is the description of a bitmap a program fills in itself: type, size, the stride of a
+     * row, how many planes and bits a pixel has, and the pixels.
+     */
+    // HBITMAP CreateBitmapIndirect(const BITMAP *lpbm)
+    static public int CreateBitmapIndirect(int lpbm) {
+        if (lpbm == 0)
+            return 0;
+        int width = readd(lpbm + 4);
+        int height = readd(lpbm + 8);
+        int planes = readw(lpbm + 16);
+        int bitsPerPixel = readw(lpbm + 18);
+        int bits = readd(lpbm + 20);
+        return CreateBitmap(width, height, planes, bitsPerPixel, bits);
+    }
+
+    // HBITMAP CreateDIBitmap(HDC hdc, const BITMAPINFOHEADER *lpbmih, DWORD fdwInit, const void *lpbInit, const BITMAPINFO *lpbmi, UINT fuUsage)
+    static public int CreateDIBitmap(int hdc, int lpbmih, int fdwInit, int lpbInit, int lpbmi, int fuUsage) {
+        if (lpbmih == 0)
+            return 0;
+        int width = readd(lpbmih + 4);
+        int height = Math.abs(readd(lpbmih + 8));
+        int handle = CreateCompatibleBitmap(hdc, width, height);
+        if (handle != 0 && (fdwInit & CBM_INIT) != 0 && lpbInit != 0 && lpbmi != 0)
+            Dib.SetDIBits(hdc, handle, 0, height, lpbInit, lpbmi, fuUsage);
+        return handle;
+    }
+
+    static private final int CBM_INIT = 4;
 
     // HBITMAP CreateDIBSection(HDC hdc, const BITMAPINFO *pbmi, UINT usage, void **ppvBits, HANDLE hSection, DWORD offset)
     static public int CreateDIBSection(int hdc, int pbmi, int usage, int ppvBits, int hSection, int offset) {
@@ -117,7 +150,11 @@ public class WinBitmap extends WinGDI {
                 Memory.mem_memcpy(bits, data, stride * height);
             }
         } else {
-            bits = WinSystem.getCurrentProcess().heap.alloc(4, false);
+            // a bitmap made without pixels - a compatible one, waiting to be drawn into - still
+            // gets the room for them, so that what is drawn into it can be read back out
+            int size = Math.max(4, Pixel.getPitch(width, bpp) * height);
+            bits = WinSystem.getCurrentProcess().heap.alloc(size, false);
+            Memory.mem_zero(bits, size);
         }
         bitsOwner = true;
     }
@@ -180,7 +217,14 @@ public class WinBitmap extends WinGDI {
         } else if (bitCount == 1) {
             if (biClrUsed == 0)
                 biClrUsed = 2;
-        } else { // if (bitCount != 15 && bitCount != 16 && bitCount != 24) {
+        } else if (bitCount == 15 || bitCount == 16 || bitCount == 24 || bitCount == 32) {
+            // these carry the colour in the pixel rather than in a table; where the table would
+            // be, a bitmap that says which bits hold which colour keeps three masks instead
+            if (biCompression == BI_BITFIELDS)
+                bits += 12;
+            palette = null;
+            return;
+        } else {
             Win.panic("Was not expecting to load a bitmap with " + bitCount + " bits per pixel");
         }
         bits += 4 * biClrUsed;
@@ -228,6 +272,11 @@ public class WinBitmap extends WinGDI {
         int result = WinSystem.getCurrentProcess().heap.alloc(size, true);
         Pixel.copy(bits, bitCount, palette, result, bpp, dstPalette, width, height, true);
         return result;
+    }
+
+    /** the java image of this bitmap is built once and kept; writing to its pixels drops it */
+    public void invalidate() {
+        cache = null;
     }
 
     public int getWidth() {

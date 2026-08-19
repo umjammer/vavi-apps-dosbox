@@ -56,6 +56,12 @@ public class WinFileMapping extends WinObject {
         if (size == 0)
             size = this.size - offset;
         int address = WinSystem.getCurrentProcess().reserveAddress(size + 0x1000, true);
+        if (address == 0) {
+            // there was nowhere to put it; mapping at 0 anyway would put the view over the
+            // bottom of the process and lose whatever is written to it
+            logger.log(Level.WARNING, "no address for a " + size + " byte view of " + name);
+            return 0;
+        }
         int directory = WinSystem.getCurrentProcess().page_directory;
         int p = address;
         offset >>>= 12;
@@ -107,6 +113,17 @@ public class WinFileMapping extends WinObject {
 
     public int getSize() {
         return size;
+    }
+
+    /**
+     * The physical page frame the mapping's {@code index}th page sits in. Frame 0 holds the
+     * metadata {@link #map} writes in front of the view, so the mapped data starts at frame 1.
+     * <p>
+     * This is what lets the host read a named shared memory the guest made - see
+     * {@link jdos.win.api.SharedMemory}.
+     */
+    public int frame(int index) {
+        return frames[index];
     }
 
     private String fileName;

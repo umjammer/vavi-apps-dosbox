@@ -62,23 +62,22 @@ public class WinProcess extends WaitObject {
         return (WinProcess) object;
     }
 
-    // BOOL WINAPI CloseHandle(HANDLE hObject)
+    /**
+     * BOOL WINAPI CloseHandle(HANDLE hObject)
+     * <p>
+     * Whatever the handle is for, closing it is {@link WinObject#close} - every kind of object
+     * knows how to be closed, and the one that does not exist is the only error there is. This
+     * used to name the kinds it would close and panic on the rest, which took the program down
+     * with it: FMP7 keeps three mutexes and closing any of them ended the song, at whatever point
+     * in it the program got round to that.
+     */
     static public int closeHandle(int hObject) {
         WinObject object = WinObject.getObject(hObject);
-        switch (object) {
-            case null -> {
-                SetLastError(Error.ERROR_INVALID_HANDLE);
-                return FALSE;
-            }
-            case WinProcess winProcess -> object.close();
-            case WinThread winThread -> object.close();
-            case WinFileMapping winFileMapping -> object.close();
-            case WinFile winFile -> object.close();
-            case WinEvent winEvent -> object.close();
-            case WinIcon winIcon -> object.close();
-            case WinCursor winCursor -> object.close();
-            default -> Win.panic("CloseHandle not implemented for type: " + object);
+        if (object == null) {
+            SetLastError(Error.ERROR_INVALID_HANDLE);
+            return FALSE;
         }
+        object.close();
         return TRUE;
     }
 
@@ -184,7 +183,16 @@ public class WinProcess extends WaitObject {
     public static final long ADDRESS_STACK_END = 0x01000000L;
     public static final long ADDRESS_CALLBACK_START = 0xA4000000L;
     public static final long ADDRESS_CALLBACK_END = 0xA4010000L;
-    public static final long ADDRESS_EXTRA_START = 0xB0000000L;
+    /**
+     * Where a mapping or a {@code VirtualAlloc} that does not say where it wants to be is put.
+     * <p>
+     * It has to be inside {@link #addressSpace}, which is what hands the addresses out: outside
+     * it, {@link Heap#getNextAddress} finds nothing and answers 0, and a caller that takes that
+     * for an address maps its pages over the bottom of the process - which is where the next
+     * thing to be mapped then lands on top of it. Here it sits above the modules (0x00400000)
+     * and the process heap (0x0BA00000) and below the end of the space.
+     */
+    public static final long ADDRESS_EXTRA_START = 0x20000000L;
     public static final long ADDRESS_VIDEO_START = 0xE0000000L;
     public static final long ADDRESS_VIDEO_BITMAP_START = 0xE8000000L;
 
@@ -374,14 +382,24 @@ public class WinProcess extends WaitObject {
         return temp[index] + 12;
     }
 
+    /** where a temp buffer is checked without being given up, to find what is writing over one */
+    public String checkTemps() {
+        for (int i = 0; i < nextTempIndex; i++) {
+            int size = readd(temp[i] + 8);
+            if (readd(temp[i]) != MAGIC || size < 16 || readd(temp[i] + size - 4) != MAGIC) {
+                return "temp buffer " + i + " of " + nextTempIndex + " at 0x" + Integer.toHexString(temp[i]);
+            }
+        }
+        return null;
+    }
+
     public void checkAndResetTemps() {
         for (int i = 0; i < nextTempIndex; i++) {
-            if (readd(temp[i]) != MAGIC) {
-                Win.panic("TempBuffers were currupted, this is a bug with jdosbox");
-            }
             int size = readd(temp[i] + 8);
-            if (readd(temp[i] + size - 4) != MAGIC)
-                Win.panic("TempBuffers were currupted, this is a bug with jdosbox");
+            if (readd(temp[i]) != MAGIC || readd(temp[i] + size - 4) != MAGIC) {
+                Win.panic("temp buffer " + i + " of " + nextTempIndex + " was written past its "
+                        + (size - 16) + " bytes at 0x" + Integer.toHexString(temp[i] + 12));
+            }
         }
         nextTempIndex = 0;
     }
@@ -463,7 +481,10 @@ public class WinProcess extends WaitObject {
 
     public Module getModuleByHandle(int handle) {
         if (handle == 0) return mainModule;
-        return loader.getModuleByHandle(handle);
+        Module module = loader.getModuleByHandle(handle);
+        if (module == null)
+            module = loader.getModuleByAddress(handle);
+        return module;
     }
 
     public int getModuleByName(String name) {

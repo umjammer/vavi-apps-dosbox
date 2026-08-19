@@ -5,6 +5,18 @@ import jdos.cpu.CPU_Regs;
 
 public class Compiler2 extends Compiler {
 
+    /**
+     * Thrown for an op this compiler has no java for - an sse instruction, for one. The block it
+     * came from is left to the dynamic core, which can run every op it decodes.
+     */
+    public static class UnhandledOp extends RuntimeException {
+
+        public UnhandledOp(Op op) {
+            super("[Compiler] Unhandled op: " + op);
+        }
+    }
+
+
     static boolean compile_op(Op op, int setFlags, StringBuilder method, String preException, Seg seg) {
         switch (op.c) {
             case 0x19a: // SETP
@@ -3780,8 +3792,10 @@ public class Compiler2 extends Compiler {
                     method.append(nameSet32(o.gd));
                     method.append("=val;");
                     return true;
+                } else if (CompilerSSE.compile_op(op, method, seg)) {
+                    return true;
                 } else {
-                    throw new IllegalStateException("[Compiler] Unhandled op: " + op);
+                    throw new UnhandledOp(op);
                 }
             case 0x380: // JO
                 if (op instanceof Inst4.JumpCond32_d_o) {
@@ -4650,8 +4664,10 @@ public class Compiler2 extends Compiler {
                     method.append(seg.val);
                     method.append(";return ModifiedDecode.call();");
                     return false;
+                } else if (CompilerSSE.compile_op(op, method, seg)) {
+                    return true;
                 } else {
-                    throw new IllegalStateException("[Compiler] Unhandled op: " + op);
+                    throw new UnhandledOp(op);
                 }
         }
         return true;

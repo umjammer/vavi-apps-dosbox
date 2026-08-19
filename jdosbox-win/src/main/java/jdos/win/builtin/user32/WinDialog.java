@@ -794,4 +794,60 @@ public class WinDialog extends WinAPI {
         if (WinWindow.IsWindow(hwnd) != 0) WinWindow.DestroyWindow(hwnd);
         return 0;
     }
+
+    // BOOL WINAPI SetDlgItemInt(HWND hDlg, int nIDDlgItem, UINT uValue, BOOL bSigned)
+    public static int SetDlgItemInt(int hDlg, int nIDDlgItem, int uValue, int bSigned) {
+        String value = bSigned != 0 ? Integer.toString(uValue) : Long.toString(uValue & 0xFFFFFFFFL);
+        return SetDlgItemTextA(hDlg, nIDDlgItem, StringUtil.allocateTempA(value));
+    }
+
+    // UINT WINAPI GetDlgItemInt(HWND hDlg, int nIDDlgItem, BOOL *lpTranslated, BOOL bSigned)
+    public static int GetDlgItemInt(int hDlg, int nIDDlgItem, int lpTranslated, int bSigned) {
+        int buffer = getTempBuffer(64);
+        int length = GetDlgItemTextA(hDlg, nIDDlgItem, buffer, 64);
+        int result = 0;
+        boolean translated = false;
+        if (length > 0) {
+            try {
+                long value = Long.parseLong(StringUtil.getString(buffer).trim());
+                if (bSigned != 0 ? (value >= Integer.MIN_VALUE && value <= Integer.MAX_VALUE) : (value >= 0 && value <= 0xFFFFFFFFL)) {
+                    result = (int) value;
+                    translated = true;
+                }
+            } catch (NumberFormatException e) {
+                // not a number, which is what lpTranslated is there to say
+            }
+        }
+        if (lpTranslated != 0)
+            writed(lpTranslated, translated ? TRUE : FALSE);
+        return result;
+    }
+
+    // UINT WINAPI GetDlgItemText(HWND hDlg, int nIDDlgItem, LPTSTR lpString, int nMaxCount)
+    public static int GetDlgItemTextA(int hDlg, int nIDDlgItem, int lpString, int nMaxCount) {
+        int item = GetDlgItem(hDlg, nIDDlgItem);
+        if (item == 0) {
+            if (nMaxCount > 0)
+                writeb(lpString, 0);
+            return 0;
+        }
+        return WinWindow.GetWindowTextA(item, lpString, nMaxCount);
+    }
+
+    // BOOL WINAPI CheckDlgButton(HWND hDlg, int nIDButton, UINT uCheck)
+    public static int CheckDlgButton(int hDlg, int nIDButton, int uCheck) {
+        int item = GetDlgItem(hDlg, nIDButton);
+        if (item == 0)
+            return FALSE;
+        Message.SendMessageA(item, BM_SETCHECK, uCheck, 0);
+        return TRUE;
+    }
+
+    // UINT WINAPI IsDlgButtonChecked(HWND hDlg, int nIDButton)
+    public static int IsDlgButtonChecked(int hDlg, int nIDButton) {
+        int item = GetDlgItem(hDlg, nIDButton);
+        if (item == 0)
+            return 0;
+        return Message.SendMessageA(item, BM_GETCHECK, 0, 0);
+    }
 }

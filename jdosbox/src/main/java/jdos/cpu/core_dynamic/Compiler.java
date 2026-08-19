@@ -267,6 +267,17 @@ public class Compiler extends Helper {
     static private Op opThatSetFlags = null;
 
     static public Op do_compile(Op op) {
+        try {
+            return internal_do_compile(op);
+        } catch (Compiler2.UnhandledOp e) {
+            if (thowException)
+                throw e;
+            logger.log(Level.DEBUG, e.getMessage() + " - leaving the block to the dynamic core");
+            return null;
+        }
+    }
+
+    static private Op internal_do_compile(Op op) {
         Op prev = op;
         op = op.next;
         StringBuilder method = new StringBuilder();
@@ -7671,8 +7682,12 @@ public class Compiler extends Helper {
 
     static private int count = 0;
 
+    /** -Djdos.compile.dump=<text> prints the java written for any block containing that text */
+    static private final String DUMP = System.getProperty("jdos.compile.dump");
+
     static private Op compileMethod(Op op, StringBuilder method, boolean jump) {
-        //logger.log(Level.DEBUG,method.toString());
+        if (DUMP != null && method.indexOf(DUMP) >= 0)
+            logger.log(Level.INFO, "compiled block:\n" + method);
         try {
             String className = "jdos.cpu.core_dynamic.CacheBlock" + (count++);
             // TODO research using a new pool for each block since the classes don't need to see each other

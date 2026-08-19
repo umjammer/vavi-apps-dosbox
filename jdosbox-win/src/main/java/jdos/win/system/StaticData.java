@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import jdos.win.builtin.WinAPI;
 import jdos.win.builtin.gdi32.WinBrush;
@@ -26,8 +27,13 @@ public class StaticData extends WinAPI {
     public static int mouseCapture; // HWND
     public static int foregroundWindow; // HWND
     public static int nextObjectId = 8200;
-    public static final Map<Integer, WinObject> objects = new HashMap<>();
-    public static final Map<String, WinObject> namedObjects = new HashMap<>();
+    // concurrent because they are not only the guest's: a host thread reading a named shared
+    // memory (see jdos.win.api.SharedMemory) looks a mapping up here while the guest is making
+    // and closing objects, and a HashMap read that lands in the middle of a resize does not come
+    // back - the thread taking the machine's sound then stops taking it, and the program whose
+    // sound card has stopped shuts itself down mid-song
+    public static final Map<Integer, WinObject> objects = new ConcurrentHashMap<>();
+    public static final Map<String, WinObject> namedObjects = new ConcurrentHashMap<>();
     public static WinPoint currentPos = new WinPoint(0, 0);
 
     public static final int[] SysColors = new int[NUM_SYS_COLORS];

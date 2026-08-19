@@ -296,4 +296,16 @@ public class Input extends WinAPI {
             window.postMessage(msg, wParam, (pt.x) | (pt.y << 16));
         }
     }
+
+    // BOOL WINAPI AttachThreadInput(DWORD idAttach, DWORD idAttachTo, BOOL fAttach)
+    static public int AttachThreadInput(int idAttach, int idAttachTo, int fAttach) {
+        // there is one input queue here already, which is what attaching would be asking for
+        return TRUE;
+    }
+
+    // BOOL WINAPI ClipCursor(const RECT *lpRect)
+    static public int ClipCursor(int lpRect) {
+        // the cursor belongs to the host, so there is nothing here to confine
+        return TRUE;
+    }
 }
