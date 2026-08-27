@@ -9,6 +9,7 @@ import jdos.cpu.Callback;
 import jdos.fpu.FPU;
 import jdos.hardware.Memory;
 import jdos.win.Console;
+import jdos.win.builtin.user32.Wsprintf;
 import jdos.win.loader.BuiltinModule;
 import jdos.win.loader.Loader;
 import jdos.win.system.WinSystem;
@@ -72,6 +73,28 @@ public class Msvcr90 extends BuiltinModule {
         add_cdecl(Msvcr90.class, "memset", new String[] {"(HEX)ptr", "value", "num"});
         add_cdecl(Msvcr90.class, "vswprintf_s", new String[] {"(HEX)buffer", "count", "(HEX)format", "(HEX)args"});
         add_cdecl(Msvcr90.class, "wcschr", new String[] {"(HEX)str", "c"});
+        add_cdecl(Msvcr90.class, "strchr", new String[] {"(HEX)str", "c"});
+        add_cdecl(Msvcr90.class, "strcpy_s", new String[] {"(HEX)dst", "size", "(STRING)src"});
+        add_cdecl(Msvcr90.class, "sprintf_s", new String[] {"(HEX)buffer", "size", "(STRING)format"});
+        add_cdecl(Msvcr90.class, "sscanf_s", new String[] {"(STRING)str", "(STRING)format"});
+        add_cdecl(Msvcr90.class, "atoi", new String[] {"(STRING)str"});
+
+        // the character classes. Left out, they are stubbed to return 0, and a program that gets
+        // 0 back from tolower where it asked for a letter goes wrong quietly and a long way from
+        // here: it is these, missing, that had fmc.dll comparing every keyword against "" and
+        // giving up on every song it was handed.
+        add_cdecl(Msvcr90.class, "tolower", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "toupper", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isalnum", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isalpha", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isdigit", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isspace", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isupper", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "islower", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isxdigit", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "ispunct", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "isprint", new String[] {"c"});
+        add_cdecl(Msvcr90.class, "iscntrl", new String[] {"c"});
 
         add_cdecl(Msvcr90.class, "__CppXcptFilter", new String[] {"code", "(HEX)pointers"});
         add_cdecl(Msvcr90.class, "__clean_type_info_names_internal", new String[] {"(HEX)pcache"});
@@ -631,6 +654,68 @@ public class Msvcr90 extends BuiltinModule {
         FPU.FPU_PUSH(value);
     }
 
+    // ---------------------------------------------------------------- character classes
+
+    /**
+     * The C locale's own idea of a letter, a digit and a space - not java's.
+     * <p>
+     * {@link Character#isLetter} would say yes to half of unicode, and these are asked about the
+     * bytes of a file rather than about characters: a program reading shift-jis hands over each
+     * byte of a two byte character on its own, and the C runtime it was written against answers
+     * for the C locale, where everything above 0x7f is none of these.
+     */
+    private static boolean ascii(int c) {
+        return (c & ~0x7f) == 0;
+    }
+
+    public static int tolower(int c) {
+        return ascii(c) && c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c;
+    }
+
+    public static int toupper(int c) {
+        return ascii(c) && c >= 'a' && c <= 'z' ? c - ('a' - 'A') : c;
+    }
+
+    public static int isalpha(int c) {
+        return ascii(c) && (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z') ? 1 : 0;
+    }
+
+    public static int isdigit(int c) {
+        return ascii(c) && c >= '0' && c <= '9' ? 1 : 0;
+    }
+
+    public static int isalnum(int c) {
+        return isalpha(c) != 0 || isdigit(c) != 0 ? 1 : 0;
+    }
+
+    public static int isupper(int c) {
+        return ascii(c) && c >= 'A' && c <= 'Z' ? 1 : 0;
+    }
+
+    public static int islower(int c) {
+        return ascii(c) && c >= 'a' && c <= 'z' ? 1 : 0;
+    }
+
+    public static int isxdigit(int c) {
+        return isdigit(c) != 0 || ascii(c) && (c >= 'A' && c <= 'F' || c >= 'a' && c <= 'f') ? 1 : 0;
+    }
+
+    public static int isspace(int c) {
+        return ascii(c) && (c == ' ' || c >= 0x09 && c <= 0x0d) ? 1 : 0;
+    }
+
+    public static int iscntrl(int c) {
+        return ascii(c) && (c < 0x20 || c == 0x7f) ? 1 : 0;
+    }
+
+    public static int isprint(int c) {
+        return ascii(c) && c >= 0x20 && c != 0x7f ? 1 : 0;
+    }
+
+    public static int ispunct(int c) {
+        return isprint(c) != 0 && c != ' ' && isalnum(c) == 0 ? 1 : 0;
+    }
+
     // ---------------------------------------------------------------- strings and paths
 
     public static int wcschr(int str, int c) {
@@ -723,6 +808,188 @@ public class Msvcr90 extends BuiltinModule {
             result.append(ext);
         }
         return result.toString();
+    }
+
+    public static int strchr(int str, int c) {
+        int find = c & 0xff;
+        while (true) {
+            int current = Memory.mem_readb(str) & 0xff;
+            if (current == find)
+                return str;
+            if (current == 0)
+                return 0;
+            str++;
+        }
+    }
+
+    /** strcpy_s(char *, rsize_t, const char *); 0 is the success the caller checks for */
+    public static int strcpy_s(int dst, int size, int src) {
+        if (dst == 0 || src == 0 || size <= 0)
+            return 22; // EINVAL
+        String value = StringUtil.getString(src);
+        if (value.length() + 1 > size) {
+            Memory.mem_writeb(dst, 0);
+            return 34; // ERANGE
+        }
+        StringUtil.strcpy(dst, value);
+        return 0;
+    }
+
+    /**
+     * sprintf_s(char *, rsize_t, const char *, ...), which returns what it wrote rather than an
+     * error code. The variable arguments start at the fourth dword on the stack.
+     */
+    public static int sprintf_s(int buffer, int size, int format) {
+        String result = Wsprintf.format(StringUtil.getString(format), false, 3);
+        if (size > 0 && result.length() + 1 > size)
+            result = result.substring(0, size - 1);
+        StringUtil.strcpy(buffer, result);
+        return result.length();
+    }
+
+    /**
+     * sscanf_s(const char *, const char *, ...), as much of it as the guests here ask for:
+     * {@code %d %i %u %o %x %f %c %s} with an optional width, whitespace that matches any run of
+     * it, and anything else matching itself.
+     * <p>
+     * The {@code _s} form takes the size of the buffer after each {@code %c} and {@code %s}
+     * pointer, which is what makes it a different function from {@code sscanf} rather than a
+     * safer spelling of it - so the arguments have to be walked with that in mind.
+     *
+     * @return how many conversions were assigned, or -1 (EOF) when the input ran out first
+     */
+    public static int sscanf_s(int str, int format) {
+        String input = StringUtil.getString(str);
+        String spec = StringUtil.getString(format);
+        int at = 0;         // where we are in the input
+        int arg = 2;        // the next argument on the stack
+        int assigned = 0;
+        for (int i = 0; i < spec.length(); i++) {
+            char c = spec.charAt(i);
+            if (Character.isWhitespace(c)) {
+                while (at < input.length() && Character.isWhitespace(input.charAt(at))) at++;
+                continue;
+            }
+            if (c != '%') {
+                if (at >= input.length() || input.charAt(at) != c)
+                    return assigned > 0 ? assigned : (at >= input.length() ? -1 : 0);
+                at++;
+                continue;
+            }
+            if (++i >= spec.length())
+                break;
+            if (spec.charAt(i) == '%') {
+                if (at >= input.length() || input.charAt(at) != '%')
+                    return assigned;
+                at++;
+                continue;
+            }
+            boolean skip = spec.charAt(i) == '*';
+            if (skip)
+                i++;
+            int width = 0;
+            while (i < spec.length() && Character.isDigit(spec.charAt(i)))
+                width = width * 10 + (spec.charAt(i++) - '0');
+            // the length modifiers change nothing here: everything is read as an int or a double
+            while (i < spec.length() && "hljztL".indexOf(spec.charAt(i)) >= 0)
+                i++;
+            if (i >= spec.length())
+                break;
+            char kind = spec.charAt(i);
+
+            if (kind != 'c' && kind != '[') {
+                while (at < input.length() && Character.isWhitespace(input.charAt(at))) at++;
+            }
+            if (at >= input.length())
+                return assigned > 0 ? assigned : -1;
+
+            int end = at;
+            int limit = width > 0 ? Math.min(input.length(), at + width) : input.length();
+            switch (kind) {
+                case 'd', 'i', 'u', 'o', 'x', 'X' -> {
+                    int radix = kind == 'x' || kind == 'X' ? 16 : kind == 'o' ? 8 : 10;
+                    if (end < limit && (input.charAt(end) == '+' || input.charAt(end) == '-'))
+                        end++;
+                    while (end < limit && Character.digit(input.charAt(end), radix) >= 0)
+                        end++;
+                    if (end == at)
+                        return assigned;
+                    long value;
+                    try {
+                        value = Long.parseLong(input.substring(at, end), radix);
+                    } catch (NumberFormatException e) {
+                        return assigned;
+                    }
+                    if (!skip)
+                        Memory.mem_writed(CPU.CPU_Peek32(arg++), (int) value);
+                }
+                case 'e', 'E', 'f', 'g', 'G' -> {
+                    if (end < limit && (input.charAt(end) == '+' || input.charAt(end) == '-'))
+                        end++;
+                    while (end < limit && (Character.isDigit(input.charAt(end)) || input.charAt(end) == '.'))
+                        end++;
+                    if (end == at)
+                        return assigned;
+                    float value;
+                    try {
+                        value = Float.parseFloat(input.substring(at, end));
+                    } catch (NumberFormatException e) {
+                        return assigned;
+                    }
+                    if (!skip)
+                        Memory.mem_writed(CPU.CPU_Peek32(arg++), Float.floatToIntBits(value));
+                }
+                case 'c' -> {
+                    end = Math.min(input.length(), at + Math.max(width, 1));
+                    if (!skip) {
+                        int address = CPU.CPU_Peek32(arg++);
+                        int size = CPU.CPU_Peek32(arg++);
+                        for (int n = 0; n < end - at && n < size; n++)
+                            Memory.mem_writeb(address + n, input.charAt(at + n));
+                    }
+                }
+                case 's' -> {
+                    while (end < limit && !Character.isWhitespace(input.charAt(end)))
+                        end++;
+                    if (end == at)
+                        return assigned;
+                    if (!skip) {
+                        int address = CPU.CPU_Peek32(arg++);
+                        int size = CPU.CPU_Peek32(arg++);
+                        String value = input.substring(at, end);
+                        if (value.length() + 1 > size)
+                            value = value.substring(0, Math.max(0, size - 1));
+                        StringUtil.strcpy(address, value);
+                    }
+                }
+                default -> {
+                    WinAPI.warn("sscanf_s: %" + kind + " is not one of the conversions this knows");
+                    return assigned;
+                }
+            }
+            at = end;
+            if (!skip)
+                assigned++;
+        }
+        return assigned;
+    }
+
+    public static int atoi(int str) {
+        if (str == 0)
+            return 0;
+        String value = StringUtil.getString(str);
+        int at = 0;
+        while (at < value.length() && Character.isWhitespace(value.charAt(at))) at++;
+        int start = at;
+        if (at < value.length() && (value.charAt(at) == '+' || value.charAt(at) == '-')) at++;
+        while (at < value.length() && Character.isDigit(value.charAt(at))) at++;
+        try {
+            return Integer.parseInt(value.substring(start, at));
+        } catch (NumberFormatException e) {
+            // no digits at all, or more of them than an int holds - the runtime says 0 to the
+            // first and lets the second wrap, which nothing here depends on
+            return 0;
+        }
     }
 
     private static void copyA(int address, int size, String value) {

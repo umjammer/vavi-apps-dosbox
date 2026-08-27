@@ -108,7 +108,9 @@ public class Kernel32 extends BuiltinModule {
         add(GetFileSize);
         add(GetFileType);
         add(WinPath.class, "GetFullPathNameA", new String[] {"(STRING)lpFileName", "nBufferLength", "(HEX)lpBuffer", "(HEX)lpFilePart", "result", "02(STRING)lpBuffer", "03(STRING)lpFilePart"});
-        add(WinThread.class, "GetLastError", new String[0]);
+        // GetLastError has to see the error the call before it left, not the clean slate a call
+        // normally starts from - see HandlerBase#keepsLastError
+        add_keeping_error(WinThread.class, "GetLastError", new String[0]);
         add(GetLocaleInfoA);
         add(GetLocaleInfoW);
         add(GetLocalTime);
@@ -674,8 +676,14 @@ public class Kernel32 extends BuiltinModule {
                 }
                 CPU_Regs.reg_eax.dword = WinAPI.TRUE;
             } else {
+                // FILE_NOT_FOUND when it is only the file that is missing, PATH_NOT_FOUND when
+                // the directory it would be in is. A program that clears its output away before
+                // writing it reads the difference, and takes the second for a reason to stop -
+                // which is what had fmc.dll give up on every song it was handed here.
+                FilePath parent = file.getParentFile();
                 CPU_Regs.reg_eax.dword = WinAPI.FALSE;
-                Scheduler.getCurrentThread().setLastError(Error.ERROR_PATH_NOT_FOUND);
+                Scheduler.getCurrentThread().setLastError(parent == null || parent.exists()
+                        ? Error.ERROR_FILE_NOT_FOUND : Error.ERROR_PATH_NOT_FOUND);
             }
         }
     };
@@ -2971,24 +2979,35 @@ public class Kernel32 extends BuiltinModule {
             switch (CodePage) {
                 case 0:
                 case 1252:
-                    LittleEndianFile file = new LittleEndianFile(lpMultiByteStr, cbMultiByte);
-                    java.lang.String result = file.readCString();
+                    // -1 means the string ends at its nul, and then the nul is converted too and
+                    // counted; any other length is exactly that many bytes, nul or no nul, and
+                    // nothing is added to either the result or the count. A caller that asks for
+                    // the size first and then converts gets both of those from here, and a
+                    // caller that passes -1 - which is most of them - used to be told its string
+                    // was empty, because reading it stopped before it started.
+                    boolean terminated = cbMultiByte < 0;
+                    java.lang.String result = terminated
+                            ? new LittleEndianFile(lpMultiByteStr).readCString()
+                            : new LittleEndianFile(lpMultiByteStr, cbMultiByte).readCString(cbMultiByte);
                     char[] c = result.toCharArray();
+                    int needed = c.length + (terminated ? 1 : 0);
                     if (cchWideChar == 0) {
-                        CPU_Regs.reg_eax.dword = c.length + 1;
-                    } else if (cchWideChar < c.length + 1) {
+                        CPU_Regs.reg_eax.dword = needed;
+                    } else if (cchWideChar < needed) {
                         CPU_Regs.reg_eax.dword = 0;
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_INSUFFICIENT_BUFFER);
                     } else if (lpWideCharStr == 0) {
                         CPU_Regs.reg_eax.dword = 0;
                         Scheduler.getCurrentThread().setLastError(Error.ERROR_INVALID_PARAMETER);
                     } else {
-                        CPU_Regs.reg_eax.dword = c.length + 1;
+                        CPU_Regs.reg_eax.dword = needed;
                         for (char value : c) {
                             Memory.mem_writew(lpWideCharStr, value);
                             lpWideCharStr += 2;
                         }
-                        Memory.mem_writew(lpWideCharStr, 0);
+                        if (terminated) {
+                            Memory.mem_writew(lpWideCharStr, 0);
+                        }
                     }
                     break;
                 default:

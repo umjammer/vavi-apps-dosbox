@@ -1,5 +1,7 @@
 package jdos.win.utils;
 
+import java.nio.charset.StandardCharsets;
+
 public class LittleEndian {
 
     final byte[] buffer;
@@ -85,7 +87,7 @@ public class LittleEndian {
     }
 
     static public void writeCString(byte[] buffer, int offset, String s) {
-        byte[] b = s.getBytes();
+        byte[] b = s.getBytes(StandardCharsets.ISO_8859_1);
         System.arraycopy(b, 0, buffer, offset, b.length);
         buffer[b.length] = 0;
     }

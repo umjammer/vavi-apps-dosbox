@@ -308,7 +308,7 @@ public class BuiltinModule extends Module {
     }
 
     /** the last api calls the guest made, for working out what it gave up on */
-    private static final String[] recent = new String[512];
+    private static String[] recent;
     private static int recentAt;
     private static long recordingStartedAt;
 
@@ -326,14 +326,28 @@ public class BuiltinModule extends Module {
         };
     }
 
-    /** -Djdos.trail=true keeps a trail of the guest's api calls; it costs time per call */
-    private static final boolean TRAIL = Boolean.getBoolean("jdos.trail");
+    /**
+     * {@code -Djdos.trail=true} keeps a trail of the guest's api calls; it costs time per call.
+     * <p>
+     * The trail is a ring, and five hundred calls is enough to see what a program did just before
+     * it gave up - which is what it is usually for. A run being compared against the same one
+     * somewhere else, wine say, needs all of them instead: {@code -Djdos.trail=<n>} asks for a
+     * ring of that many.
+     */
+    private static final boolean TRAIL = !System.getProperty("jdos.trail", "false").equals("false");
 
     static void record(String name, Integer[] args) {
         if (!TRAIL || isNoise(name)) {
             return;
         }
-        if (recordingStartedAt == 0) {
+        if (recent == null) {
+            int size = 512;
+            try {
+                size = Math.max(1, Integer.parseInt(System.getProperty("jdos.trail", "").trim()));
+            } catch (NumberFormatException e) {
+                // "true", which is the ring this started out as
+            }
+            recent = new String[size];
             recordingStartedAt = System.nanoTime();
         }
         StringBuilder sb = new StringBuilder();
@@ -341,17 +355,18 @@ public class BuiltinModule extends Module {
         for (Integer a : args) {
             sb.append(' ').append(Integer.toHexString(a));
         }
-        recent[recentAt++ & 511] = sb.toString();
+        recent[recentAt] = sb.toString();
+        recentAt = (recentAt + 1) % recent.length;
     }
 
     /** prints them oldest first */
     public static void dumpRecent() {
-        if (!TRAIL) {
+        if (!TRAIL || recent == null) {
             return;
         }
         System.err.println("### the last api calls before this:");
-        for (int i = 0; i < 512; i++) {
-            String call = recent[(recentAt + i) & 511];
+        for (int i = 0; i < recent.length; i++) {
+            String call = recent[(recentAt + i) % recent.length];
             if (call != null) {
                 System.err.println("###   " + call);
             }
@@ -676,6 +691,21 @@ public class BuiltinModule extends Module {
         } else {
             add(new NoReturnHandler(methodName, method, true, params));
         }
+    }
+
+    /**
+     * The same, for a function that has to be able to read the last error - see
+     * {@link HandlerBase#keepsLastError}.
+     */
+    protected void add_keeping_error(Class<?> c, String methodName, String[] params) {
+        Method method = findMethod(c, methodName);
+        if (method == null) {
+            Win.panic("Failed to find " + methodName);
+            return;
+        }
+        add((method.getReturnType() == Integer.TYPE
+                ? new ReturnHandler(methodName, method, true, params)
+                : new NoReturnHandler(methodName, method, true, params)).keepsLastError());
     }
 
     /**

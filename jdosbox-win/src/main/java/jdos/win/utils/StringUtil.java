@@ -1,5 +1,6 @@
 package jdos.win.utils;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -100,7 +101,7 @@ public class StringUtil extends WinAPI {
     }
 
     static public void strcpy(int address, String value) {
-        byte[] b = value.getBytes();
+        byte[] b = value.getBytes(StandardCharsets.ISO_8859_1);
         Memory.mem_memcpy(address, b, 0, b.length);
         Memory.mem_writeb(address + b.length, 0);
     }
@@ -111,7 +112,7 @@ public class StringUtil extends WinAPI {
     }
 
     static public int strncpy(int address, String value, int count) {
-        byte[] b = value.getBytes();
+        byte[] b = value.getBytes(StandardCharsets.ISO_8859_1);
         if (b.length + 1 < count)
             count = b.length + 1;
         Memory.mem_memcpy(address, b, 0, count - 1);
@@ -245,7 +246,7 @@ public class StringUtil extends WinAPI {
     static public int allocateA(String s) {
         if (s == null)
             return 0;
-        byte[] b = s.getBytes();
+        byte[] b = s.getBytes(StandardCharsets.ISO_8859_1);
         int address = WinSystem.getCurrentProcess().heap.alloc(b.length + 1, false);
         strcpy(address, s);
         return address;
@@ -262,7 +263,7 @@ public class StringUtil extends WinAPI {
     static public int allocateTempA(String s) {
         if (s == null)
             return 0;
-        byte[] b = s.getBytes();
+        byte[] b = s.getBytes(StandardCharsets.ISO_8859_1);
         int address = getTempBuffer(b.length + 1);
         strcpy(address, s);
         return address;

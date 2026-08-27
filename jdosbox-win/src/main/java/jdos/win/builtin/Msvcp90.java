@@ -53,7 +53,20 @@ public class Msvcp90 extends BuiltinModule {
         add_named("?clear@" + STRING + "QAEXXZ", Msvcp90.class, "string_clear", false);
         add_named("??Y" + STRING + "QAEAAV01@D@Z", Msvcp90.class, "string_append_char", false);
         add_named("??Y" + STRING + "QAEAAV01@PBD@Z", Msvcp90.class, "string_append_string", false);
+        add_named("??4" + STRING + "QAEAAV01@ABV01@@Z", Msvcp90.class, "string_assign", false);
+        add_named("??A" + STRING + "QAEAADI@Z", Msvcp90.class, "string_at", false);
+        add_named("?substr@" + STRING + "QBE?AV12@II@Z", Msvcp90.class, "string_substr", false);
+        add_named("?erase@" + STRING + "QAEAAV12@II@Z", Msvcp90.class, "string_erase", false);
+
+        // npos is a static data member, so what the program imports is its address rather than a
+        // function; everything it is compared against is unsigned, and it is the largest of those
+        npos = addData("?npos@" + STRING + "2IB", 4);
+        Memory.mem_writed(npos, NPOS);
     }
+
+    /** basic_string::npos, and where the guest reads it from */
+    private static final int NPOS = -1;
+    private static int npos;
 
     // ---------------------------------------------------------------- std::string
 
@@ -113,6 +126,80 @@ public class Msvcp90 extends BuiltinModule {
         if (str != 0)
             appendNarrow(self, StringUtil.getString(str));
         return self;
+    }
+
+    /** basic_string<char>::operator=(const basic_string &) */
+    public static int string_assign(int other) {
+        int self = CPU_Regs.reg_ecx.dword;
+        if (self != other) {
+            Memory.mem_writed(self + MYSIZE, 0);
+            Memory.mem_writeb(narrowData(self), 0);
+            if (other != 0)
+                appendNarrow(self, narrowString(other));
+        }
+        return self;
+    }
+
+    /**
+     * basic_string<char>::operator[](size_t), which hands back a reference - an address, here.
+     * There is nothing to bound check against: what the caller does with it is a plain read or
+     * write of that byte, written into the program rather than called for.
+     */
+    public static int string_at(int index) {
+        return narrowData(CPU_Regs.reg_ecx.dword) + index;
+    }
+
+    /**
+     * basic_string<char>::substr(size_t off, size_t count) const.
+     * <p>
+     * It returns a string by value, so the caller hands over the room for it: with a class
+     * return the compiler pushes that pointer after the arguments, which puts it first on the
+     * stack, and the function gives it back in eax. The room is raw - nothing has constructed a
+     * string in it yet - so this starts by doing that.
+     */
+    public static int string_substr(int result, int off, int count) {
+        String value = narrowString(CPU_Regs.reg_ecx.dword);
+        narrowInit(result);
+        if (off <= value.length()) {
+            int end = count == NPOS || off + count > value.length() || off + count < 0
+                    ? value.length() : off + count;
+            appendNarrow(result, value.substring(off, end));
+        }
+        return result;
+    }
+
+    /** basic_string<char>::erase(size_t off, size_t count) */
+    public static int string_erase(int off, int count) {
+        int self = CPU_Regs.reg_ecx.dword;
+        String value = narrowString(self);
+        if (off <= value.length()) {
+            int end = count == NPOS || off + count > value.length() || off + count < 0
+                    ? value.length() : off + count;
+            String kept = value.substring(0, off) + value.substring(end);
+            Memory.mem_writed(self + MYSIZE, 0);
+            Memory.mem_writeb(narrowData(self), 0);
+            appendNarrow(self, kept);
+        }
+        return self;
+    }
+
+    /** what a string holds, as a java string; its length is kept in the object, not in a terminator */
+    private static String narrowString(int self) {
+        int address = narrowData(self);
+        int size = Memory.mem_readd(self + MYSIZE);
+        StringBuilder sb = new StringBuilder(size);
+        for (int i = 0; i < size; i++) {
+            sb.append((char) (Memory.mem_readb(address + i) & 0xff));
+        }
+        return sb.toString();
+    }
+
+    /** makes an empty string out of room that does not hold one yet */
+    private static void narrowInit(int self) {
+        Memory.mem_writed(self, 0);
+        Memory.mem_writed(self + MYSIZE, 0);
+        Memory.mem_writed(self + MYRES, NARROW_BUF_SIZE - 1);
+        Memory.mem_writeb(self + BX, 0);
     }
 
     private static int narrowData(int self) {
