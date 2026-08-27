@@ -34,6 +34,17 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
         this.resetError = resetError;
     }
 
+    /**
+     * Says this call must see the last error the call before it left, rather than the clean slate
+     * every other one starts from. There is one of those - {@code GetLastError}, whose whole job
+     * is to read it - and without this it answers every question with "no error", which a program
+     * that tells one failure from another by the code reads as a failure it has never heard of.
+     */
+    public HandlerBase keepsLastError() {
+        resetError = false;
+        return this;
+    }
+
     @Override
     public int call() {
         jdos.win.builtin.winmm.Waveform.pollCallbacks();

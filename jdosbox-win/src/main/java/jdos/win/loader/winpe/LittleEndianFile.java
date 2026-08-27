@@ -1,5 +1,7 @@
 package jdos.win.loader.winpe;
 
+import java.nio.charset.StandardCharsets;
+
 import jdos.hardware.Memory;
 import jdos.win.Console;
 import jdos.win.Win;
@@ -27,10 +29,19 @@ public class LittleEndianFile {
         w = new byte[8];
     }
 
+    /**
+     * A nul terminated string, one byte to a character.
+     * <p>
+     * The mask is what makes a byte above 0x7f a character in the range a byte can hold: java's
+     * byte is signed, so 0xc3 widened without it is U+FFC3, and a program that hands such a
+     * string back as unicode - {@code MultiByteToWideChar} does - writes that out. Latin-1 is not
+     * the code page a Japanese program means by "ansi", but it is at least a byte for a byte, and
+     * what is written can be read back.
+     */
     public String readCString() {
         StringBuilder result = new StringBuilder();
         while (pos + 1 < len) {
-            char c = (char) readByte(); // TODO need to research converting according to 1252
+            char c = (char) (readByte() & 0xff);
             if (c == 0)
                 break;
             result.append(c);
@@ -39,15 +50,16 @@ public class LittleEndianFile {
     }
 
     public static void writeCString(int address, String s) {
-        byte[] b = s.getBytes();
+        byte[] b = s.getBytes(StandardCharsets.ISO_8859_1);
         Memory.mem_memcpy(address, b, 0, b.length);
         Memory.mem_writeb(address + b.length, 0);
     }
 
+    /** the same for a string whose length is known rather than terminated; nuls inside it are kept */
     public String readCString(int len) {
         StringBuilder result = new StringBuilder();
         for (int i = 0; i < len && pos + 1 <= this.len; i++) {
-            char c = (char) readByte();
+            char c = (char) (readByte() & 0xff);
             result.append(c);
         }
         return result.toString();
