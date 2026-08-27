@@ -19,7 +19,7 @@ tasks.withType<JavaCompile>().configureEach {
 
 allprojects {
     group = "com.acclash.jdosbox"
-    version = "0.74.35v"
+    version = "0.74.36v"
 
     repositories {
         mavenCentral()
