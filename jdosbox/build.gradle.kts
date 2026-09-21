@@ -3,12 +3,12 @@ plugins {
 }
 
 dependencies {
-    implementation("com.github.umjammer:jlayer:1.0.3")
+    implementation("com.github.umjammer:jlayer:1.0.4")
 
     // jdosbox-specific dependencies
     implementation("org.javassist:javassist:3.32.0-GA")
 
-    implementation("com.github.umjammer:vavi-commons:1.1.19")
+    implementation("com.github.umjammer:vavi-commons:1.1.23")
 
     testImplementation("org.junit.jupiter:junit-jupiter-api:6.0.3")
     testImplementation("org.junit.jupiter:junit-jupiter-engine:6.0.3")
