@@ -2,6 +2,7 @@ package jdos.dos;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 import jdos.Dosbox;
@@ -307,6 +308,10 @@ public class Dos_execute {
             try {
                 Object result = winMethod.invoke(null, path, args);
                 return (Boolean) result;
+            } catch (InvocationTargetException e) {
+                // the program failed, not the win32 layer: the next machine can still run one,
+                // and dropping winMethod here made every later exe run as a dos program
+                logger.log(Level.ERROR, "win32: " + path, e.getCause());
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 loadedWinMethod = true;
@@ -332,6 +337,10 @@ public class Dos_execute {
             try {
                 Object result = winMethod.invoke(null, drive, file, path, args);
                 return (Boolean) result;
+            } catch (InvocationTargetException e) {
+                // the program failed, not the win32 layer: the next machine can still run one,
+                // and dropping winMethod here made every later exe run as a dos program
+                logger.log(Level.ERROR, "win32: " + path, e.getCause());
             } catch (Exception e) {
                 logger.log(Level.ERROR, e.getMessage(), e);
                 loadedWinMethod = true;

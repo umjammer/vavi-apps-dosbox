@@ -3,6 +3,7 @@ package jdos.win.builtin.user32;
 import java.awt.AlphaComposite;
 import java.awt.Cursor;
 import java.awt.Graphics2D;
+import java.awt.GraphicsEnvironment;
 import java.awt.Image;
 import java.awt.Point;
 import java.awt.Toolkit;
@@ -226,6 +227,8 @@ public class WinCursor extends WinObject {
             byte[] data = new byte[bytesInRes - 4];
             is.read(data);
 
+            // a headless toolkit makes no cursors, and there is nobody to see one
+            if (GraphicsEnvironment.isHeadless()) return Cursor.getDefaultCursor();
             Toolkit toolkit = Toolkit.getDefaultToolkit();
             cursor = toolkit.createCustomCursor(loadCursor(new LittleEndian(data)), new Point(xHotspot, yHotspot), name);
             cursors.put(name, cursor);
@@ -284,6 +287,8 @@ public class WinCursor extends WinObject {
         if (res != null) {
             Cursor cursor = cursors.get(res);
             if (cursor == null) {
+                // a headless toolkit makes no cursors (HeadlessException), and there is nobody to see one
+                if (GraphicsEnvironment.isHeadless()) return Cursor.getDefaultCursor();
                 InputStream is = WinCursor.class.getResourceAsStream("/jdos/win/builtin/res/" + res);
                 if (is == null) {
                     return Cursor.getDefaultCursor();
