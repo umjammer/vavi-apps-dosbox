@@ -175,6 +175,12 @@ public class Midi extends Module_base {
         midi.status = 0x00;
         midi.cmd_pos = 0;
         midi.cmd_len = 0;
+        // "none" means no midi out at all: falling through to the default handler below would
+        // open MidiSystem.getSynthesizer() (or the first device there is) anyway
+        if (dev.equalsIgnoreCase("none")) {
+            logger.log(Level.DEBUG, "MIDI: none");
+            return;
+        }
         MidiDevice.Info[] devices = null;
 
         try {
