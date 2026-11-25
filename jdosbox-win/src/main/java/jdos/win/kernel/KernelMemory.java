@@ -221,6 +221,10 @@ public class KernelMemory {
 
     // Function to allocate a frame.
     void alloc_frame(int pagePtr, boolean is_kernel, boolean is_writeable) {
+        alloc_frame(pagePtr, is_kernel, is_writeable, true);
+    }
+
+    void alloc_frame(int pagePtr, boolean is_kernel, boolean is_writeable, boolean flushTlb) {
         int page = Memory.mem_readd(pagePtr);
         if (Page.getFrame(page) != 0) {
             return; // Frame was already allocated, return straight away.  This will only happen during initialization of paging
@@ -238,7 +242,9 @@ public class KernelMemory {
                 logger.log(Level.TRACE, "alloc_frame for 108000: page=" + Integer.toHexString(page) + " idx=" + Integer.toHexString(idx));
             }
             Memory.mem_writed(pagePtr, page);
-            jdos.cpu.Paging.PAGING_ClearTLB();
+            if (flushTlb && jdos.cpu.Paging.PAGING_Enabled()) {
+                jdos.cpu.Paging.PAGING_ClearTLB();
+            }
         }
     }
 
@@ -366,14 +372,14 @@ public class KernelMemory {
                     if ((page & 0xFFFFF000) == 0) {
                         // No frame yet — allocate one
                         setPage(pagePtr, getNextFrame(), false, true);
-                        Paging.PAGING_ClearTLB();
+                        Paging.PAGING_UnlinkPages(faultPage, 1);
                         // Zero the newly mapped page
                         Memory.mem_zero(pageAligned, 0x1000);
                         logger.log(Level.TRACE, "PageFault: demand-paged 0x" + Integer.toHexString(faultAddr) + " (page 0x" + Integer.toHexString(pageAligned) + ")");
                         return jdos.cpu.Callback.inHandler > 1 ? 1 : 0; // retry the faulting instruction
                     } else {
                         // Frame already present but TLB stale — just clear TLB
-                        Paging.PAGING_ClearTLB();
+                        Paging.PAGING_UnlinkPages(faultPage, 1);
                         logger.log(Level.TRACE, "PageFault: TLB refresh for 0x" + Integer.toHexString(faultAddr));
                         return jdos.cpu.Callback.inHandler > 1 ? 1 : 0;
                     }
@@ -385,7 +391,7 @@ public class KernelMemory {
                     int page = Memory.mem_readd(pagePtr);
                     if ((page & 0xFFFFF000) == 0) {
                         setPage(pagePtr, getNextFrame(), false, true);
-                        Paging.PAGING_ClearTLB();
+                        Paging.PAGING_UnlinkPages(faultPage, 1);
                         Memory.mem_zero(faultAddr & ~0xFFF, 0x1000);
                         logger.log(Level.TRACE, "PageFault: demand-paged (no VM region) 0x" + Integer.toHexString(faultAddr));
                         return jdos.cpu.Callback.inHandler > 1 ? 1 : 0;

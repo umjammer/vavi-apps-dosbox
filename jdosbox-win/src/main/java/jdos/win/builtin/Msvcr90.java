@@ -394,15 +394,7 @@ public class Msvcr90 extends BuiltinModule {
     }
 
     public static int memmove(int dst, int src, int size) {
-        if (dst == src || size <= 0)
-            return dst;
-        if (dst < src || dst >= src + size) {
-            Memory.mem_memcpy(dst, src, size);
-        } else {
-            for (int i = size - 1; i >= 0; i--) {
-                Memory.mem_writeb(dst + i, Memory.mem_readb(src + i));
-            }
-        }
+        Memory.mem_memmove(dst, src, size);
         return dst;
     }
 
@@ -412,20 +404,7 @@ public class Msvcr90 extends BuiltinModule {
      * rather than asking the paging layer about every byte.
      */
     public static int memset(int ptr, int value, int num) {
-        int address = ptr;
-        int end = ptr + num;
-        int b = value & 0xFF;
-        while (address < end && (address & 3) != 0) {
-            Memory.mem_writeb(address++, b);
-        }
-        int word = b | (b << 8) | (b << 16) | (b << 24);
-        while (end - address >= 4) {
-            Memory.mem_writed(address, word);
-            address += 4;
-        }
-        while (address < end) {
-            Memory.mem_writeb(address++, b);
-        }
+        Memory.mem_memset(ptr, value, num);
         return ptr;
     }
 

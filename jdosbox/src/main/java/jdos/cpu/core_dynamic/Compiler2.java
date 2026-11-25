@@ -23,15 +23,15 @@ public class Compiler2 extends Compiler {
             case 0x39a:
                 if (op instanceof Inst2.SETcc_reg_p) {
                     Inst2.SETcc_reg_p o = (Inst2.SETcc_reg_p) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_P()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getP() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_p) {
                     Inst2.SETcc_mem_p o = (Inst2.SETcc_mem_p) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_P()) ? 1 : 0);");
+                    method.append(", (" + getP() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -39,15 +39,15 @@ public class Compiler2 extends Compiler {
             case 0x39b:
                 if (op instanceof Inst2.SETcc_reg_np) {
                     Inst2.SETcc_reg_np o = (Inst2.SETcc_reg_np) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NP()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNP() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_np) {
                     Inst2.SETcc_mem_np o = (Inst2.SETcc_mem_np) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NP()) ? 1 : 0);");
+                    method.append(", (" + getNP() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -55,15 +55,15 @@ public class Compiler2 extends Compiler {
             case 0x39c:
                 if (op instanceof Inst2.SETcc_reg_l) {
                     Inst2.SETcc_reg_l o = (Inst2.SETcc_reg_l) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_L()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getL() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_l) {
                     Inst2.SETcc_mem_l o = (Inst2.SETcc_mem_l) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_L()) ? 1 : 0);");
+                    method.append(", (" + getL() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -71,15 +71,15 @@ public class Compiler2 extends Compiler {
             case 0x39d:
                 if (op instanceof Inst2.SETcc_reg_nl) {
                     Inst2.SETcc_reg_nl o = (Inst2.SETcc_reg_nl) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NL()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNL() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_nl) {
                     Inst2.SETcc_mem_nl o = (Inst2.SETcc_mem_nl) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NL()) ? 1 : 0);");
+                    method.append(", (" + getNL() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -87,15 +87,15 @@ public class Compiler2 extends Compiler {
             case 0x39e:
                 if (op instanceof Inst2.SETcc_reg_le) {
                     Inst2.SETcc_reg_le o = (Inst2.SETcc_reg_le) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_LE()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getLE() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_le) {
                     Inst2.SETcc_mem_le o = (Inst2.SETcc_mem_le) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_LE()) ? 1 : 0);");
+                    method.append(", (" + getLE() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -103,15 +103,15 @@ public class Compiler2 extends Compiler {
             case 0x39f:
                 if (op instanceof Inst2.SETcc_reg_nle) {
                     Inst2.SETcc_reg_nle o = (Inst2.SETcc_reg_nle) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NLE()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNLE() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_nle) {
                     Inst2.SETcc_mem_nle o = (Inst2.SETcc_mem_nle) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NLE()) ? 1 : 0);");
+                    method.append(", (" + getNLE() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -1467,20 +1467,34 @@ public class Compiler2 extends Compiler {
                 if (op instanceof Inst3.ImulGdEdIb_reg) {
                     Inst3.ImulGdEdIb_reg o = (Inst3.ImulGdEdIb_reg) op;
                     method.append(nameSet32(o.rd));
-                    method.append("=Instructions.DIMULD(");
-                    method.append(nameGet32(o.eard));
-                    method.append(", ");
-                    method.append(o.op3);
-                    method.append(");");
+                    if ((setFlags & o.sets()) == 0) {
+                        method.append("=");
+                        method.append(nameGet32(o.eard));
+                        method.append("*");
+                        method.append(o.op3);
+                        method.append(";");
+                    } else {
+                        method.append("=Instructions.DIMULD(");
+                        method.append(nameGet32(o.eard));
+                        method.append(", ");
+                        method.append(o.op3);
+                        method.append(");");
+                    }
                     return true;
                 }
                 if (op instanceof Inst3.ImulGdEdIb_mem) {
                     Inst3.ImulGdEdIb_mem o = (Inst3.ImulGdEdIb_mem) op;
                     memory_start(o.get_eaa, seg, method);
                     method.append(nameSet32(o.rd));
-                    method.append("=Instructions.DIMULD(Memory.mem_readd(eaa),");
-                    method.append(o.op3);
-                    method.append(");");
+                    if ((setFlags & o.sets()) == 0) {
+                        method.append("=Paging.mem_readd_inline(eaa)*");
+                        method.append(o.op3);
+                        method.append(";");
+                    } else {
+                        method.append("=Instructions.DIMULD(Paging.mem_readd_inline(eaa),");
+                        method.append(o.op3);
+                        method.append(");");
+                    }
                     return true;
                 }
                 break;
@@ -3386,51 +3400,43 @@ public class Compiler2 extends Compiler {
                 }
                 if (op instanceof Grp3.MulAxEd_reg) {
                     Grp3.MulAxEd_reg o = (Grp3.MulAxEd_reg) op;
-                    if ((setFlags & o.sets()) == 0) {
-                        declareLongVal(method);
-                        method.append("lval=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl)*(");
-                        method.append(nameGet32(o.eard));
-                        method.append(" & 0xFFFFFFFFl);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
-                    } else {
-                        method.append("Instructions.MULD(");
-                        method.append(nameGet32(o.eard));
-                        method.append(");");
+                    declareLongVal(method);
+                    method.append("lval=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl)*(");
+                    method.append(nameGet32(o.eard));
+                    method.append(" & 0xFFFFFFFFl);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
+                    if ((setFlags & o.sets()) != 0) {
+                        method.append("Instructions.MULD_flags(CPU_Regs.reg_eax.dword,CPU_Regs.reg_edx.dword);");
                     }
                     return true;
                 }
                 if (op instanceof Grp3.MulAxEd_mem) {
                     Grp3.MulAxEd_mem o = (Grp3.MulAxEd_mem) op;
                     memory_start(o.get_eaa, seg, method);
-                    if ((setFlags & o.sets()) == 0) {
-                        declareLongVal(method);
-                        method.append("lval=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl)*(Memory.mem_readd(eaa) & 0xFFFFFFFFl);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
-                    } else {
-                        method.append("Instructions.MULD(Memory.mem_readd(eaa));");
+                    declareLongVal(method);
+                    method.append("lval=(CPU_Regs.reg_eax.dword & 0xFFFFFFFFl)*(Paging.mem_readd_inline(eaa) & 0xFFFFFFFFl);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
+                    if ((setFlags & o.sets()) != 0) {
+                        method.append("Instructions.MULD_flags(CPU_Regs.reg_eax.dword,CPU_Regs.reg_edx.dword);");
                     }
                     return true;
                 }
                 if (op instanceof Grp3.IMulAxEd_reg) {
                     Grp3.IMulAxEd_reg o = (Grp3.IMulAxEd_reg) op;
-                    if ((setFlags & o.sets()) == 0) {
-                        declareLongVal(method);
-                        method.append("lval=(long)CPU_Regs.reg_eax.dword*");
-                        method.append(nameGet32(o.eard));
-                        method.append(";CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
-                    } else {
-                        method.append("Instructions.IMULD(");
-                        method.append(nameGet32(o.eard));
-                        method.append(");");
+                    declareLongVal(method);
+                    method.append("lval=(long)CPU_Regs.reg_eax.dword*");
+                    method.append(nameGet32(o.eard));
+                    method.append(";CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
+                    if ((setFlags & o.sets()) != 0) {
+                        method.append("Instructions.IMULD_flags(CPU_Regs.reg_eax.dword,CPU_Regs.reg_edx.dword);");
                     }
                     return true;
                 }
                 if (op instanceof Grp3.IMulAxEd_mem) {
                     Grp3.IMulAxEd_mem o = (Grp3.IMulAxEd_mem) op;
                     memory_start(o.get_eaa, seg, method);
-                    if ((setFlags & o.sets()) == 0) {
-                        declareLongVal(method);
-                        method.append("lval=(long)CPU_Regs.reg_eax.dword*Memory.mem_readd(eaa);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
-                    } else {
-                        method.append("Instructions.IMULD(Memory.mem_readd(eaa));");
+                    declareLongVal(method);
+                    method.append("lval=(long)CPU_Regs.reg_eax.dword*Paging.mem_readd_inline(eaa);CPU_Regs.reg_eax.dword=(int)lval;CPU_Regs.reg_edx.dword=(int)(lval >> 32);");
+                    if ((setFlags & o.sets()) != 0) {
+                        method.append("Instructions.IMULD_flags(CPU_Regs.reg_eax.dword,CPU_Regs.reg_edx.dword);");
                     }
                     return true;
                 }
@@ -3715,37 +3721,37 @@ public class Compiler2 extends Compiler {
             case 0x34f: // CMOVNLE
                 if (op instanceof Inst4.ConditionalMov_reg) {
                     if (op instanceof Inst4.ConditionalMov_o_reg)
-                        method.append("if (Flags.TFLG_O()) ");
+                        method.append("if (").append(getO()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_no_reg)
-                        method.append("if (Flags.TFLG_NO()) ");
+                        method.append("if (").append(getNO()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_b_reg)
-                        method.append("if (Flags.TFLG_B()) ");
+                        method.append("if (").append(getB()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nb_reg)
-                        method.append("if (Flags.TFLG_NB()) ");
+                        method.append("if (").append(getNB()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_z_reg)
-                        method.append("if (Flags.TFLG_Z()) ");
+                        method.append("if (").append(getZ()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nz_reg)
-                        method.append("if (Flags.TFLG_NZ()) ");
+                        method.append("if (").append(getNZ()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_be_reg)
-                        method.append("if (Flags.TFLG_BE()) ");
+                        method.append("if (").append(getBE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nbe_reg)
-                        method.append("if (Flags.TFLG_NBE()) ");
+                        method.append("if (").append(getNBE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_s_reg)
-                        method.append("if (Flags.TFLG_S()) ");
+                        method.append("if (").append(getS()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_ns_reg)
-                        method.append("if (Flags.TFLG_NS()) ");
+                        method.append("if (").append(getNS()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_p_reg)
-                        method.append("if (Flags.TFLG_P()) ");
+                        method.append("if (").append(getP()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_np_reg)
-                        method.append("if (Flags.TFLG_NP()) ");
+                        method.append("if (").append(getNP()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_l_reg)
-                        method.append("if (Flags.TFLG_L()) ");
+                        method.append("if (").append(getL()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nl_reg)
-                        method.append("if (Flags.TFLG_NL()) ");
+                        method.append("if (").append(getNL()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_le_reg)
-                        method.append("if (Flags.TFLG_LE()) ");
+                        method.append("if (").append(getLE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nle_reg)
-                        method.append("if (Flags.TFLG_NLE()) ");
+                        method.append("if (").append(getNLE()).append(") ");
                     Inst4.ConditionalMov_reg o = (Inst4.ConditionalMov_reg) op;
                     method.append(nameSet32(o.gd));
                     method.append("=");
@@ -3756,39 +3762,39 @@ public class Compiler2 extends Compiler {
                     Inst4.ConditionalMov_mem o = (Inst4.ConditionalMov_mem) op;
                     memory_start(o.get_eaa, seg, method);
                     declareVal(method);
-                    method.append("val=Memory.mem_readd(eaa);");
+                    method.append("val=Paging.mem_readd_inline(eaa);");
                     if (op instanceof Inst4.ConditionalMov_o_mem)
-                        method.append("if (Flags.TFLG_O()) ");
+                        method.append("if (").append(getO()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_no_mem)
-                        method.append("if (Flags.TFLG_NO()) ");
+                        method.append("if (").append(getNO()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_b_mem)
-                        method.append("if (Flags.TFLG_B()) ");
+                        method.append("if (").append(getB()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nb_mem)
-                        method.append("if (Flags.TFLG_NB()) ");
+                        method.append("if (").append(getNB()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_z_mem)
-                        method.append("if (Flags.TFLG_Z()) ");
+                        method.append("if (").append(getZ()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nz_mem)
-                        method.append("if (Flags.TFLG_NZ()) ");
+                        method.append("if (").append(getNZ()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_be_mem)
-                        method.append("if (Flags.TFLG_BE()) ");
+                        method.append("if (").append(getBE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nbe_mem)
-                        method.append("if (Flags.TFLG_NBE()) ");
+                        method.append("if (").append(getNBE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_s_mem)
-                        method.append("if (Flags.TFLG_S()) ");
+                        method.append("if (").append(getS()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_ns_mem)
-                        method.append("if (Flags.TFLG_NS()) ");
+                        method.append("if (").append(getNS()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_p_mem)
-                        method.append("if (Flags.TFLG_P()) ");
+                        method.append("if (").append(getP()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_np_mem)
-                        method.append("if (Flags.TFLG_NP()) ");
+                        method.append("if (").append(getNP()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_l_mem)
-                        method.append("if (Flags.TFLG_L()) ");
+                        method.append("if (").append(getL()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nl_mem)
-                        method.append("if (Flags.TFLG_NL()) ");
+                        method.append("if (").append(getNL()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_le_mem)
-                        method.append("if (Flags.TFLG_LE()) ");
+                        method.append("if (").append(getLE()).append(") ");
                     else if (op instanceof Inst4.ConditionalMov_nle_mem)
-                        method.append("if (Flags.TFLG_NLE()) ");
+                        method.append("if (").append(getNLE()).append(") ");
                     method.append(nameSet32(o.gd));
                     method.append("=val;");
                     return true;

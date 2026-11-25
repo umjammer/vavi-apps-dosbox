@@ -23,6 +23,7 @@ public class Cache {
         /*Bits*/
         int i;
         if (enable) {
+            jdos.cpu.Core_dynamic.clearIBTC();
             // see if cache is already initialized
             if (cache_initialized) return;
             cache_initialized = true;
@@ -39,6 +40,19 @@ public class Cache {
             cache.last_page = null;
             cache.used_pages = null;
         }
+    }
+
+    public static void cache_close() {
+        Compiler.resetQueue();
+        jdos.cpu.Core_dynamic.clearIBTC();
+        jdos.cpu.Core_dynamic.currentBlock = null;
+        cache.block.first = null;
+        cache.block.active = null;
+        cache.block.free = null;
+        cache.free_pages = null;
+        cache.used_pages = null;
+        cache.last_page = null;
+        cache_initialized = false;
     }
 
     static public void cache_addunusedblock(CacheBlockDynRec block) {

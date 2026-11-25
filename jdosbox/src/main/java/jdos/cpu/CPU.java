@@ -655,16 +655,31 @@ public class CPU extends Module_base {
     }
 
     public static void CPU_Push32(/*Bitu*/int value) {
+        if (cpu.stack.big) {
+            int new_esp = CPU_Regs.reg_esp.dword - 4;
+            Paging.mem_writed_inline(CPU_Regs.reg_ssPhys.dword + new_esp, value);
+            CPU_Regs.reg_esp.dword = new_esp;
+        } else {
+            CPU_Push32_16(value);
+        }
+    }
+
+    private static void CPU_Push32_16(/*Bitu*/int value) {
         /*Bit32u*/
         int new_esp = (CPU_Regs.reg_esp.dword & cpu.stack.notmask) | ((CPU_Regs.reg_esp.dword - 4) & cpu.stack.mask);
-        Memory.mem_writed(CPU_Regs.reg_ssPhys.dword + (new_esp & cpu.stack.mask), value);
+        Paging.mem_writed_inline(CPU_Regs.reg_ssPhys.dword + (new_esp & cpu.stack.mask), value);
         CPU_Regs.reg_esp.dword = new_esp;
     }
 
     public static int CPU_Push32(int esp, /*Bitu*/int value) {
+        if (cpu.stack.big) {
+            int new_esp = esp - 4;
+            Paging.mem_writed_inline(CPU_Regs.reg_ssPhys.dword + new_esp, value);
+            return new_esp;
+        }
         /*Bit32u*/
         int new_esp = (esp & cpu.stack.notmask) | ((esp - 4) & cpu.stack.mask);
-        Memory.mem_writed(CPU_Regs.reg_ssPhys.dword + (new_esp & cpu.stack.mask), value);
+        Paging.mem_writed_inline(CPU_Regs.reg_ssPhys.dword + (new_esp & cpu.stack.mask), value);
         return new_esp;
     }
 
@@ -680,16 +695,33 @@ public class CPU extends Module_base {
     }
 
     public static int CPU_Peek32(int index) {
+        if (cpu.stack.big) {
+            return Paging.mem_readd_inline(CPU_Regs.reg_ssPhys.dword + CPU_Regs.reg_esp.dword + (index << 2));
+        }
         return Memory.mem_readd(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword + index * 4 & cpu.stack.mask));
     }
 
     public static void CPU_Poke32(int index, int value) {
+        if (cpu.stack.big) {
+            Paging.mem_writed_inline(CPU_Regs.reg_ssPhys.dword + CPU_Regs.reg_esp.dword + (index << 2), value);
+            return;
+        }
         Memory.mem_writed(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword + index * 4 & cpu.stack.mask), value);
     }
 
     public static /*Bitu*/int CPU_Pop32() {
+        if (cpu.stack.big) {
+            int esp = CPU_Regs.reg_esp.dword;
+            int val = Paging.mem_readd_inline(CPU_Regs.reg_ssPhys.dword + esp);
+            CPU_Regs.reg_esp.dword = esp + 4;
+            return val;
+        }
+        return CPU_Pop32_16();
+    }
+
+    private static /*Bitu*/int CPU_Pop32_16() {
         /*Bitu*/
-        int val = Memory.mem_readd(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword & cpu.stack.mask));
+        int val = Paging.mem_readd_inline(CPU_Regs.reg_ssPhys.dword + (CPU_Regs.reg_esp.dword & cpu.stack.mask));
         CPU_Regs.reg_esp.dword = (CPU_Regs.reg_esp.dword & cpu.stack.notmask) | ((CPU_Regs.reg_esp.dword + 4) & cpu.stack.mask);
         return val;
     }

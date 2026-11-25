@@ -68,13 +68,27 @@ public class Midi extends Module_base {
         public final Sysex sysex = new Sysex();
         Receiver handler;
         MidiDevice device;
+        boolean pendingOpen;
+        String devName;
     }
 
     static private _midi midi;
     static private final ShortMessage msg = new ShortMessage();
     static private final SysexMessage sysex_msg = new SysexMessage();
 
+    static private void ensureOpen() {
+        if (midi == null || !midi.pendingOpen) return;
+        midi.pendingOpen = false;
+        openDevice(midi.devName);
+    }
+
     static public void MIDI_RawOutByte(/*Bit8u*/int data) {
+        if (midi.pendingOpen) {
+            ensureOpen();
+        }
+        if (midi.handler == null) {
+            return;
+        }
         if (midi.sysex.start != 0) {
             /*Bit32u*/
             long passed_ticks = System.currentTimeMillis() - midi.sysex.start;
@@ -154,7 +168,7 @@ public class Midi extends Module_base {
     }
 
     static public boolean MIDI_Available() {
-        return midi.device != null;
+        return midi != null && (midi.device != null || midi.pendingOpen);
     }
 
     public Midi(Section configuration) {
@@ -181,6 +195,13 @@ public class Midi extends Module_base {
             logger.log(Level.DEBUG, "MIDI: none");
             return;
         }
+        // Defer opening the MIDI synthesizer until the first MIDI byte is actually sent
+        // to avoid expensive SoftSynthesizer/EmergencySoundbank initialization on startup.
+        midi.devName = dev;
+        midi.pendingOpen = true;
+    }
+
+    static private void openDevice(String dev) {
         MidiDevice.Info[] devices = null;
 
         try {

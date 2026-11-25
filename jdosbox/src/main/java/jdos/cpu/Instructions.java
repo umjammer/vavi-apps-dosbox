@@ -271,6 +271,13 @@ public class Instructions extends Table_ea {
         return res;
     }
 
+    static public int INCD_noCF(int l) {
+        var1 = l;
+        res = l + 1;
+        type = t_INCd;
+        return res;
+    }
+
     static public int DECB(int l) {
         LoadCF();
         lf_var1d(l);
@@ -289,6 +296,13 @@ public class Instructions extends Table_ea {
 
     static public int DECD(int l) {
         LoadCF();
+        var1 = l;
+        res = l - 1;
+        type = t_DECd;
+        return res;
+    }
+
+    static public int DECD_noCF(int l) {
         var1 = l;
         res = l - 1;
         type = t_DECd;
@@ -873,6 +887,20 @@ public class Instructions extends Table_ea {
         }
     }
 
+    static public void MULD_flags(int eax, int edx) {
+        FillFlagsNoCFOF();
+        int mask = CPU_Regs.ZF | CPU_Regs.CF | CPU_Regs.OF;
+        int bits = (eax == 0 ? CPU_Regs.ZF : 0) | (edx != 0 ? (CPU_Regs.CF | CPU_Regs.OF) : 0);
+        CPU_Regs.flags = (CPU_Regs.flags & ~mask) | bits;
+    }
+
+    static public void MULD_flags_fast(int eax, int edx) {
+        type = t_UNKNOWN;
+        int mask = CPU_Regs.ZF | CPU_Regs.CF | CPU_Regs.OF;
+        int bits = (eax == 0 ? CPU_Regs.ZF : 0) | (edx != 0 ? (CPU_Regs.CF | CPU_Regs.OF) : 0);
+        CPU_Regs.flags = (CPU_Regs.flags & ~mask) | bits;
+    }
+
     static public boolean DIVB(int val) {
         if (val == 0) {
             CPU.CPU_PrepareException(0, 0);
@@ -1048,6 +1076,26 @@ public class Instructions extends Table_ea {
         } else {
             CPU_Regs.SETFLAGBIT(CPU_Regs.CF, true);
             CPU_Regs.SETFLAGBIT(CPU_Regs.OF, true);
+        }
+    }
+
+    static public void IMULD_flags(int eax, int edx) {
+        FillFlagsNoCFOF();
+        boolean clear = (edx == 0xffffffff && eax < 0) || (edx == 0 && eax >= 0);
+        if (clear) {
+            CPU_Regs.flags &= ~(CPU_Regs.CF | CPU_Regs.OF);
+        } else {
+            CPU_Regs.flags |= (CPU_Regs.CF | CPU_Regs.OF);
+        }
+    }
+
+    static public void IMULD_flags_fast(int eax, int edx) {
+        type = t_UNKNOWN;
+        boolean clear = (edx == 0xffffffff && eax < 0) || (edx == 0 && eax >= 0);
+        if (clear) {
+            CPU_Regs.flags &= ~(CPU_Regs.CF | CPU_Regs.OF);
+        } else {
+            CPU_Regs.flags |= (CPU_Regs.CF | CPU_Regs.OF);
         }
     }
 

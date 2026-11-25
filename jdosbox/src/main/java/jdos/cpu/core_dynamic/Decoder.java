@@ -512,7 +512,9 @@ public class Decoder extends Inst1 {
                 op = o;
             }
         }
-        decode.block.code = new DecodeBlock(decode.block, start_op.next, start, decode.block.page.end - decode.block.page.start + 1);
+        DecodeBlock db = new DecodeBlock(decode.block, start_op.next, start, decode.block.page.end - decode.block.page.start + 1);
+        decode.block.decodeBlock = db;
+        decode.block.code = db;
         return decode.block;
     }
 

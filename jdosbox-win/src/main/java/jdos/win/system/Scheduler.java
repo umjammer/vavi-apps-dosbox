@@ -152,16 +152,17 @@ public class Scheduler {
         if (WinSystem.nestedCallCount > 0) {
             return;
         }
-        SchedulerItem next = currentThread.next;
-        SchedulerItem start = currentThread;
+        SchedulerItem next = currentThread.next != null ? currentThread.next : first;
+        SchedulerItem start = next;
         int tickCount = currentTickCount();
         while (true) {
+            if (next.sleepUntil <= tickCount) {
+                break;
+            }
+            next = next.next;
             if (next == null) {
                 next = first;
                 tickCount = currentTickCount();
-            }
-            if (next.sleepUntil <= tickCount) {
-                break;
             }
             if (next == start) {
                 // every guest thread is waiting, so this is where the emulator spends an idle
@@ -188,8 +189,12 @@ public class Scheduler {
                     }
                 }
                 tickCount = currentTickCount();
+                if (first == null) {
+                    return;
+                }
+                next = first;
+                start = first;
             }
-            next = next.next;
         }
         if (next.thread != currentThread.thread) {
             logger.log(Level.TRACE, "switching threads: " + currentThread.thread.getHandle()

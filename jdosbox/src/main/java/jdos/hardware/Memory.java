@@ -3,6 +3,7 @@ package jdos.hardware;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import jdos.Dosbox;
@@ -401,35 +402,124 @@ public class Memory extends Module_base {
     }
 
     static public void mem_memmove(/*PhysPt*/int dest,/*PhysPt*/int src,/*Bitu*/int size) {
-        while (size-- != 0) Paging.mem_writeb_inline(dest++, Paging.mem_readb_inline(src++));
+        if (dest == src || size <= 0) return;
+        long diff = (dest - src) & 0xFFFFFFFFL;
+        if (diff < (size & 0xFFFFFFFFL)) {
+            int[] tlbRead = Paging.read;
+            int[] tlbWrite = Paging.write;
+            while (size > 0) {
+                int lastSrc = src + size - 1;
+                int lastDst = dest + size - 1;
+                int rAvail = (lastSrc & 0xfff) + 1;
+                int wAvail = (lastDst & 0xfff) + 1;
+                int chunk = size;
+                if (rAvail < chunk) chunk = rAvail;
+                if (wAvail < chunk) chunk = wAvail;
+                int tlbR = tlbRead[lastSrc >>> 12];
+                int tlbW = tlbWrite[lastDst >>> 12];
+                if (tlbR != Paging.INVALID_ADDRESS && tlbW != Paging.INVALID_ADDRESS) {
+                    RAM.memcpy(tlbW + (lastDst - chunk + 1), tlbR + (lastSrc - chunk + 1), chunk);
+                    size -= chunk;
+                } else {
+                    Paging.mem_writeb_inline(lastDst, Paging.mem_readb_inline(lastSrc));
+                    size--;
+                }
+            }
+            return;
+        }
+        mem_memcpy(dest, src, size);
     }
 
     static public void mem_memcpy(/*PhysPt*/int dest,/*PhysPt*/int src,/*Bitu*/int size) {
-        while (size-- != 0) Paging.mem_writeb_inline(dest++, Paging.mem_readb_inline(src++));
+        if (size <= 0 || dest == src) return;
+        int[] tlbRead = Paging.read;
+        int[] tlbWrite = Paging.write;
+        while (size > 0) {
+            int rAvail = 4096 - (src & 0xfff);
+            int wAvail = 4096 - (dest & 0xfff);
+            int chunk = size;
+            if (rAvail < chunk) chunk = rAvail;
+            if (wAvail < chunk) chunk = wAvail;
+            int tlbR = tlbRead[src >>> 12];
+            int tlbW = tlbWrite[dest >>> 12];
+            if (tlbR != Paging.INVALID_ADDRESS && tlbW != Paging.INVALID_ADDRESS) {
+                RAM.memcpy(tlbW + dest, tlbR + src, chunk);
+                src += chunk;
+                dest += chunk;
+                size -= chunk;
+            } else {
+                Paging.mem_writeb_inline(dest++, Paging.mem_readb_inline(src++));
+                size--;
+            }
+        }
     }
 
     static public void mem_memcpy(byte[] dest, int destOffset, /*PhysPt*/int src,/*Bitu*/int size) {
-        while (size-- != 0) dest[destOffset++] = (byte) Paging.mem_readb_inline(src++);
+        if (size <= 0) return;
+        int[] tlbRead = Paging.read;
+        while (size > 0) {
+            int chunk = 4096 - (src & 0xfff);
+            if (chunk > size) chunk = size;
+            int tlbR = tlbRead[src >>> 12];
+            if (tlbR != Paging.INVALID_ADDRESS) {
+                RAM.memcpy(dest, destOffset, tlbR + src, chunk);
+                src += chunk;
+                destOffset += chunk;
+                size -= chunk;
+            } else {
+                dest[destOffset++] = (byte) Paging.mem_readb_inline(src++);
+                size--;
+            }
+        }
     }
 
     static public void mem_memcpy(/*PhysPt*/int dest, byte[] src, int srcOffset, /*Bitu*/int size) {
-        while (size-- != 0) Paging.mem_writeb_inline(dest++, src[srcOffset++]);
+        if (size <= 0) return;
+        int[] tlbWrite = Paging.write;
+        while (size > 0) {
+            int chunk = 4096 - (dest & 0xfff);
+            if (chunk > size) chunk = size;
+            int tlbW = tlbWrite[dest >>> 12];
+            if (tlbW != Paging.INVALID_ADDRESS) {
+                RAM.memcpy(tlbW + dest, src, srcOffset, chunk);
+                dest += chunk;
+                srcOffset += chunk;
+                size -= chunk;
+            } else {
+                Paging.mem_writeb_inline(dest++, src[srcOffset++]);
+                size--;
+            }
+        }
     }
 
     static public void mem_zero(int dest, int len) {
-        while (len-- != 0) Paging.mem_writeb_inline(dest++, 0);
+        mem_memset(dest, 0, len);
     }
 
     static public void mem_memset(int dest, int value, int len) {
-        while (len-- != 0) Paging.mem_writeb_inline(dest++, value);
+        if (len <= 0) return;
+        int[] tlbWrite = Paging.write;
+        while (len > 0) {
+            int chunk = 4096 - (dest & 0xfff);
+            if (chunk > len) chunk = len;
+            int tlbW = tlbWrite[dest >>> 12];
+            if (tlbW != Paging.INVALID_ADDRESS) {
+                RAM.memset(tlbW + dest, chunk, value);
+                dest += chunk;
+                len -= chunk;
+            } else {
+                Paging.mem_writeb_inline(dest++, value);
+                len--;
+            }
+        }
     }
 
     static public void phys_zero(int dest, int len) {
-        while (len-- != 0) RAM.writeb(dest++, (short) 0);
+        if (len > 0) RAM.zeroset(dest, len);
     }
 
     static public void phys_memcpy(int dest, byte[] buffer, int offset, int len) {
-        while (len-- != 0) RAM.writeb(dest++, (short) buffer[offset++]);
+        if (len > 0) RAM.memcpy(dest, buffer, offset, len);
     }
 
     static public void MEM_BlockRead(/*PhysPt*/int pt, short[] data, int offset, /*Bitu*/int size) {
@@ -463,34 +553,30 @@ public class Memory extends Module_base {
     }
 
     static public void MEM_BlockRead(/*PhysPt*/int pt, byte[] data,/*Bitu*/int size) {
-        for (int i = 0; i < size; i++) {
-            data[i] = (byte) (Paging.mem_readb_inline(pt++) & 0xFF);
-        }
+        mem_memcpy(data, 0, pt, size);
     }
 
     static public void MEM_BlockRead(/*PhysPt*/int pt, byte[] data, int offset, /*Bitu*/int size) {
-        for (int i = 0; i < size; i++) {
-            data[i + offset] = (byte) (Paging.mem_readb_inline(pt++) & 0xFF);
-        }
+        mem_memcpy(data, offset, pt, size);
     }
 
     static public void MEM_BlockWrite(/*PhysPt*/int pt, byte[] read,/*Bitu*/int size) {
-        int i;
-        for (i = 0; i < size && i < read.length; i++) {
-            Paging.mem_writeb_inline(pt++, read[i]);
+        int copy = Math.min(size, read.length);
+        if (copy > 0) {
+            mem_memcpy(pt, read, 0, copy);
         }
-        for (; i < size; i++) {
-            Paging.mem_writeb_inline(pt++, (byte) 0);
+        if (size > copy) {
+            mem_zero(pt + copy, size - copy);
         }
     }
 
     static public void MEM_BlockWrite(/*PhysPt*/int pt, byte[] read, int offset, /*Bitu*/int size) {
-        int i;
-        for (i = 0; i < size && i < read.length; i++) {
-            Paging.mem_writeb_inline(pt++, read[i + offset]);
+        int copy = Math.min(size, read.length);
+        if (copy > 0) {
+            mem_memcpy(pt, read, offset, copy);
         }
-        for (; i < size; i++) {
-            Paging.mem_writeb_inline(pt++, (byte) 0);
+        if (size > copy) {
+            mem_zero(pt + copy, size - copy);
         }
     }
 
@@ -817,7 +903,7 @@ public class Memory extends Module_base {
     }
 
     public static /*Bit32u*/long mem_readq(/*PhysPt*/int address) {
-        return (Paging.mem_readd_inline(address) & 0xFFFFFFFFL) | ((Paging.mem_readd_inline(address + 4) & 0xFFFFFFFFL) << 32);
+        return Paging.mem_readq_inline(address);
     }
 
     static public void mem_writeb(/*PhysPt*/int address,/*Bit8u*/int val) {
@@ -833,8 +919,7 @@ public class Memory extends Module_base {
     }
 
     static public void mem_writeq(/*PhysPt*/int address, long val) {
-        Paging.mem_writed_inline(address, (int) val);
-        Paging.mem_writed_inline(address + 4, (int) (val >>> 32));
+        Paging.mem_writeq_inline(address, val);
     }
 
     static private final IoHandler.IO_WriteHandler write_p92 = new IoHandler.IO_WriteHandler() {

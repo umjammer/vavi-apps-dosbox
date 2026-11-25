@@ -3,8 +3,8 @@ package jdos.cpu.core_dynamic;
 import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.lang.invoke.MethodHandles;
 import java.net.URL;
-import java.net.URLClassLoader;
 import java.util.LinkedList;
 
 import javassist.ClassPath;
@@ -40,6 +40,8 @@ public class Compiler extends Helper {
 
     private static Thread[] compilerThread = null;
     private static final LinkedList compilerQueue = new LinkedList();
+    private static final Object compileLock = new Object();
+    private static volatile int compileGeneration = 0;
 
     // TODO update CMPXCHG to update flags like in normal core
 
@@ -56,29 +58,33 @@ public class Compiler extends Helper {
                     try {
                         while (true) {
                             DecodeBlock nextBlock = null;
+                            int gen;
                             synchronized (compilerQueue) {
                                 if (compilerQueue.isEmpty())
                                     compilerQueue.wait();
                                 if (!compilerQueue.isEmpty())
                                     nextBlock = (DecodeBlock) compilerQueue.pop();
+                                gen = compileGeneration;
                             }
                             if (nextBlock == null) {
                                 break;
                             }
-                            if (nextBlock.active) {
-                                Op result = do_compile(nextBlock);
-                                if (result != null) {
-                                    //nextBlock.op = nextBlock.next;
-                                    // In Doom, bypassing the DecodeBlock call and instead having Core_dynamic call
-                                    // the compiled code directly led to a nice increase in performance (10% at the time
-                                    // of testing).  Keep in mind self modified code detection is not enabled within
-                                    // the compiled code, hopefully by having the code run in the dynamic core 100-1000
-                                    // times before being marked as needing compiling will weed out all the blocks
-                                    // that modify themselves.
-                                    //
-                                    // Do not set nextBlock.parent.code on this thread, because depending on the timing
-                                    // on the machine it is being run on, it may result in weird behavior.
-                                    nextBlock.compiledOp = result;
+                            synchronized (compileLock) {
+                                if (gen == compileGeneration && nextBlock.active) {
+                                    Op result = do_compile(nextBlock);
+                                    if (result != null && gen == compileGeneration) {
+                                        //nextBlock.op = nextBlock.next;
+                                        // In Doom, bypassing the DecodeBlock call and instead having Core_dynamic call
+                                        // the compiled code directly led to a nice increase in performance (10% at the time
+                                        // of testing).  Keep in mind self modified code detection is not enabled within
+                                        // the compiled code, hopefully by having the code run in the dynamic core 100-1000
+                                        // times before being marked as needing compiling will weed out all the blocks
+                                        // that modify themselves.
+                                        //
+                                        // Do not set nextBlock.parent.code on this thread, because depending on the timing
+                                        // on the machine it is being run on, it may result in weird behavior.
+                                        nextBlock.compiledOp = result;
+                                    }
                                 }
                             }
                         }
@@ -88,6 +94,7 @@ public class Compiler extends Helper {
                     logger.log(Level.DEBUG, "Compiler thread has exited");
                 }
             });
+            compilerThread[i].setDaemon(true);
             compilerThread[i].start();
         }
     }
@@ -123,9 +130,18 @@ public class Compiler extends Helper {
         }
     }
 
-    static public void removeFromQueue(DecodeBlock block) {
+    static public boolean removeFromQueue(DecodeBlock block) {
         synchronized (compilerQueue) {
-            compilerQueue.remove(block);
+            return compilerQueue.remove(block);
+        }
+    }
+
+    static public void resetQueue() {
+        synchronized (compilerQueue) {
+            compileGeneration++;
+            compilerQueue.clear();
+        }
+        synchronized (compileLock) {
         }
     }
 
@@ -154,11 +170,11 @@ public class Compiler extends Helper {
 
         private String ds;
         private boolean defaultDS;
-        private int startDS;
+        int startDS;
 
         private String ss;
         private boolean defaultSS;
-        private int startSS;
+        int startSS;
 
         public String val;
         public boolean wasSet;
@@ -264,10 +280,16 @@ public class Compiler extends Helper {
         }
     }
 
-    static private Op opThatSetFlags = null;
+    static Op opThatSetFlags = null;
 
     static public Op do_compile(Op op) {
         try {
+            if (op instanceof DecodeBlock db) {
+                Op region = RegionCompiler.tryCompileRegion(db);
+                if (region != null) {
+                    return region;
+                }
+            }
             return internal_do_compile(op);
         } catch (Compiler2.UnhandledOp e) {
             if (thowException)
@@ -347,9 +369,9 @@ public class Compiler extends Helper {
 
                     if (op instanceof Inst1.JumpCond16_b)
                         loop = compile((Inst1.JumpCond16_b) op, loopCondition, method, eipTotal);
-                    else if (op instanceof Inst3.JumpCond32_b)
-                        loop = compile((Inst2.JumpCond16_w) op, loopCondition, method, eipTotal);
                     else if (op instanceof Inst2.JumpCond16_w)
+                        loop = compile((Inst2.JumpCond16_w) op, loopCondition, method, eipTotal);
+                    else if (op instanceof Inst3.JumpCond32_b)
                         loop = compile((Inst3.JumpCond32_b) op, loopCondition, method, eipTotal);
                     else if (op instanceof Inst4.JumpCond32_d)
                         loop = compile((Inst4.JumpCond32_d) op, loopCondition, method, eipTotal);
@@ -1848,27 +1870,27 @@ public class Compiler extends Helper {
     }
 
     static void memory_readb(StringBuilder method) {
-        method.append("Memory.mem_readb(eaa)");
+        method.append("Paging.mem_readb_inline(eaa)");
     }
 
     static void memory_readw(StringBuilder method) {
-        method.append("Memory.mem_readw(eaa)");
+        method.append("Paging.mem_readw_inline(eaa)");
     }
 
     static void memory_readd(StringBuilder method) {
-        method.append("Memory.mem_readd(eaa)");
+        method.append("Paging.mem_readd_inline(eaa)");
     }
 
     static void memory_writeb(StringBuilder method) {
-        method.append("Memory.mem_writeb(eaa, ");
+        method.append("Paging.mem_writeb_inline(eaa, ");
     }
 
     static void memory_writew(StringBuilder method) {
-        method.append("Memory.mem_writew(eaa, ");
+        method.append("Paging.mem_writew_inline(eaa, ");
     }
 
     static void memory_writed(StringBuilder method) {
-        method.append("Memory.mem_writed(eaa, ");
+        method.append("Paging.mem_writed_inline(eaa, ");
     }
 
     static void nameSet(Reg reg, int bits, StringBuilder method) {
@@ -2052,7 +2074,7 @@ public class Compiler extends Helper {
         }
     }
 
-    static private boolean compile_op(Op op, int setFlags, StringBuilder method, String preException, Seg seg) {
+    static boolean compile_op(Op op, int setFlags, StringBuilder method, String preException, Seg seg) {
         switch (op.c) {
             case 0x00: // ADD Eb,Gb
             case 0x200:
@@ -7477,15 +7499,15 @@ public class Compiler extends Helper {
             case 0x390:
                 if (op instanceof Inst2.SETcc_reg_o) {
                     Inst2.SETcc_reg_o o = (Inst2.SETcc_reg_o) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_O()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getO() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_o) {
                     Inst2.SETcc_mem_o o = (Inst2.SETcc_mem_o) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_O()) ? 1 : 0);");
+                    method.append(", (" + getO() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7493,15 +7515,15 @@ public class Compiler extends Helper {
             case 0x391:
                 if (op instanceof Inst2.SETcc_reg_no) {
                     Inst2.SETcc_reg_no o = (Inst2.SETcc_reg_no) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NO()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNO() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_no) {
                     Inst2.SETcc_mem_no o = (Inst2.SETcc_mem_no) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NO()) ? 1 : 0);");
+                    method.append(", (" + getNO() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7509,15 +7531,15 @@ public class Compiler extends Helper {
             case 0x392:
                 if (op instanceof Inst2.SETcc_reg_b) {
                     Inst2.SETcc_reg_b o = (Inst2.SETcc_reg_b) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_B()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getB() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_b) {
                     Inst2.SETcc_mem_b o = (Inst2.SETcc_mem_b) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_B()) ? 1 : 0);");
+                    method.append(", (" + getB() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7525,15 +7547,15 @@ public class Compiler extends Helper {
             case 0x393:
                 if (op instanceof Inst2.SETcc_reg_nb) {
                     Inst2.SETcc_reg_nb o = (Inst2.SETcc_reg_nb) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NB()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNB() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_nb) {
                     Inst2.SETcc_mem_nb o = (Inst2.SETcc_mem_nb) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NB()) ? 1 : 0);");
+                    method.append(", (" + getNB() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7541,15 +7563,15 @@ public class Compiler extends Helper {
             case 0x394:
                 if (op instanceof Inst2.SETcc_reg_z) {
                     Inst2.SETcc_reg_z o = (Inst2.SETcc_reg_z) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_Z()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getZ() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_z) {
                     Inst2.SETcc_mem_z o = (Inst2.SETcc_mem_z) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_Z()) ? 1 : 0);");
+                    method.append(", (" + getZ() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7557,15 +7579,15 @@ public class Compiler extends Helper {
             case 0x395:
                 if (op instanceof Inst2.SETcc_reg_nz) {
                     Inst2.SETcc_reg_nz o = (Inst2.SETcc_reg_nz) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NZ()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNZ() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_nz) {
                     Inst2.SETcc_mem_nz o = (Inst2.SETcc_mem_nz) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NZ()) ? 1 : 0);");
+                    method.append(", (" + getNZ() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7573,15 +7595,15 @@ public class Compiler extends Helper {
             case 0x396:
                 if (op instanceof Inst2.SETcc_reg_be) {
                     Inst2.SETcc_reg_be o = (Inst2.SETcc_reg_be) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_BE()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getBE() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_be) {
                     Inst2.SETcc_mem_be o = (Inst2.SETcc_mem_be) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_BE()) ? 1 : 0);");
+                    method.append(", (" + getBE() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7589,15 +7611,15 @@ public class Compiler extends Helper {
             case 0x397:
                 if (op instanceof Inst2.SETcc_reg_nbe) {
                     Inst2.SETcc_reg_nbe o = (Inst2.SETcc_reg_nbe) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NBE()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNBE() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_nbe) {
                     Inst2.SETcc_mem_nbe o = (Inst2.SETcc_mem_nbe) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NBE()) ? 1 : 0);");
+                    method.append(", (" + getNBE() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7605,15 +7627,15 @@ public class Compiler extends Helper {
             case 0x398:
                 if (op instanceof Inst2.SETcc_reg_s) {
                     Inst2.SETcc_reg_s o = (Inst2.SETcc_reg_s) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_S()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getS() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_s) {
                     Inst2.SETcc_mem_s o = (Inst2.SETcc_mem_s) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_S()) ? 1 : 0);");
+                    method.append(", (" + getS() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7621,15 +7643,15 @@ public class Compiler extends Helper {
             case 0x399:
                 if (op instanceof Inst2.SETcc_reg_ns) {
                     Inst2.SETcc_reg_ns o = (Inst2.SETcc_reg_ns) op;
-                    method.append(nameSet8(o.earb, "(Flags.TFLG_NS()) ? 1 : 0"));
+                    method.append(nameSet8(o.earb, "(" + getNS() + ") ? 1 : 0"));
                     method.append(";");
                     return true;
                 }
                 if (op instanceof Inst2.SETcc_mem_ns) {
                     Inst2.SETcc_mem_ns o = (Inst2.SETcc_mem_ns) op;
-                    method.append("Memory.mem_writeb(");
+                    method.append("Paging.mem_writeb_inline(");
                     toStringValue(o.get_eaa, seg, method);
-                    method.append(", (Flags.TFLG_NS()) ? 1 : 0);");
+                    method.append(", (" + getNS() + ") ? 1 : 0);");
                     return true;
                 }
                 break;
@@ -7640,7 +7662,7 @@ public class Compiler extends Helper {
         return true;
     }
 
-    static private final ClassPool pool = ClassPool.getDefault();
+    static final ClassPool pool = ClassPool.getDefault();
     static java.security.MessageDigest md;
 
     static {
@@ -7680,7 +7702,7 @@ public class Compiler extends Helper {
         }
     }
 
-    static private int count = 0;
+    static int count = 0;
 
     /** -Djdos.compile.dump=<text> prints the java written for any block containing that text */
     static private final String DUMP = System.getProperty("jdos.compile.dump");
@@ -7692,11 +7714,23 @@ public class Compiler extends Helper {
             String className = "jdos.cpu.core_dynamic.CacheBlock" + (count++);
             // TODO research using a new pool for each block since the classes don't need to see each other
             CtClass codeBlock = pool.makeClass(className);
+            if (!saveClasses) {
+                codeBlock.getClassFile().setMajorVersion(javassist.bytecode.ClassFile.JAVA_5);
+            }
             codeBlock.setSuperclass(pool.getCtClass("jdos.cpu.core_dynamic.Op"));
             if (!jump)
                 method.append("return Constants.BR_Normal;");
             method.append("}");
-            CtMethod m = CtNewMethod.make("public int call() {" + method, codeBlock);
+            String body = method.toString();
+            if (body.indexOf("Memory.mem_") >= 0) {
+                body = body.replace("Memory.mem_readd(", "Paging.mem_readd_inline(")
+                        .replace("Memory.mem_writed(", "Paging.mem_writed_inline(")
+                        .replace("Memory.mem_readw(", "Paging.mem_readw_inline(")
+                        .replace("Memory.mem_writew(", "Paging.mem_writew_inline(")
+                        .replace("Memory.mem_readb(", "Paging.mem_readb_inline(")
+                        .replace("Memory.mem_writeb(", "Paging.mem_writeb_inline(");
+            }
+            CtMethod m = CtNewMethod.make("public int call() {" + body, codeBlock);
             codeBlock.addMethod(m);
 
             Op o = op;
@@ -7713,20 +7747,23 @@ public class Compiler extends Helper {
 
             // Make the dynamic class belong to its own class loader so that when we
             // release the decoder block the class and class loader will be unloaded
-            ClassLoader cl = new URLClassLoader(
-                    new URL[] {Compiler.class.getProtectionDomain().getCodeSource().getLocation()},
-                    codeBlock.getClass().getClassLoader());
-
             // Create second copy of Compiler class inside custom classloader as "neighbour".
             // CtClass.toClass(neighbour) does not cause illegal reflective access in JDK17.
-            Class clazz = codeBlock.toClass(cl.loadClass(Compiler.class.getName()));
-            Op compiledCode = (Op) clazz.newInstance();
+            // Define as an unloadable hidden class in this package (avoids per-block URLClassLoader overhead)
+            byte[] bytecode = codeBlock.toBytecode();
+            String savedName = codeBlock.getName();
+            String savedPkg = codeBlock.getPackageName();
+            String savedSimple = codeBlock.getSimpleName();
+            String savedSuper = codeBlock.getSuperclass().getName();
             codeBlock.detach();
+
+            Class<?> clazz = MethodHandles.lookup().defineHiddenClass(bytecode, true).lookupClass();
+            Op compiledCode = (Op) clazz.getDeclaredConstructor().newInstance();
             if (saveClasses) {
                 if (op instanceof DecodeBlock) {
                     DecodeBlock block = (DecodeBlock) op;
                     String classBody =
-                            "package " + codeBlock.getPackageName() + ";\n\n" +
+                            "package " + savedPkg + ";\n\n" +
                                     "import jdos.cpu.core_dynamic.*;\n" +
                                     "import jdos.cpu.*;\n" +
                                     "import jdos.fpu.*;\n" +
@@ -7734,10 +7771,10 @@ public class Compiler extends Helper {
                                     "import jdos.util.*;\n" +
                                     "import jdos.cpu.core_normal.*;\n" +
                                     "import jdos.cpu.core_share.*;\n\n" +
-                                    "public final class " + codeBlock.getSimpleName() + " extends " + codeBlock.getSuperclass().getName() + " {\n" +
+                                    "public final class " + savedSimple + " extends " + savedSuper + " {\n" +
                                     "   public int call() { " + method + "} \n" +
                                     "}";
-                    Loader.add(codeBlock.getName(), codeBlock.toBytecode(), block.codeStart, getOpCode(block.codeStart, block.codeLen), classBody);
+                    Loader.add(savedName, bytecode, block.codeStart, getOpCode(block.codeStart, block.codeLen), classBody);
                 } else {
                     throw new IllegalStateException("Tried to save an incomplete code block");
                 }

@@ -257,9 +257,7 @@ public class Msvcrt extends BuiltinModule {
     }
 
     public static int memset(int ptr, int value, int num) {
-        for (int i = 0; i < num; i++) {
-            Memory.mem_writeb(ptr + i, value & 0xFF);
-        }
+        Memory.mem_memset(ptr, value, num);
         return ptr;
     }
 
