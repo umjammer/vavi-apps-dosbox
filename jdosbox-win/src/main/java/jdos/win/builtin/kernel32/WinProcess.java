@@ -31,6 +31,7 @@ import jdos.win.system.WinFileMapping;
 import jdos.win.system.WinHeap;
 import jdos.win.system.WinObject;
 import jdos.win.system.WinSystem;
+import jdos.win.utils.AnsiName;
 import jdos.win.utils.Error;
 import jdos.win.utils.FilePath;
 import jdos.win.utils.Heap;
@@ -269,7 +270,8 @@ public class WinProcess extends WaitObject {
     }
 
     public FilePath getFile(String name) {
-        name = WinPath.normalizePath(name, currentWorkingDirectory);
+        // a unicode name the ansi side carried for a program that asked for it by its wide name
+        name = AnsiName.decode(WinPath.normalizePath(name, currentWorkingDirectory));
         for (Path path : paths) {
             if (name.toLowerCase().startsWith(path.winPath.toLowerCase())) {
                 return new FilePath(WinPath.toHostPath(name, path.nativePath, path.winPath));
