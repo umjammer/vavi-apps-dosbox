@@ -61,6 +61,12 @@ abstract public class HandlerBase extends WinAPI implements Callback.Handler {
             int preEsp = CPU_Regs.reg_esp.dword;
             CPU_Regs.reg_eip = CPU.CPU_Pop32();
             onCall();
+            // the handlers that pop their own arguments are not in the trail otherwise, and
+            // LoadLibrary, GetProcAddress, CreateThread are among them
+            if (jdos.win.loader.BuiltinModule.TRAIL && !(this instanceof ReturnHandlerBase)
+                    && !jdos.win.loader.BuiltinModule.isNoise(getName())) {
+                jdos.win.loader.BuiltinModule.record(getName() + " -> " + Integer.toHexString(CPU_Regs.reg_eax.dword), new Integer[0]);
+            }
             if (CHECK_TEMPS) {
                 String corrupted = WinSystem.getCurrentProcess().checkTemps();
                 if (corrupted != null)
