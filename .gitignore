@@ -118,7 +118,7 @@ run/
 !gradle-wrapper.jar
 tmp/
 bin/
-AGENTS.md
+MISSION.md
 dosbox-*.conf
 local.properties
 .gervill/
