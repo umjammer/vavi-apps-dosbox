@@ -2,6 +2,7 @@ package jdos.win.system;
 
 import jdos.hardware.Memory;
 import jdos.win.builtin.WinAPI;
+import jdos.win.utils.AnsiName;
 import jdos.win.utils.FilePath;
 import jdos.win.utils.StringUtil;
 
@@ -46,7 +47,8 @@ public class WinFindFile extends WinObject {
             return WinAPI.FALSE;
         }
         FilePath file = results[index++];
-        String name = file.getName();
+        // a host name latin-1 cannot hold goes over the way the ansi side carries it
+        String name = AnsiName.encode(file.getName());
         long timestamp = WinFile.millisToFiletime(file.lastModified());
         long size = file.length();
 

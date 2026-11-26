@@ -29,6 +29,7 @@ import jdos.win.system.WinFindFile;
 import jdos.win.system.WinMutex;
 import jdos.win.system.WinObject;
 import jdos.win.system.WinSystem;
+import jdos.win.utils.AnsiName;
 import jdos.win.utils.Error;
 import jdos.win.utils.FilePath;
 import jdos.win.utils.Locale;
@@ -906,6 +907,8 @@ public class Kernel32 extends BuiltinModule {
                         dir = WinSystem.getCurrentProcess().getFile(fileName.substring(0, pos));
                         search = fileName.substring(pos + 1);
                     }
+                    // the pattern is matched against host names, which are unicode
+                    search = AnsiName.decode(search);
                     if (!dir.exists()) {
                         ok = false;
                     } else {
@@ -2873,15 +2876,24 @@ public class Kernel32 extends BuiltinModule {
         widenString(ansi + FIND_DATA_ALTERNATE_A, wide + FIND_DATA_ALTERNATE_W);
     }
 
-    /** a name a byte at a time into a name two bytes at a time, with no java string in between */
+    /**
+     * a name a byte at a time into a name two bytes at a time: each byte is its own char, except
+     * where the ansi side is carrying a name latin-1 could not hold (see {@link AnsiName})
+     */
     private static void widenString(int ansi, int wide) {
+        StringBuilder name = new StringBuilder();
         while (true) {
             int c = Memory.mem_readb(ansi++) & 0xFF;
-            Memory.mem_writew(wide, c);
-            wide += 2;
             if (c == 0)
-                return;
+                break;
+            name.append((char) c);
         }
+        String unicode = AnsiName.decode(name.toString());
+        for (int i = 0; i < unicode.length(); i++) {
+            Memory.mem_writew(wide, unicode.charAt(i));
+            wide += 2;
+        }
+        Memory.mem_writew(wide, 0);
     }
 
     // HANDLE WINAPI FindFirstFileW(LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData)
@@ -2896,7 +2908,7 @@ public class Kernel32 extends BuiltinModule {
             int lpFileName = CPU.CPU_Pop32();
             int lpFindFileData = CPU.CPU_Pop32();
             int ansi = getTempBuffer(FIND_DATA_SIZE_A);
-            delegate((HandlerBase) FindFirstFileA, StringUtil.allocateTempA(StringUtil.getStringW(lpFileName)), ansi);
+            delegate((HandlerBase) FindFirstFileA, StringUtil.allocateTempA(AnsiName.encode(StringUtil.getStringW(lpFileName))), ansi);
             int handle = CPU_Regs.reg_eax.dword;
             if (handle != WinAPI.INVALID_HANDLE_VALUE && handle != 0 && lpFindFileData != 0)
                 widenFindData(ansi, lpFindFileData);

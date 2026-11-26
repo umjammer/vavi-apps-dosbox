@@ -26,6 +26,7 @@ import jdos.win.loader.winpe.HeaderImageImportDescriptor;
 import jdos.win.loader.winpe.HeaderImageOptional;
 import jdos.win.system.Scheduler;
 import jdos.win.system.WinSystem;
+import jdos.win.utils.AnsiName;
 import jdos.win.utils.Ptr;
 import jdos.win.utils.StringUtil;
 
@@ -745,7 +746,9 @@ public class BuiltinModule extends Module {
                 // a resource can be named by its id rather than by a string, and then there is
                 // nothing to convert - the low word is the id itself
                 if (address != 0 && !IS_INTRESOURCE(address))
-                    CPU.CPU_Poke32(index, StringUtil.allocateTempA(StringUtil.getStringW(address)));
+                    // a name latin-1 cannot hold goes over as its utf-8, which is undone where it
+                    // becomes a host path, rather than as a row of '?'
+                    CPU.CPU_Poke32(index, StringUtil.allocateTempA(AnsiName.encode(StringUtil.getStringW(address))));
             }
             ansi.onCall();
         }
