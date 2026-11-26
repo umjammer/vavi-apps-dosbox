@@ -257,72 +257,150 @@ public class Paging extends Module_base {
 
     public static /*Bit8u*/int mem_readb_inline(/*PhysPt*/int address) {
         /*HostPt*/
-        int tlb_addr = get_tlb_read(address);
-        if (tlb_addr != INVALID_ADDRESS)
-            return RAM.readb(tlb_addr + address);
-        else return (get_tlb_readhandler(address)).readb(address);
+        int tlb_addr = read[address >>> 12];
+        if (tlb_addr != INVALID_ADDRESS) {
+            int a = tlb_addr + address;
+            return (RAM.direct[a >>> 2] >>> ((a & 3) << 3)) & 0xFF;
+        }
+        return mem_readb_slow(address);
+    }
+
+    private static int mem_readb_slow(/*PhysPt*/int address) {
+        return readhandler[address >>> 12].readb(address);
     }
 
     public static /*Bit16u*/int mem_readw_inline(/*PhysPt*/int address) {
         if ((address & 0xfff) < 0xfff) {
             /*HostPt*/
-            int tlb_addr = get_tlb_read(address);
-            if (tlb_addr != INVALID_ADDRESS) return RAM.readw(tlb_addr + address);
-            else return (get_tlb_readhandler(address)).readw(address);
-        } else return Memory.mem_unalignedreadw(address);
+            int tlb_addr = read[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                return RAM.readw(tlb_addr + address);
+            }
+        }
+        return mem_readw_slow(address);
+    }
+
+    private static int mem_readw_slow(/*PhysPt*/int address) {
+        if ((address & 0xfff) < 0xfff) {
+            return readhandler[address >>> 12].readw(address);
+        }
+        return Memory.mem_unalignedreadw(address);
     }
 
     public static /*Bit32u*/int mem_readd_inline(/*PhysPt*/int address) {
-        int rem = (address & 0x3);
-        if (rem == 0) {
-            int tlb_addr = get_tlb_read(address);
-            if (tlb_addr != INVALID_ADDRESS)
+        if ((address & 3) == 0) {
+            int tlb_addr = read[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
                 return RAM.direct[(address + tlb_addr) >>> 2];
-            else {
-                return get_tlb_readhandler(address).readd(address);
             }
         }
+        return mem_readd_slow(address);
+    }
+
+    private static int mem_readd_slow(/*PhysPt*/int address) {
         if ((address & 0xfff) < 0xffd) {
             /*HostPt*/
-            int tlb_addr = get_tlb_read(address);
-            if (tlb_addr != INVALID_ADDRESS) return RAM.readd(tlb_addr + address);
-            else return (get_tlb_readhandler(address)).readd(address);
-        } else return Memory.mem_unalignedreadd(address);
+            int tlb_addr = read[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                return RAM.readd(tlb_addr + address);
+            }
+            return readhandler[address >>> 12].readd(address);
+        }
+        return Memory.mem_unalignedreadd(address);
+    }
+
+    public static long mem_readq_inline(/*PhysPt*/int address) {
+        if ((address & 3) == 0 && (address & 0xfff) < 0xffc) {
+            int tlb_addr = read[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                int[] ram = RAM.direct;
+                int idx = (address + tlb_addr) >>> 2;
+                return (ram[idx] & 0xFFFFFFFFL) | ((long) ram[idx + 1] << 32);
+            }
+        }
+        return mem_readq_slow(address);
+    }
+
+    private static long mem_readq_slow(/*PhysPt*/int address) {
+        return (mem_readd_inline(address) & 0xFFFFFFFFL) | ((mem_readd_inline(address + 4) & 0xFFFFFFFFL) << 32);
     }
 
     public static void mem_writeb_inline(/*PhysPt*/int address,/*Bit8u*/int val) {
         /*HostPt*/
-        int tlb_addr = get_tlb_write(address);
-        if (tlb_addr != INVALID_ADDRESS) RAM.writeb(tlb_addr + address, val);
-        else (get_tlb_writehandler(address)).writeb(address, val);
+        int tlb_addr = write[address >>> 12];
+        if (tlb_addr != INVALID_ADDRESS) {
+            RAM.writeb(tlb_addr + address, val);
+        } else {
+            mem_writeb_slow(address, val);
+        }
+    }
+
+    private static void mem_writeb_slow(/*PhysPt*/int address,/*Bit8u*/int val) {
+        writehandler[address >>> 12].writeb(address, val);
     }
 
     public static void mem_writew_inline(/*PhysPt*/int address,/*Bit16u*/int val) {
         if ((address & 0xfff) < 0xfff) {
             /*HostPt*/
-            int tlb_addr = get_tlb_write(address);
-            if (tlb_addr != INVALID_ADDRESS) RAM.writew(tlb_addr + address, val);
-            else (get_tlb_writehandler(address)).writew(address, val);
-        } else Memory.mem_unalignedwritew(address, val);
+            int tlb_addr = write[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                RAM.writew(tlb_addr + address, val);
+                return;
+            }
+        }
+        mem_writew_slow(address, val);
+    }
+
+    private static void mem_writew_slow(/*PhysPt*/int address,/*Bit16u*/int val) {
+        if ((address & 0xfff) < 0xfff) {
+            writehandler[address >>> 12].writew(address, val);
+            return;
+        }
+        Memory.mem_unalignedwritew(address, val);
     }
 
     public static void mem_writed_inline(/*PhysPt*/int address,/*Bit32u*/int val) {
-        int rem = (address & 0x3);
-        if (rem == 0) {
-            int tlb_addr = get_tlb_write(address);
+        if ((address & 3) == 0) {
+            int tlb_addr = write[address >>> 12];
             if (tlb_addr != INVALID_ADDRESS) {
                 RAM.direct[(address + tlb_addr) >>> 2] = val;
-            } else {
-                get_tlb_writehandler(address).writed(address, val);
+                return;
             }
-            return;
         }
+        mem_writed_slow(address, val);
+    }
+
+    private static void mem_writed_slow(/*PhysPt*/int address,/*Bit32u*/int val) {
         if ((address & 0xfff) < 0xffd) {
             /*HostPt*/
-            int tlb_addr = get_tlb_write(address);
-            if (tlb_addr != INVALID_ADDRESS) RAM.writed(tlb_addr + address, val);
-            else (get_tlb_writehandler(address)).writed(address, val);
-        } else Memory.mem_unalignedwrited(address, val);
+            int tlb_addr = write[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                RAM.writed(tlb_addr + address, val);
+                return;
+            }
+            writehandler[address >>> 12].writed(address, val);
+            return;
+        }
+        Memory.mem_unalignedwrited(address, val);
+    }
+
+    public static void mem_writeq_inline(/*PhysPt*/int address, long val) {
+        if ((address & 3) == 0 && (address & 0xfff) < 0xffc) {
+            int tlb_addr = write[address >>> 12];
+            if (tlb_addr != INVALID_ADDRESS) {
+                int[] ram = RAM.direct;
+                int idx = (address + tlb_addr) >>> 2;
+                ram[idx] = (int) val;
+                ram[idx + 1] = (int) (val >>> 32);
+                return;
+            }
+        }
+        mem_writeq_slow(address, val);
+    }
+
+    private static void mem_writeq_slow(/*PhysPt*/int address, long val) {
+        mem_writed_inline(address, (int) val);
+        mem_writed_inline(address + 4, (int) (val >>> 32));
     }
 
     private static final int LINK_TOTAL = (64 * 1024);
@@ -1131,6 +1209,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
     }
 
     private static void PAGING_InitTLB() {
+        Core_dynamic.clearIBTC();
         for (/*Bitu*/int i = 0; i < TLB_SIZE; i++) {
             read[i] = INVALID_ADDRESS;
             write[i] = INVALID_ADDRESS;
@@ -1144,6 +1223,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
     }
 
     public static void PAGING_ClearTLB() {
+        Core_dynamic.clearIBTC();
         for (int i = 0; links.used > 0; links.used--, i++) {
             /*Bitu*/
             int page = links.entries[i];
@@ -1159,6 +1239,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
     }
 
     public static void PAGING_ClearNonGlobalTLB() {
+        Core_dynamic.clearIBTC();
         for (int i = 0; i < links.used; i++) {
             /*Bitu*/
             if (globalEnabled && !links.global[i]) {
@@ -1183,6 +1264,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
     }
 
     public static void PAGING_UnlinkPages(/*Bitu*/int lin_page,/*Bitu*/int pages) {
+        Core_dynamic.clearIBTC();
         for (; pages > 0; pages--) {
             read[lin_page] = INVALID_ADDRESS;
             write[lin_page] = INVALID_ADDRESS;
@@ -1193,6 +1275,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
     }
 
     public static void PAGING_MapPage(/*Bitu*/int lin_page,/*Bitu*/int phys_page) {
+        Core_dynamic.clearIBTC();
         if (lin_page < LINK_START) {
             firstmb[lin_page] = phys_page;
             read[lin_page] = INVALID_ADDRESS;
@@ -1317,6 +1400,7 @@ void PrintPageInfo(const char* string, PhysPt lin_addr, bool writing, bool prepa
 
     // parameter is the new cpl mode
     public static void PAGING_SwitchCPL(boolean isUser) {
+        Core_dynamic.clearIBTC();
         //	LOG_MSG("SWCPL u%d kr%d, krw%d, ur%d",
         //		isUser, kro_links.used, krw_links.used, ure_links.used);
 

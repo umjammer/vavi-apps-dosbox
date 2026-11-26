@@ -192,6 +192,7 @@ class Fmp7WorkProbe {
         Path work = install();
 
         byte[] b = new byte[GLOBAL_SIZE + PART_SIZE * MAX_PART];
+        int failed = 0;
         for (int song = 0; song < Integer.getInteger("songs", 2); song++) {
             JDosBox dosbox = new JDosBox()
                     .arg("-m", System.getProperty("memory", "64"))
@@ -213,8 +214,20 @@ class Fmp7WorkProbe {
             System.err.printf("song %d: %splaying after %s%n", song, played ? "" : "NOT ",
                     dosbox.isRunning() ? "the machine came up" : "the machine ended");
             dosbox.stop();
-            assertTrue(played, "song " + song + " never published a playing work");
+            if (Boolean.getBoolean("dumpTrail")) {
+                System.err.println("### song " + song + (played ? " ok" : " FAILED"));
+                jdos.win.loader.BuiltinModule.dumpRecent();
+                jdos.win.loader.BuiltinModule.clearRecent();
+            }
+            if (!played) {
+                failed++;
+            }
+            if (!Boolean.getBoolean("keepGoing")) {
+                assertTrue(played, "song " + song + " never published a playing work");
+            }
         }
+        System.err.printf("failed %d of %d%n", failed, Integer.getInteger("songs", 2));
+        assertTrue(failed == 0, failed + " songs never published a playing work");
     }
 
     /**

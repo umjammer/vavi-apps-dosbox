@@ -64,6 +64,13 @@ public class DSMixer extends IDirectSoundBuffer {
 
         /* Check for same sample rate */
         if (dsb.freq == dsb.deviceRate) {
+            if (dsb.convert == DSConvert.convertbpp[1][1] && wfx.nChannels == DEVICE_CHANNELS && iAdvance == oAdvance) {
+                int byteLen = size * oAdvance;
+                if (byteLen > 0) {
+                    jdos.hardware.Memory.mem_memcpy(dsb.tmp_buffer, writepos / iAdvance * oAdvance, ibp, byteLen);
+                }
+                return;
+            }
             obp = obp_begin;
             obp.inc(writepos / iAdvance * oAdvance);
             cp_fields(dsb, ibp, obp, iAdvance, oAdvance, size, 0, 1 << DSOUND_FREQSHIFT);

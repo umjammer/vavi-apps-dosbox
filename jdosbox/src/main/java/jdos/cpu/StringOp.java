@@ -2,10 +2,12 @@ package jdos.cpu;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.Arrays;
 
 import jdos.cpu.core_normal.Prefix_helpers;
 import jdos.hardware.IO;
 import jdos.hardware.Memory;
+import jdos.hardware.RAM;
 
 
 public class StringOp extends Prefix_helpers {
@@ -395,6 +397,28 @@ public class StringOp extends Prefix_helpers {
                 }
                 break;
             case R_STOSB:
+                if ((prefixes & PREFIX_REP) != 0 && add_index == 1 && count > 1) {
+                    int b = reg_eax.low();
+                    int[] tlbWrite = Paging.write;
+                    while (count > 0) {
+                        int dst = di_base + reg_edi.dword;
+                        int tlbW = tlbWrite[dst >>> 12];
+                        if (tlbW != Paging.INVALID_ADDRESS) {
+                            int chunk = 4096 - (dst & 0xfff);
+                            if (chunk > count) chunk = (int) count;
+                            RAM.memset(tlbW + dst, chunk, b);
+                            reg_edi.dword += chunk;
+                            reg_ecx.dword -= chunk;
+                            count -= chunk;
+                        } else {
+                            Memory.mem_writeb(dst, b);
+                            reg_edi.dword += 1;
+                            reg_ecx.dword--;
+                            count--;
+                        }
+                    }
+                    break;
+                }
                 for (; count > 0; count--) {
                     Memory.mem_writeb(di_base + reg_edi.dword, reg_eax.low());
                     reg_edi.dword += add_index;
@@ -410,6 +434,38 @@ public class StringOp extends Prefix_helpers {
                 }
                 break;
             case R_STOSD:
+                if ((prefixes & PREFIX_REP) != 0 && add_index == 1 && count > 1) {
+                    int val = reg_eax.dword;
+                    int[] ram = RAM.direct;
+                    int[] tlbWrite = Paging.write;
+                    while (count > 0) {
+                        int dst = di_base + reg_edi.dword;
+                        int tlbW = tlbWrite[dst >>> 12];
+                        int availDwords = (4096 - (dst & 0xfff)) >>> 2;
+                        if (tlbW != Paging.INVALID_ADDRESS && availDwords > 0) {
+                            int dwords = availDwords > count ? (int) count : availDwords;
+                            int off = tlbW + dst;
+                            int bytes = dwords << 2;
+                            if ((off & 3) == 0) {
+                                int idx = off >>> 2;
+                                Arrays.fill(ram, idx, idx + dwords, val);
+                            } else {
+                                for (int i = 0; i < bytes; i += 4) {
+                                    RAM.writed(off + i, val);
+                                }
+                            }
+                            reg_edi.dword += bytes;
+                            reg_ecx.dword -= dwords;
+                            count -= dwords;
+                        } else {
+                            Memory.mem_writed(dst, val);
+                            reg_edi.dword += 4;
+                            reg_ecx.dword--;
+                            count--;
+                        }
+                    }
+                    break;
+                }
                 add_index <<= 2;
                 for (; count > 0; count--) {
                     Memory.mem_writed(di_base + reg_edi.dword, reg_eax.dword);
@@ -418,6 +474,44 @@ public class StringOp extends Prefix_helpers {
                 }
                 break;
             case R_MOVSB:
+                if ((prefixes & PREFIX_REP) != 0 && add_index == 1 && count > 1) {
+                    int[] tlbRead = Paging.read;
+                    int[] tlbWrite = Paging.write;
+                    while (count > 0) {
+                        int src = si_base + reg_esi.dword;
+                        int dst = di_base + reg_edi.dword;
+                        int tlbR = tlbRead[src >>> 12];
+                        int tlbW = tlbWrite[dst >>> 12];
+                        if (tlbR != Paging.INVALID_ADDRESS && tlbW != Paging.INVALID_ADDRESS) {
+                            int rAvail = 4096 - (src & 0xfff);
+                            int wAvail = 4096 - (dst & 0xfff);
+                            int chunk = rAvail < wAvail ? rAvail : wAvail;
+                            if (chunk > count) chunk = (int) count;
+                            int sOff = tlbR + src;
+                            int dOff = tlbW + dst;
+                            if (dOff > sOff && dOff < sOff + chunk) {
+                                Memory.mem_writeb(dst, Memory.mem_readb(src));
+                                reg_edi.dword += 1;
+                                reg_esi.dword += 1;
+                                reg_ecx.dword--;
+                                count--;
+                            } else {
+                                RAM.memcpy(dOff, sOff, chunk);
+                                reg_edi.dword += chunk;
+                                reg_esi.dword += chunk;
+                                reg_ecx.dword -= chunk;
+                                count -= chunk;
+                            }
+                        } else {
+                            Memory.mem_writeb(dst, Memory.mem_readb(src));
+                            reg_edi.dword += 1;
+                            reg_esi.dword += 1;
+                            reg_ecx.dword--;
+                            count--;
+                        }
+                    }
+                    break;
+                }
                 for (; count > 0; count--) {
                     Memory.mem_writeb(di_base + reg_edi.dword, Memory.mem_readb(si_base + reg_esi.dword));
                     reg_edi.dword += add_index;
@@ -451,6 +545,45 @@ public class StringOp extends Prefix_helpers {
 //                di_index=(di_index+add_index) & add_mask;
 //                si_index=(si_index+add_index) & add_mask;
 //            }
+                if ((prefixes & PREFIX_REP) != 0 && add_index == 1 && count > 1) {
+                    int[] tlbRead = Paging.read;
+                    int[] tlbWrite = Paging.write;
+                    while (count > 0) {
+                        int src = si_base + reg_esi.dword;
+                        int dst = di_base + reg_edi.dword;
+                        int tlbR = tlbRead[src >>> 12];
+                        int tlbW = tlbWrite[dst >>> 12];
+                        int rDwords = (4096 - (src & 0xfff)) >>> 2;
+                        int wDwords = (4096 - (dst & 0xfff)) >>> 2;
+                        int availDwords = rDwords < wDwords ? rDwords : wDwords;
+                        if (tlbR != Paging.INVALID_ADDRESS && tlbW != Paging.INVALID_ADDRESS && availDwords > 0) {
+                            int dwords = availDwords > count ? (int) count : availDwords;
+                            int bytes = dwords << 2;
+                            int sOff = tlbR + src;
+                            int dOff = tlbW + dst;
+                            if (dOff > sOff && dOff < sOff + bytes) {
+                                Memory.mem_writed(dst, Memory.mem_readd(src));
+                                reg_edi.dword += 4;
+                                reg_esi.dword += 4;
+                                reg_ecx.dword--;
+                                count--;
+                            } else {
+                                RAM.memcpy(dOff, sOff, bytes);
+                                reg_edi.dword += bytes;
+                                reg_esi.dword += bytes;
+                                reg_ecx.dword -= dwords;
+                                count -= dwords;
+                            }
+                        } else {
+                            Memory.mem_writed(dst, Memory.mem_readd(src));
+                            reg_edi.dword += 4;
+                            reg_esi.dword += 4;
+                            reg_ecx.dword--;
+                            count--;
+                        }
+                    }
+                    break;
+                }
                 add_index <<= 2;
                 for (; count > 0; count--) {
                     Memory.mem_writed(di_base + reg_edi.dword, Memory.mem_readd(si_base + reg_esi.dword));

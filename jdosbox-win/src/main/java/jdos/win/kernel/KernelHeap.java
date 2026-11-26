@@ -146,10 +146,14 @@ public class KernelHeap {
         long address = end & 0xFFFFFFFFL;
         long new_end = address + size;
         int new_size = 0;
+        long startAddress = address;
         while (address < new_end) {
-            memory.alloc_frame(memory.get_page((int) address, true, directory), kernel, !readonly);
+            memory.alloc_frame(memory.get_page((int) address, true, directory), kernel, !readonly, false);
             address += 0x1000;
             new_size += 0x1000;
+        }
+        if (new_size > 0 && jdos.cpu.Paging.PAGING_Enabled()) {
+            jdos.cpu.Paging.PAGING_UnlinkPages((int) (startAddress >>> 12), new_size >>> 12);
         }
         end += new_size;
 

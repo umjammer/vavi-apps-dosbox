@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jdos.Dosbox;
+import jdos.cpu.Core_dynamic;
 import jdos.cpu.core_switch.SwitchBlock;
 
 
@@ -18,11 +19,16 @@ public class CacheBlockDynRec {
     }
 
     public void clear() {
+        Core_dynamic.invalidateIBTCBlock(this);
+        RegionCompiler.onBlockCleared(this);
         /*Bitu*/
         int ind;
         if (code instanceof DecodeBlock op && Dosbox.allPrivileges) {
             Compiler.removeFromQueue(op);
+        } else if (decodeBlock != null && Dosbox.allPrivileges) {
+            Compiler.removeFromQueue(decodeBlock);
         }
+        decodeBlock = null;
         // check if this is not a cross page block
         if (hash.index != 0) {
             for (ind = 0; ind < 2; ind++) {
@@ -112,6 +118,9 @@ public class CacheBlockDynRec {
     public final _Link link2;
     CacheBlockDynRec crossblock;
     public Op code;
+    public DecodeBlock decodeBlock;
+    public List<RegionOp> dependentRegions;
+    public int linearStart = -1;
     public SwitchBlock[] inst; // micro instructions used by Core_switch
     public byte[] originalByteCode = null; //used for dynamic core cache verification
 }

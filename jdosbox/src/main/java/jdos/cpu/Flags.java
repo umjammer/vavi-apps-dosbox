@@ -3,38 +3,65 @@ package jdos.cpu;
 public class Flags {
 
     // needs to come before creating LazyFlags
-    static public final GetFlags t_UNKNOWN = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
+    static public final int t_UNKNOWN = 0;
 
-        @Override
-        public boolean AF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.AF) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.ZF) != 0;
-        }
-
-        @Override
-        public boolean SF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.SF) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;
-        }
-    };
+    final static public int t_INCb = 1;
+    final static public int t_INCw = 2;
+    final static public int t_INCd = 3;
+    final static public int t_DECb = 4;
+    final static public int t_DECw = 5;
+    final static public int t_DECd = 6;
+    final static public int t_ADDb = 7;
+    final static public int t_ADDw = 8;
+    final static public int t_ADDd = 9;
+    final static public int t_ADCb = 10;
+    final static public int t_ADCw = 11;
+    final static public int t_ADCd = 12;
+    final static public int t_ORb = 13;
+    final static public int t_ORw = 14;
+    final static public int t_ORd = 15;
+    final static public int t_ANDb = 13;
+    final static public int t_ANDw = 14;
+    final static public int t_ANDd = 15;
+    final static public int t_TESTb = 13;
+    final static public int t_TESTw = 14;
+    final static public int t_TESTd = 15;
+    final static public int t_XORb = 13;
+    final static public int t_XORw = 14;
+    final static public int t_XORd = 15;
+    final static public int t_SUBb = 16;
+    final static public int t_SUBw = 17;
+    final static public int t_SUBd = 18;
+    final static public int t_CMPb = 16;
+    final static public int t_CMPw = 17;
+    final static public int t_CMPd = 18;
+    final static public int t_SBBb = 19;
+    final static public int t_SBBw = 20;
+    final static public int t_SBBd = 21;
+    final static public int t_MUL = 22;
+    final static public int t_SHLb = 23;
+    final static public int t_SHLw = 24;
+    final static public int t_SHLd = 25;
+    final static public int t_SHRb = 26;
+    final static public int t_SHRw = 27;
+    final static public int t_SHRd = 28;
+    final static public int t_SARb = 29;
+    final static public int t_SARw = 30;
+    final static public int t_SARd = 31;
+    final static public int t_DSHLw = 32;
+    final static public int t_DSHLd = 33;
+    final static public int t_DSHRw = 34;
+    final static public int t_DSHRd = 35;
+    final static public int t_DIV = 36;
+    final static public int t_NEGb = 37;
+    final static public int t_NEGw = 38;
+    final static public int t_NEGd = 39;
 
     public static int var1;
     public static int var2;
     public static int res;
     public static boolean oldcf;
-    public static Flags.GetFlags type = Flags.t_UNKNOWN;
+    public static int type = Flags.t_UNKNOWN;
 
     static public void copy(LazyFlags in) {
         var1 = in.var1;
@@ -143,1401 +170,35 @@ public class Flags {
         CPU_Regs.SETFLAGBIT(CPU_Regs.AF, get_AF());
     }
 
-    public interface GetFlags {
-
-        boolean CF();
-
-        boolean AF();
-
-        boolean ZF();
-
-        boolean SF();
-
-        boolean OF();
-    }
-
-    final static public GetFlags t_INCb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resb() & 0x0f) == 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resb() == 0x80);
-        }
-    };
-
-    final static public GetFlags t_INCw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resw() & 0x0f) == 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resw() == 0x8000);
-        }
-    };
-
-    final static public GetFlags t_INCd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resd() & 0x0f) == 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resd() == 0x80000000);
-        }
-    };
-
-    final static public GetFlags t_DECb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resb() & 0x0f) == 0x0f;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resb() == 0x7f);
-        }
-    };
-
-    final static public GetFlags t_DECw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resw() & 0x0f) == 0x0f;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resw() == 0x7fff);
-        }
-    };
-
-    final static public GetFlags t_DECd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_resd() & 0x0f) == 0x0f;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000L) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_resd() == 0x7fffffff);
-        }
-    };
-
-    final static public GetFlags t_ADDb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_resb() < lf_var1b());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_ADDw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_resw() < lf_var1w());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_ADDd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_resd() & 0xFFFFFFFFL) < (lf_var1d() & 0xFFFFFFFFL));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_ADCb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_resb() < lf_var1b()) || (oldcf && (lf_resb() == lf_var1b()));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1b() ^ lf_var2b() ^ 0x80) & (lf_resb() ^ lf_var2b())) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_ADCw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_resw() < lf_var1w()) || (oldcf && (lf_resw() == lf_var1w()));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1w() ^ lf_var2w() ^ 0x8000) & (lf_resw() ^ lf_var2w())) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_ADCd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_resd() & 0xFFFFFFFFL) < (lf_var1d() & 0xFFFFFFFFL)) || (oldcf && (lf_resd() == lf_var1d()));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1d() ^ lf_var2d() ^ 0x80000000) & (lf_resd() ^ lf_var2d())) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_ORb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_ORw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_ORd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_ANDb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_ANDw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_ANDd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_TESTb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_TESTw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_TESTd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_XORb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_XORw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_XORd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_SUBb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1b() < lf_var2b());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_SUBw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1w() < lf_var2w());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_SUBd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_var2d() & 0xFFFFFFFFL));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_CMPb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1b() < lf_var2b());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_CMPw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1w() < lf_var2w());
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_CMPd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_var2d() & 0xFFFFFFFFL));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_SBBb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1b() < lf_resb()) || (oldcf && (lf_var2b() == 0xff));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1b() ^ lf_var2b()) ^ lf_resb()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1b() ^ lf_var2b()) & (lf_var1b() ^ lf_resb())) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_SBBw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (lf_var1w() < lf_resw()) || (oldcf && (lf_var2w() == 0xffff));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1w() ^ lf_var2w()) ^ lf_resw()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1w() ^ lf_var2w()) & (lf_var1w() ^ lf_resw())) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_SBBd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() & 0xFFFFFFFFL) < (lf_resd() & 0xFFFFFFFFL)) || (oldcf && (lf_var2d() == 0xffffffff));
-        }
-
-        @Override
-        public boolean AF() {
-            return (((lf_var1d() ^ lf_var2d()) ^ lf_resd()) & 0x10) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (((lf_var1d() ^ lf_var2d()) & (lf_var1d() ^ lf_resd())) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_MUL = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.CF) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return false;
-        }
-
-        @Override
-        public boolean SF() {
-            return false;
-        }
-
-        @Override
-        public boolean OF() {
-            return CPU_Regs.GETFLAG(CPU_Regs.OF) != 0;
-        }
-    };
-
-    final static public GetFlags t_SHLb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return lf_var2b() <= 8 && ((lf_var1b() >> (8 - lf_var2b())) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2b() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resb() ^ lf_var1b()) & 0x80) != 0;
-        }
-    };
-
-    final static public GetFlags t_SHLw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return lf_var2b() <= 16 && ((lf_var1w()) >> (16 - lf_var2b()) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2w() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_SHLd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2d() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_SHRb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1b() >> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2b() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var2b() & 0x1f) == 1 && lf_var1b() > 0x80;
-        }
-    };
-
-    final static public GetFlags t_SHRw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1w() >> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2w() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var2b() & 0x1f) == 1 && lf_var1w() > 0x8000;
-        }
-    };
-
-    final static public GetFlags t_SHRd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2d() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var2b() & 0x1f) == 1 && (lf_var1d() & 0xFFFFFFFFL) > 0x80000000L;
-        }
-    };
-
-    final static public GetFlags t_SARb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (((lf_var1b()) >> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2b() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_SARw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (((lf_var1w()) >> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2w() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_SARd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return (((lf_var1d()) >> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var2d() & 0x1f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_DSHLw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
-        } /* Hmm this is not correct for shift higher than 16 */
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_DSHLd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (32 - lf_var2b())) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_DSHRw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
-        } /* Hmm this is not correct for shift higher than 16 */
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resw() ^ lf_var1w()) & 0x8000) != 0;
-        }
-    };
-
-    final static public GetFlags t_DSHRd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return ((lf_var1d() >>> (lf_var2b() - 1)) & 1) != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return ((lf_resd() ^ lf_var1d()) & 0x80000000) != 0;
-        }
-    };
-
-    final static public GetFlags t_DIV = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return false;
-        }
-
-        @Override
-        public boolean AF() {
-            return false;
-        }
-
-        @Override
-        public boolean ZF() {
-            return false;
-        }
-
-        @Override
-        public boolean SF() {
-            return false;
-        }
-
-        @Override
-        public boolean OF() {
-            return false;
-        }
-    };
-
-    final static public GetFlags t_NEGb = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return lf_var1b() != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var1b() & 0x0f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resb() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resb() & 0x80) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var1b() == 0x80);
-        }
-    };
-
-    final static public GetFlags t_NEGw = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return lf_var1w() != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var1w() & 0x0f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resw() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resw() & 0x8000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var1w() == 0x8000);
-        }
-    };
-
-    final static public GetFlags t_NEGd = new GetFlags() {
-        @Override
-        public boolean CF() {
-            return lf_var1d() != 0;
-        }
-
-        @Override
-        public boolean AF() {
-            return (lf_var1d() & 0x0f) != 0;
-        }
-
-        @Override
-        public boolean ZF() {
-            return (lf_resd() == 0);
-        }
-
-        @Override
-        public boolean SF() {
-            return (lf_resd() & 0x80000000) != 0;
-        }
-
-        @Override
-        public boolean OF() {
-            return (lf_var1d() == 0x80000000);
-        }
-    };
-
     /* CF     Carry Flag -- Set on high-order bit carry or borrow; cleared
           otherwise.
     */
     static public boolean get_CF() {
-        return type.CF();
+        int t = type;
+        if (t == t_UNKNOWN) return (CPU_Regs.flags & CPU_Regs.CF) != 0;
+        int v1 = var1;
+        int v2 = var2;
+        int r = res;
+        return switch (t) {
+            case t_INCb, t_INCw, t_INCd, t_DECb, t_DECw, t_DECd, t_MUL -> (CPU_Regs.flags & CPU_Regs.CF) != 0;
+            case t_ADDb, t_ADDw -> r < v1;
+            case t_ADDd -> (r & 0xFFFFFFFFL) < (v1 & 0xFFFFFFFFL);
+            case t_ADCb, t_ADCw -> (r < v1) || (oldcf && (r == v1));
+            case t_ADCd -> ((r & 0xFFFFFFFFL) < (v1 & 0xFFFFFFFFL)) || (oldcf && (r == v1));
+            case t_ORb, t_ORw, t_ORd, t_DIV -> false;
+            case t_SUBb, t_SUBw -> v1 < v2;
+            case t_SUBd -> (v1 & 0xFFFFFFFFL) < (v2 & 0xFFFFFFFFL);
+            case t_SBBb -> (v1 < r) || (oldcf && (v2 == 0xff));
+            case t_SBBw -> (v1 < r) || (oldcf && (v2 == 0xffff));
+            case t_SBBd -> ((v1 & 0xFFFFFFFFL) < (r & 0xFFFFFFFFL)) || (oldcf && (v2 == 0xffffffff));
+            case t_SHLb -> v2 <= 8 && ((v1 >> (8 - v2)) & 1) != 0;
+            case t_SHLw -> v2 <= 16 && ((v1 >> (16 - v2)) & 1) != 0;
+            case t_SHLd, t_DSHLw, t_DSHLd -> ((v1 >>> (32 - v2)) & 1) != 0; /* Hmm this is not correct for shift higher than 16 */
+            case t_SHRb, t_SHRw, t_SARb, t_SARw, t_SARd -> ((v1 >> (v2 - 1)) & 1) != 0;
+            case t_SHRd, t_DSHRw, t_DSHRd -> ((v1 >>> (v2 - 1)) & 1) != 0; /* Hmm this is not correct for shift higher than 16 */
+            case t_NEGb, t_NEGw, t_NEGd -> v1 != 0;
+            default -> false;
+        };
     }
 
     /* AF     Adjust flag -- Set on carry from or borrow to the low order
@@ -1545,23 +206,72 @@ public class Flags {
             arithmetic.
     */
     static public boolean get_AF() {
-        return type.AF();
+        int t = type;
+        if (t == t_UNKNOWN) return (CPU_Regs.flags & CPU_Regs.AF) != 0;
+        return switch (t) {
+            case t_INCb, t_INCw, t_INCd -> (res & 0x0f) == 0;
+            case t_DECb, t_DECw, t_DECd -> (res & 0x0f) == 0x0f;
+            case t_ADDb, t_ADDw, t_ADDd, t_ADCb, t_ADCw, t_ADCd, t_SUBb, t_SUBw, t_SUBd, t_SBBb, t_SBBw, t_SBBd ->
+                    (((var1 ^ var2) ^ res) & 0x10) != 0;
+            case t_SHLb, t_SHLw, t_SHLd, t_SHRb, t_SHRw, t_SHRd, t_SARb, t_SARw, t_SARd -> (var2 & 0x1f) != 0;
+            case t_NEGb, t_NEGw, t_NEGd -> (var1 & 0x0f) != 0;
+            default -> false;
+        };
     }
 
     // ZF     Zero Flag -- Set if result is zero; cleared otherwise.
     static public boolean get_ZF() {
-        return type.ZF();
+        int t = type;
+        if (t == t_UNKNOWN) return (CPU_Regs.flags & CPU_Regs.ZF) != 0;
+        if (t == t_MUL || t == t_DIV) return false;
+        return res == 0;
     }
 
     /* SF     Sign Flag -- Set equal to high-order bit of result (0 is
             positive, 1 if negative).
     */
     static public boolean get_SF() {
-        return type.SF();
+        int t = type;
+        if (t == t_UNKNOWN) return (CPU_Regs.flags & CPU_Regs.SF) != 0;
+        return switch (t) {
+            case t_INCb, t_DECb, t_ADDb, t_ADCb, t_ORb, t_SUBb, t_SBBb, t_SHLb, t_SHRb, t_SARb, t_NEGb -> (res & 0x80) != 0;
+            case t_INCw, t_DECw, t_ADDw, t_ADCw, t_ORw, t_SUBw, t_SBBw, t_SHLw, t_SHRw, t_SARw, t_DSHLw, t_DSHRw, t_NEGw -> (res & 0x8000) != 0;
+            case t_INCd, t_DECd, t_ADDd, t_ADCd, t_ORd, t_SUBd, t_SBBd, t_SHLd, t_SHRd, t_SARd, t_DSHLd, t_DSHRd, t_NEGd -> res < 0;
+            default -> false;
+        };
     }
 
     static public boolean get_OF() {
-        return type.OF();
+        int t = type;
+        if (t == t_UNKNOWN) return (CPU_Regs.flags & CPU_Regs.OF) != 0;
+        int v1 = var1;
+        int v2 = var2;
+        int r = res;
+        return switch (t) {
+            case t_INCb -> r == 0x80;
+            case t_INCw -> r == 0x8000;
+            case t_INCd -> r == 0x80000000;
+            case t_DECb -> r == 0x7f;
+            case t_DECw -> r == 0x7fff;
+            case t_DECd -> r == 0x7fffffff;
+            case t_ADDb, t_ADCb -> (((v1 ^ v2 ^ 0x80) & (r ^ v2)) & 0x80) != 0;
+            case t_ADDw, t_ADCw -> (((v1 ^ v2 ^ 0x8000) & (r ^ v2)) & 0x8000) != 0;
+            case t_ADDd, t_ADCd -> (((v1 ^ v2 ^ 0x80000000) & (r ^ v2)) & 0x80000000) != 0;
+            case t_SUBb, t_SBBb -> (((v1 ^ v2) & (v1 ^ r)) & 0x80) != 0;
+            case t_SUBw, t_SBBw -> (((v1 ^ v2) & (v1 ^ r)) & 0x8000) != 0;
+            case t_SUBd, t_SBBd -> (((v1 ^ v2) & (v1 ^ r)) & 0x80000000) != 0;
+            case t_MUL -> (CPU_Regs.flags & CPU_Regs.OF) != 0;
+            case t_SHLb -> ((r ^ v1) & 0x80) != 0;
+            case t_SHLw, t_DSHLw, t_DSHRw -> ((r ^ v1) & 0x8000) != 0;
+            case t_SHLd, t_DSHLd, t_DSHRd -> ((r ^ v1) & 0x80000000) != 0;
+            case t_SHRb -> (v2 & 0x1f) == 1 && v1 > 0x80;
+            case t_SHRw -> (v2 & 0x1f) == 1 && v1 > 0x8000;
+            case t_SHRd -> (v2 & 0x1f) == 1 && (v1 & 0xFFFFFFFFL) > 0x80000000L;
+            case t_NEGb -> v1 == 0x80;
+            case t_NEGw -> v1 == 0x8000;
+            case t_NEGd -> v1 == 0x80000000;
+            default -> false;
+        };
     }
 
     public static final int[] parity_lookup = new int[] {
@@ -1659,24 +369,365 @@ public class Flags {
     }
 
     static public /*Bitu*/int FillFlags() {
-        if (type != t_UNKNOWN) {
-            SET_FLAG(CPU_Regs.CF, type.CF());
-            SET_FLAG(CPU_Regs.AF, type.AF());
-            SET_FLAG(CPU_Regs.ZF, type.ZF());
-            SET_FLAG(CPU_Regs.SF, type.SF());
-            SET_FLAG(CPU_Regs.OF, type.OF());
-            SET_FLAG(CPU_Regs.PF, (parity_lookup[lf_resb() & 0xFF]) != 0);
+        int t = type;
+        if (t != t_UNKNOWN) {
+            int r = res;
+            int v1 = var1;
+            int v2 = var2;
+            int cur = CPU_Regs.flags;
+            int f = parity_lookup[r & 0xFF];
+            switch (t) {
+                case t_INCb -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if (r == 0x80) f |= CPU_Regs.OF;
+                }
+                case t_INCw -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (r == 0x8000) f |= CPU_Regs.OF;
+                }
+                case t_INCd -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (r == 0x80000000) f |= CPU_Regs.OF;
+                }
+                case t_DECb -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if (r == 0x7f) f |= CPU_Regs.OF;
+                }
+                case t_DECw -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (r == 0x7fff) f |= CPU_Regs.OF;
+                }
+                case t_DECd -> {
+                    f |= (cur & CPU_Regs.CF);
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (r == 0x7fffffff) f |= CPU_Regs.OF;
+                }
+                case t_ADDb -> {
+                    if (r < v1) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x80) & (r ^ v2)) & 0x80) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ADDw -> {
+                    if (r < v1) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x8000) & (r ^ v2)) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ADDd -> {
+                    if ((r & 0xFFFFFFFFL) < (v1 & 0xFFFFFFFFL)) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x80000000) & (r ^ v2)) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ADCb -> {
+                    if ((r < v1) || (oldcf && (r == v1))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x80) & (r ^ v2)) & 0x80) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ADCw -> {
+                    if ((r < v1) || (oldcf && (r == v1))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x8000) & (r ^ v2)) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ADCd -> {
+                    if (((r & 0xFFFFFFFFL) < (v1 & 0xFFFFFFFFL)) || (oldcf && (r == v1))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2 ^ 0x80000000) & (r ^ v2)) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_ORb -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ORw -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ORd -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_SUBb -> {
+                    if (v1 < v2) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x80) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SUBw -> {
+                    if (v1 < v2) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SUBd -> {
+                    if ((v1 & 0xFFFFFFFFL) < (v2 & 0xFFFFFFFFL)) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SBBb -> {
+                    if ((v1 < r) || (oldcf && (v2 == 0xff))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x80) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SBBw -> {
+                    if ((v1 < r) || (oldcf && (v2 == 0xffff))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SBBd -> {
+                    if (((v1 & 0xFFFFFFFFL) < (r & 0xFFFFFFFFL)) || (oldcf && (v2 == 0xffffffff))) f |= CPU_Regs.CF;
+                    if (((v1 ^ v2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if ((((v1 ^ v2) & (v1 ^ r)) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_MUL -> f |= (cur & (CPU_Regs.CF | CPU_Regs.OF));
+                case t_SHLb -> {
+                    if (v2 <= 8 && ((v1 >> (8 - v2)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x80) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SHLw -> {
+                    if (v2 <= 16 && ((v1 >> (16 - v2)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SHLd -> {
+                    if (((v1 >>> (32 - v2)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_SHRb -> {
+                    if (((v1 >> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if ((v2 & 0x1f) == 1 && v1 > 0x80) f |= CPU_Regs.OF;
+                }
+                case t_SHRw -> {
+                    if (((v1 >> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if ((v2 & 0x1f) == 1 && v1 > 0x8000) f |= CPU_Regs.OF;
+                }
+                case t_SHRd -> {
+                    if (((v1 >>> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if ((v2 & 0x1f) == 1 && (v1 & 0xFFFFFFFFL) > 0x80000000L) f |= CPU_Regs.OF;
+                }
+                case t_SARb -> {
+                    if (((v1 >> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_SARw -> {
+                    if (((v1 >> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_SARd -> {
+                    if (((v1 >> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if ((v2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_DSHLw -> {
+                    if (((v1 >>> (32 - v2)) & 1) != 0) f |= CPU_Regs.CF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_DSHLd -> {
+                    if (((v1 >>> (32 - v2)) & 1) != 0) f |= CPU_Regs.CF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_DSHRw -> {
+                    if (((v1 >>> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x8000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_DSHRd -> {
+                    if (((v1 >>> (v2 - 1)) & 1) != 0) f |= CPU_Regs.CF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (((r ^ v1) & 0x80000000) != 0) f |= CPU_Regs.OF;
+                }
+                case t_DIV -> {
+                }
+                case t_NEGb -> {
+                    if (v1 != 0) f |= CPU_Regs.CF;
+                    if ((v1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                    if (v1 == 0x80) f |= CPU_Regs.OF;
+                }
+                case t_NEGw -> {
+                    if (v1 != 0) f |= CPU_Regs.CF;
+                    if ((v1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                    if (v1 == 0x8000) f |= CPU_Regs.OF;
+                }
+                case t_NEGd -> {
+                    if (v1 != 0) f |= CPU_Regs.CF;
+                    if ((v1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                    if (v1 == 0x80000000) f |= CPU_Regs.OF;
+                }
+            }
+            CPU_Regs.flags = (cur & ~CPU_Regs.FMASK_TEST) | f;
             type = t_UNKNOWN;
+            return CPU_Regs.flags;
         }
         return CPU_Regs.flags;
     }
 
     public static void FillFlagsNoCFOF() {
-        if (type != t_UNKNOWN) {
-            SET_FLAG(CPU_Regs.AF, type.AF());
-            SET_FLAG(CPU_Regs.ZF, type.ZF());
-            SET_FLAG(CPU_Regs.SF, type.SF());
-            SET_FLAG(CPU_Regs.PF, (parity_lookup[lf_resb() & 0xFF]) != 0);
+        int t = type;
+        if (t != t_UNKNOWN) {
+            int r = res;
+            int f = parity_lookup[r & 0xFF];
+            switch (t) {
+                case t_INCb -> {
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_INCw -> {
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_INCd -> {
+                    if ((r & 0x0f) == 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_DECb -> {
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_DECw -> {
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_DECd -> {
+                    if ((r & 0x0f) == 0x0f) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_ADDb, t_ADCb, t_SUBb, t_SBBb -> {
+                    if (((var1 ^ var2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ADDw, t_ADCw, t_SUBw, t_SBBw -> {
+                    if (((var1 ^ var2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ADDd, t_ADCd, t_SUBd, t_SBBd -> {
+                    if (((var1 ^ var2 ^ r) & 0x10) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_ORb -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ORw, t_DSHLw, t_DSHRw -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_ORd, t_DSHLd, t_DSHRd -> {
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_SHLb, t_SHRb, t_SARb -> {
+                    if ((var2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_SHLw, t_SHRw, t_SARw -> {
+                    if ((var2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_SHLd, t_SHRd, t_SARd -> {
+                    if ((var2 & 0x1f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_NEGb -> {
+                    if ((var1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x80) != 0) f |= CPU_Regs.SF;
+                }
+                case t_NEGw -> {
+                    if ((var1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if ((r & 0x8000) != 0) f |= CPU_Regs.SF;
+                }
+                case t_NEGd -> {
+                    if ((var1 & 0x0f) != 0) f |= CPU_Regs.AF;
+                    if (r == 0) f |= CPU_Regs.ZF;
+                    if (r < 0) f |= CPU_Regs.SF;
+                }
+                case t_MUL, t_DIV -> {
+                }
+            }
+            CPU_Regs.flags = (CPU_Regs.flags & ~(CPU_Regs.AF | CPU_Regs.ZF | CPU_Regs.SF | CPU_Regs.PF)) | f;
             type = t_UNKNOWN;
         }
     }

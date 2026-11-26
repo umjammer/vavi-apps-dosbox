@@ -97,8 +97,7 @@ public class SSE {
      * register, and two values that cannot be ordered - a NaN on either side - set all three.
      */
     public static void compare(double dst, double src) {
-        int flags = Flags.FillFlags();
-        flags &= ~CPU_Regs.FMASK_TEST;
+        int flags = CPU_Regs.flags & ~CPU_Regs.FMASK_TEST;
         if (Double.isNaN(dst) || Double.isNaN(src)) {
             flags |= CPU_Regs.ZF | CPU_Regs.PF | CPU_Regs.CF;
         } else if (dst == src) {
@@ -106,7 +105,8 @@ public class SSE {
         } else if (dst < src) {
             flags |= CPU_Regs.CF;
         }
-        Flags.SETFLAGSb(flags);
+        CPU_Regs.flags = flags | 2;
+        Flags.type = Flags.t_UNKNOWN;
     }
 
     // ---------------------------------------------------------------- the instructions themselves

@@ -25,9 +25,22 @@ final public class DecodeBlock extends Op {
     static public int compileThreshold = 0;
 
     public static boolean smc = false;
-    private boolean compiled = false;
+    private volatile boolean compiled = false;
     public final CacheBlockDynRec parent;
-    public Op compiledOp = null;
+    public volatile Op compiledOp = null;
+
+    void resetAfterRegionInvalidation() {
+        compiledOp = null;
+        runCount = 0;
+        compiled = false;
+    }
+
+    void cancelQueuedCompile() {
+        if (compiledOp == null) {
+            runCount = 0;
+            compiled = false;
+        }
+    }
 
     @Override
     public boolean throwsException() {
@@ -79,13 +92,18 @@ final public class DecodeBlock extends Op {
     public int call() {
         if (Compiler.ENABLED) {
             runCount++;
-            if (runCount == compileThreshold && !compiled && Dosbox.allPrivileges) {
+            if (runCount >= compileThreshold && !compiled && Dosbox.allPrivileges) {
                 compiled = true;
                 jdos.cpu.core_dynamic.Compiler.compile(this);
             }
-            if (compiledOp != null) {
-                parent.code = compiledOp;
-                return compiledOp.call();
+            Op cop = compiledOp;
+            if (cop != null) {
+                if (cop instanceof RegionOp rop && rop.invalidated) {
+                    resetAfterRegionInvalidation();
+                } else {
+                    parent.code = cop;
+                    return cop.call();
+                }
             }
         }
         Core.base_ds = CPU_Regs.reg_dsPhys.dword;

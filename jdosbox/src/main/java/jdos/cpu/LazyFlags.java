@@ -26,5 +26,5 @@ public final class LazyFlags {
     public int var2;
     public int res;
     public boolean oldcf;
-    public Flags.GetFlags type = Flags.t_UNKNOWN;
+    public int type = Flags.t_UNKNOWN;
 }

@@ -317,7 +317,7 @@ public class BuiltinModule extends Module {
      * out of the trail: what a program did before it gave up is in its window messages, not in
      * its arithmetic.
      */
-    private static boolean isNoise(String name) {
+    public static boolean isNoise(String name) {
         return switch (name) {
             case "_CIpow", "memset", "rand", "??2@YAPAXI@Z", "??3@YAXPAX@Z", "malloc", "free",
                  "lstrlenW", "lstrlenA", "lstrcpyW", "lstrcpyA",
@@ -334,9 +334,9 @@ public class BuiltinModule extends Module {
      * somewhere else, wine say, needs all of them instead: {@code -Djdos.trail=<n>} asks for a
      * ring of that many.
      */
-    private static final boolean TRAIL = !System.getProperty("jdos.trail", "false").equals("false");
+    public static final boolean TRAIL = !System.getProperty("jdos.trail", "false").equals("false");
 
-    static void record(String name, Integer[] args) {
+    public static void record(String name, Integer[] args) {
         if (!TRAIL || isNoise(name)) {
             return;
         }
@@ -351,12 +351,24 @@ public class BuiltinModule extends Module {
             recordingStartedAt = System.nanoTime();
         }
         StringBuilder sb = new StringBuilder();
-        sb.append((System.nanoTime() - recordingStartedAt) / 1000000L).append("ms ").append(name);
+        sb.append((System.nanoTime() - recordingStartedAt) / 1000000L).append("ms ");
+        // who called, and from where: a trail of several threads reads as one otherwise, and the
+        // return address is what finds the guest code that decided between two calls
+        jdos.win.builtin.kernel32.WinThread thread = jdos.win.system.Scheduler.getCurrentThread();
+        sb.append('[').append(thread != null ? Integer.toHexString(thread.getHandle()) : "-")
+                .append(' ').append(Integer.toHexString(jdos.cpu.CPU_Regs.reg_eip)).append("] ");
+        sb.append(name);
         for (Integer a : args) {
             sb.append(' ').append(Integer.toHexString(a));
         }
         recent[recentAt] = sb.toString();
         recentAt = (recentAt + 1) % recent.length;
+    }
+
+    /** forgets the trail, so the next machine's starts empty */
+    public static void clearRecent() {
+        recent = null;
+        recentAt = 0;
     }
 
     /** prints them oldest first */
